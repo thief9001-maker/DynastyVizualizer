@@ -1,6 +1,6 @@
 import sys
 
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar
 from PySide6.QtGui import QAction
 
 from database.db_manager import DatabaseManager
@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
         self._create_tools_menu(menubar)
         self._create_help_menu(menubar)
 
-    def _create_file_menu(self, menubar) -> None:
+    def _create_file_menu(self, menubar: QMenuBar) -> None:
         """Create the File menu with all file operations."""
         file_menu = menubar.addMenu("File")
 
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         file_menu.addSeparator()
         file_menu.addAction(self.action_exit)
 
-    def _create_edit_menu(self, menubar) -> None:
+    def _create_edit_menu(self, menubar: QMenuBar) -> None:
         """Create the Edit menu with editing operations."""
         edit_menu = menubar.addMenu("Edit")
 
@@ -89,7 +89,7 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(self.action_remove_person)
         edit_menu.addAction(self.action_add_new_family)
 
-    def _create_view_menu(self, menubar) -> None:
+    def _create_view_menu(self, menubar: QMenuBar) -> None:
         """Create the View menu with different visualization options."""
         view_menu = menubar.addMenu("View")
 
@@ -103,7 +103,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.action_view_dynasty)
         view_menu.addAction(self.action_view_data_table)
 
-    def _create_tools_menu(self, menubar) -> None:
+    def _create_tools_menu(self, menubar: QMenuBar) -> None:
         """Create the Tools menu with utility operations."""
         tools_menu = menubar.addMenu("Tools")
 
@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         tools_menu.addAction(self.action_validate_marriages)
         tools_menu.addAction(self.action_validate_parentage)
 
-    def _create_help_menu(self, menubar) -> None:
+    def _create_help_menu(self, menubar: QMenuBar) -> None:
         """Create the Help menu with application information."""
         help_menu = menubar.addMenu("Help")
 
