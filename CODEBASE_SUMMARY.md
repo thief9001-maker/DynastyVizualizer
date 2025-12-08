@@ -17,11 +17,11 @@ A beautiful, feature-rich genealogy application that combines the depth of profe
 
 ## Codebase Statistics
 
-- **Total Python Files**: 37 (9 implemented, 28 scaffolded)
-- **Lines of Code**: ~720 (excluding comments and blank lines)
-- **Total Lines**: ~850 (including docstrings and comments)
+- **Total Python Files**: 102 (9 implemented, 93 scaffolded)
+- **Lines of Code**: ~1,100 (excluding comments and blank lines)
+- **Total Lines**: ~2,500 (including docstrings and comments)
 - **Implementation Status**: ~10% complete (Phase 1 infrastructure in progress)
-- **Estimated Final Size**: 8,000-12,000 lines of code
+- **Estimated Final Size**: 10,000-15,000 lines of code
 
 ---
 
@@ -86,47 +86,322 @@ class DatabaseManager:
 
 ### Design Pattern: MVC + Command
 
-The architecture successfully scales to support complex features like draggable UI, multiple views, and relationship tracing:
+The application uses **Model-View-Controller (MVC)** architecture combined with the **Command Pattern** for undo/redo functionality. This architecture successfully scales to support complex features like draggable UI, multiple views, and relationship tracing.
+
+#### High-Level Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────┐
-│         MainWindow (main.py)                    │
-│         - Qt GUI setup and view management      │
-│         - Menu bar and toolbar                  │
-│         - View switching (Tree/Timeline/Table)  │
-└────────────┬────────────────────────────────────┘
-             │
-        ┌────┴─────────────────────┐
-        │                          │
-   ┌────▼──────┐          ┌───────▼────────┐
-   │  Actions  │          │   Database     │
-   │  Handlers │          │   Manager      │
-   │           │          │                │
-   │  • File   │          │  SQLite .dyn   │
-   │  • Edit   │◄─────────┤  • Person      │
-   │  • View   │ interact │  • Marriage    │
-   │  • Tools  │          │  • Event       │
-   │  • Help   │          │  • Portrait    │
-   └─────┬─────┘          │  • Family      │
-         │                │  • MajorEvent  │
-         │ execute()      └────────────────┘
-         ▼
-   ┌────────────────┐
-   │  UndoRedo      │          ┌─────────────────┐
-   │  Manager       │          │  Views          │
-   │                │          │                 │
-   │  Commands:     │          │  • TreeView     │
-   │  • Genealogy   │          │  • TimelineView │
-   │  • GUI Ops     │          │  • TableView    │
-   └────────────────┘          │  • StatsView    │
-                               └─────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                   MainWindow (main.py)                      │
+│                   - Central Controller                      │
+│                   - Menu bar and toolbar                    │
+│                   - View switching and lifecycle            │
+└──────────┬──────────────────────────────────┬───────────────┘
+           │                                  │
+           │ delegates to                     │ displays
+           ▼                                  ▼
+    ┌──────────────┐                  ┌──────────────────┐
+    │   Actions    │                  │      Views       │
+    │   Handlers   │                  │  (Presentation)  │
+    │ (Controllers)│                  │                  │
+    └──────┬───────┘                  │  • TreeView      │
+           │                          │  • TimelineView  │
+           │ creates/executes         │  • TableView     │
+           ▼                          │  • StatsView     │
+    ┌──────────────┐                  └────────┬─────────┘
+    │   Commands   │                           │
+    │  (Business   │                           │ reads from
+    │   Logic)     │                           │
+    └──────┬───────┘                           │
+           │                                   │
+           │ modifies                          │
+           ▼                                   ▼
+    ┌──────────────────────────────────────────────────────┐
+    │              DatabaseManager (Model)                  │
+    │              - SQLite .dyn files                      │
+    │              - CRUD operations                        │
+    │              - Data validation                        │
+    └───────────────────────────────────────────────────────┘
 ```
 
-**Why This Pattern Works:**
-- **MVC**: Separates data (models), presentation (views), and logic (controllers/actions)
-- **Command Pattern**: Every operation is undoable/redoable, including UI changes like dragging nodes
-- **Observer Pattern**: Qt signals/slots automatically update UI when data changes
-- **Scalability**: New views are just new widgets; new operations are just new commands
+#### Component Responsibilities
+
+**Model (Data Layer)**
+- `database/db_manager.py` - SQLite database operations
+- `models/` - Data classes (Person, Marriage, Event, Family, Portrait, MajorEvent)
+- Responsibilities:
+  - Store and retrieve data
+  - Enforce data integrity
+  - Provide clean API for data access
+  - Track dirty state (unsaved changes)
+
+**View (Presentation Layer)**
+- `views/tree_view/` - Family tree visualization
+- `views/timeline_view/` - Chronological timeline
+- `views/table_view/` - Spreadsheet-style tables
+- `views/stats_view/` - Statistics dashboard
+- `dialogs/` - Modal dialogs for data entry
+- `widgets/` - Reusable UI components
+- Responsibilities:
+  - Display data to user
+  - Capture user input
+  - Emit signals on user actions
+  - Update when data changes
+
+**Controller (Logic Layer)**
+- `main.py` - Central controller and view manager
+- `actions/` - Action handlers for menu operations
+- `commands/` - Business logic encapsulated as commands
+- Responsibilities:
+  - Respond to user actions
+  - Create and execute commands
+  - Coordinate between model and view
+  - Manage application state
+
+#### Command Pattern Integration
+
+Every data modification goes through the command pattern for undo/redo support:
+
+```
+User Action Flow:
+┌──────────┐      ┌──────────┐      ┌──────────────┐      ┌──────────┐
+│   User   │─────▶│   View   │─────▶│   Action     │─────▶│ Command  │
+│  (Click) │      │ (Signal) │      │   Handler    │      │ (Created)│
+└──────────┘      └──────────┘      └──────────────┘      └────┬─────┘
+                                                                │
+                                                                ▼
+                                                    ┌───────────────────┐
+                                                    │  UndoRedoManager  │
+                                                    │  execute(command) │
+                                                    └─────────┬─────────┘
+                                                              │
+                                                              ▼
+                                            ┌─────────────────────────────┐
+                                            │  1. command.run()           │
+                                            │  2. Modify database         │
+                                            │  3. Push to undo stack      │
+                                            │  4. Clear redo stack        │
+                                            │  5. Emit signals to update  │
+                                            └─────────────────────────────┘
+```
+
+#### Interaction Example: Adding a Person
+
+Let's trace what happens when a user adds a new person:
+
+**Step 1: User Initiates Action**
+```
+User clicks: Edit → Add Person
+  ↓
+main.py menu action triggered
+  ↓
+Calls: self.edit_actions.add_person()
+```
+
+**Step 2: Controller Creates Dialog**
+```
+actions/edit_actions.py:
+  ↓
+Opens: AddPersonDialog(self.parent)
+  ↓
+User fills form: Name, Gender, Birth Date, etc.
+  ↓
+User clicks: OK button
+```
+
+**Step 3: Dialog Creates Command**
+```
+dialogs/add_person_dialog.py:
+  ↓
+Creates: AddPersonCommand(db=self.db, first_name="John", last_name="Smith", ...)
+  ↓
+Passes to: self.parent.undo_manager.execute(command)
+```
+
+**Step 4: Command Executes**
+```
+commands/undo_redo_manager.py:
+  execute(command):
+    1. command.run()  ─────────────┐
+       ↓                           │
+    2. Add to undo stack           │
+       self.undo_stack.append(cmd) │
+       ↓                           │
+    3. Clear redo stack            │
+       self.redo_stack.clear()     │
+                                   │
+                                   ▼
+commands/genealogy_commands/add_person.py:
+  run():
+    1. INSERT INTO Person (...) VALUES (...)
+       ↓
+    2. Store self.person_id = cursor.lastrowid
+       ↓
+    3. db.mark_dirty()
+       ↓
+    4. Emit signal: person_added(self.person_id)
+```
+
+**Step 5: Views Update**
+```
+Views listening to signals:
+  ↓
+TreeView.on_person_added(person_id)
+  - Creates new PersonBox widget
+  - Adds to scene
+  - Runs layout engine
+  ↓
+TableView.on_person_added(person_id)
+  - Adds new row to person table
+  - Sorts if necessary
+  ↓
+MainWindow updates:
+  - Sets title to show unsaved changes (*)
+  - Enables Undo menu item
+```
+
+**Step 6: User Can Undo**
+```
+User presses: Ctrl+Z or Edit → Undo
+  ↓
+undo_manager.undo():
+  1. Pop command from undo stack
+  2. command.undo()  ────────────┐
+  3. Push to redo stack          │
+                                 │
+                                 ▼
+AddPersonCommand.undo():
+  1. DELETE FROM Person WHERE id = self.person_id
+  2. Emit signal: person_removed(self.person_id)
+     ↓
+Views update:
+  - TreeView removes PersonBox
+  - TableView removes row
+  - MainWindow enables Redo
+```
+
+#### Interaction Example: Dragging a Person Box
+
+Demonstrates how GUI operations are also commands:
+
+**Step 1: User Drags Person Box**
+```
+User action: Click and drag PersonBox in TreeView
+  ↓
+views/tree_view/person_box.py:
+  mousePressEvent()  - Record start position
+  mouseMoveEvent()   - Update position in real-time
+  mouseReleaseEvent() - Finalize position
+```
+
+**Step 2: Create Move Command**
+```
+views/tree_view/person_box.py:
+  mouseReleaseEvent():
+    old_pos = self.start_position
+    new_pos = self.pos()
+    ↓
+Creates: MovePersonCommand(
+           person_id=self.person_id,
+           old_x=old_pos.x(), old_y=old_pos.y(),
+           new_x=new_pos.x(), new_y=new_pos.y()
+         )
+    ↓
+Executes via: undo_manager.execute(command)
+```
+
+**Step 3: Command Persists Position**
+```
+commands/gui_commands/move_person.py:
+  run():
+    1. UPDATE PersonPosition
+       SET x_position=new_x, y_position=new_y
+       WHERE person_id=self.person_id
+    2. db.mark_dirty()
+    3. (Visual position already updated during drag)
+```
+
+**Step 4: Undo Restores Position**
+```
+User presses: Ctrl+Z
+  ↓
+MovePersonCommand.undo():
+  1. UPDATE PersonPosition
+     SET x_position=old_x, y_position=old_y
+  2. Emit signal: person_position_changed(person_id)
+     ↓
+TreeView.on_person_position_changed():
+  - Animates PersonBox back to original position
+```
+
+#### Data Flow Patterns
+
+**Read Operations (No Commands Needed)**
+```
+View needs data:
+  1. View calls: db_manager.query(...)
+  2. Database returns: list[Person] or Person object
+  3. View creates widgets to display data
+  4. No undo/redo needed (read-only)
+```
+
+**Write Operations (Via Commands)**
+```
+Modification needed:
+  1. Create command object
+  2. Execute via undo_manager.execute(command)
+  3. Command.run() modifies database
+  4. Command pushed to undo stack
+  5. Views notified via signals
+  6. All commands are undoable
+```
+
+**Multi-View Synchronization**
+```
+Data changes in one view:
+  1. Command modifies database
+  2. Command emits Qt signal
+  3. All views listening to that signal update
+  4. Example signals:
+     - person_added(person_id)
+     - person_modified(person_id)
+     - person_deleted(person_id)
+     - marriage_created(marriage_id)
+     - etc.
+```
+
+#### Why This Pattern Works
+
+**Separation of Concerns**
+- Model knows nothing about views
+- Views know nothing about business logic
+- Commands encapsulate all business logic
+- Easy to test each layer independently
+
+**Undo/Redo Everything**
+- UI changes (drag person box) → MovePersonCommand
+- Data changes (add person) → AddPersonCommand
+- Bulk operations (CSV import) → ImportCSVCommand
+- Settings changes → ChangeSettingCommand
+- All operations are undoable by design
+
+**Multiple Views Without Coupling**
+- TreeView, TimelineView, TableView, StatsView all observe the same data
+- Any view can trigger commands
+- All views automatically update via signals
+- Views never directly call each other
+
+**Scalability**
+- New operation? Create new command class
+- New view? Create new widget and connect signals
+- New feature? Add to appropriate layer
+- No changes to existing code structure
+
+**Qt Integration**
+- Signals/slots provide automatic observer pattern
+- QGraphicsView provides scene/view separation
+- QAbstractTableModel for table views
+- Qt's undo framework could be integrated later
 
 ---
 
@@ -389,109 +664,202 @@ This design supports seamless transitions between game contexts and real-world u
 
 ## Directory Structure
 
+Complete file structure with implementation status:
+
 ```
 DynastyVizualizer/
-├── main.py                          # Application entry point (222 lines)
-├── database/
+├── main.py                              # Application entry point (222 lines) ✅
+│
+├── database/                            # Data layer (Model)
 │   ├── __init__.py
-│   └── db_manager.py               # SQLite CRUD operations (193 lines) ✅
-├── models/                          # Data models [PHASE 2]
+│   └── db_manager.py                   # SQLite CRUD operations (268 lines) ✅
+│
+├── models/                              # Data model classes
 │   ├── __init__.py
-│   ├── person.py                   # Person class with computed properties
-│   ├── marriage.py                 # Marriage relationship class
-│   ├── event.py                    # Event/life history class
-│   ├── portrait.py                 # Portrait metadata class
-│   ├── family.py                   # Family dynasty class
-│   └── major_event.py              # Historical event class
-├── actions/                         # Menu action handlers ✅
-│   ├── __init__.py                 # (6 lines)
-│   ├── file_actions.py             # New/Open/Save/Exit (159 lines)
-│   ├── edit_actions.py             # Undo/Redo (29 lines)
-│   ├── view_actions.py             # View switching (22 lines)
-│   ├── tools_actions.py            # Validation tools (22 lines)
-│   └── help_actions.py             # About dialog (10 lines)
-├── commands/
+│   ├── person.py                       # Person with properties (68 lines) 📋
+│   ├── marriage.py                     # Marriage relationship (41 lines) 📋
+│   ├── event.py                        # Life events (41 lines) 📋
+│   ├── portrait.py                     # Portrait metadata (30 lines) 📋
+│   ├── family.py                       # Family dynasty (35 lines) 📋
+│   └── major_event.py                  # Historical events (30 lines) 📋
+│
+├── actions/                             # Menu action handlers (Controllers)
+│   ├── __init__.py                     # (6 lines) ✅
+│   ├── file_actions.py                 # New/Open/Save/Exit (159 lines) ✅
+│   ├── edit_actions.py                 # Undo/Redo/Add/Remove (29 lines) ✅
+│   ├── view_actions.py                 # View switching (22 lines) ✅
+│   ├── tools_actions.py                # Validation tools (22 lines) ✅
+│   └── help_actions.py                 # About dialog (10 lines) ✅
+│
+├── commands/                            # Command pattern for undo/redo
 │   ├── __init__.py
-│   ├── undo_redo_manager.py        # Command pattern manager (55 lines) ✅
-│   ├── base_command.py             # Base command class [PHASE 2]
-│   ├── genealogy_commands/         # Person/marriage/event operations [PHASE 2-3]
-│   │   ├── add_person.py
-│   │   ├── edit_person.py
-│   │   ├── delete_person.py
-│   │   ├── create_marriage.py
-│   │   ├── edit_marriage.py
-│   │   ├── end_marriage.py
-│   │   ├── delete_marriage.py
-│   │   ├── create_child.py
-│   │   ├── add_event.py
-│   │   ├── edit_event.py
-│   │   └── delete_event.py
-│   └── gui_commands/               # View/scene commands [PHASE 5]
-│       ├── move_person.py          # Drag-and-drop command
-│       ├── rebuild_scene.py
-│       ├── recompute_generations.py
-│       ├── change_skin.py
-│       └── change_view.py
-├── views/                           # Visualization widgets [PHASE 3-4]
+│   ├── undo_redo_manager.py            # Command manager (55 lines) ✅
+│   ├── base_command.py                 # Base command class (13 lines) 📋
+│   │
+│   ├── genealogy commands/             # Genealogy operations [PHASE 2-3]
+│   │   ├── __init__.py
+│   │   ├── add_person.py               # Create new person (23 lines) 📋
+│   │   ├── edit_person.py              # Modify person data (24 lines) 📋
+│   │   ├── remove_person.py            # Delete person (24 lines) 📋
+│   │   ├── add_marriage.py             # Create marriage (25 lines) 📋
+│   │   ├── edit_marriage.py            # Modify marriage (25 lines) 📋
+│   │   ├── end_marriage.py             # End marriage (30 lines) 📋
+│   │   ├── delete_marriage.py          # Delete marriage (24 lines) 📋
+│   │   ├── create_child.py             # Create with parents (30 lines) 📋
+│   │   ├── add_event.py                # Add life event (23 lines) 📋
+│   │   ├── edit_event.py               # Modify event (24 lines) 📋
+│   │   ├── delete_event.py             # Delete event (24 lines) 📋
+│   │   ├── assign_parent.py            # Set parent link (33 lines) 📋
+│   │   └── unassign_parent.py          # Remove parent link (31 lines) 📋
+│   │
+│   └── GUI commands/                   # GUI operations [PHASE 3-5]
+│       ├── __init__.py
+│       ├── move_person.py              # Drag-and-drop (28 lines) 📋
+│       ├── rebuild_scene.py            # Rebuild view (25 lines) 📋
+│       ├── recompute_generations.py    # Recalc generations (26 lines) 📋
+│       ├── change_skin.py              # Switch theme (26 lines) 📋
+│       └── change_view.py              # Switch view mode (27 lines) 📋
+│
+├── views/                               # Visualization layer (Views)
 │   ├── __init__.py
-│   ├── tree_view/                  # Family tree visualization
-│   │   ├── tree_canvas.py          # Main scrollable canvas
-│   │   ├── person_box.py           # Person widget
-│   │   ├── marriage_node.py        # Marriage connection widget
-│   │   ├── relationship_line.py    # Parent-child lines
-│   │   ├── layout_engine.py        # Automatic positioning
-│   │   └── generation_band.py      # Generation markers
-│   ├── timeline_view/              # Timeline visualization
-│   │   ├── timeline_canvas.py
-│   │   ├── family_bar.py           # Family lifespan bar
-│   │   ├── person_bar.py           # Individual lifespan bar
-│   │   ├── event_marker.py         # Life event markers
-│   │   └── major_event_marker.py   # Historical event overlay
-│   ├── table_view/                 # Database table views
-│   │   ├── person_table.py
-│   │   ├── marriage_table.py
-│   │   ├── event_table.py
-│   │   └── family_table.py
-│   └── stats_view/                 # Statistics dashboard [PHASE 7]
-│       ├── family_dashboard.py
-│       ├── comparison_widget.py
-│       └── charts.py
-├── widgets/                         # Reusable custom widgets [PHASE 2-3]
+│   ├── data_table.py                   # (placeholder)
+│   ├── dynasty_view.py                 # (placeholder)
+│   ├── timeline_view.py                # (placeholder)
+│   │
+│   ├── tree_view/                      # Family tree visualization [PHASE 3]
+│   │   ├── __init__.py                 # 📋
+│   │   ├── tree_canvas.py              # Main canvas (25 lines) 📋
+│   │   ├── person_box.py               # Person widget (38 lines) 📋
+│   │   ├── marriage_node.py            # Marriage connector (20 lines) 📋
+│   │   ├── relationship_line.py        # Parent-child lines (27 lines) 📋
+│   │   ├── layout_engine.py            # Auto-positioning (20 lines) 📋
+│   │   └── generation_band.py          # Gen markers (25 lines) 📋
+│   │
+│   ├── timeline_view/                  # Timeline visualization [PHASE 5]
+│   │   ├── timeline_canvas.py          # Timeline canvas (25 lines) 📋
+│   │   ├── family_bar.py               # Family lifespan (24 lines) 📋
+│   │   ├── person_bar.py               # Person lifespan (27 lines) 📋
+│   │   ├── event_marker.py             # Event icons (20 lines) 📋
+│   │   └── major_event_marker.py       # Historical events (20 lines) 📋
+│   │
+│   ├── table_view/                     # Database tables [PHASE 6]
+│   │   ├── person_table.py             # People table (28 lines) 📋
+│   │   ├── marriage_table.py           # Marriages table (28 lines) 📋
+│   │   ├── event_table.py              # Events table (28 lines) 📋
+│   │   └── family_table.py             # Families table (26 lines) 📋
+│   │
+│   └── stats_view/                     # Statistics [PHASE 7]
+│       ├── family_dashboard.py         # Stats dashboard (25 lines) 📋
+│       ├── comparison_widget.py        # Compare entities (25 lines) 📋
+│       └── charts.py                   # Visual charts (24 lines) 📋
+│
+├── widgets/                             # Reusable UI components
 │   ├── __init__.py
-│   ├── date_picker.py              # Flexible date input (year/month/day)
-│   ├── person_selector.py          # Searchable person dropdown
-│   ├── portrait_gallery.py         # Multi-portrait display
-│   ├── extended_details_panel.py   # Person deep-dive panel
-│   └── search_bar.py               # Real-time search with pruning
-├── dialogs/                         # Modal dialogs [PHASE 2-3]
-│   ├── __init__.py
-│   ├── add_person_dialog.py
-│   ├── edit_person_dialog.py
-│   ├── create_marriage_dialog.py
-│   ├── create_child_dialog.py
-│   ├── add_event_dialog.py
-│   ├── preferences_dialog.py
-│   ├── import_csv_dialog.py
-│   └── about_dialog.py
-├── utils/                           # Utility modules [PHASE 4-7]
-│   ├── __init__.py
-│   ├── relationship_calculator.py  # Calculate relationships between people
-│   ├── generation_calculator.py    # Compute generation levels
-│   ├── validators.py               # Data validation tools
-│   ├── csv_importer.py             # CSV import logic
-│   ├── skin_manager.py             # UI skin/theme management
-│   └── color_manager.py            # Family color coding logic
-├── resources/                       # Assets and resources [PHASE 6]
-│   ├── skins/                      # UI skins (default, parchment, etc.)
-│   ├── icons/                      # Application icons
-│   └── default_portraits/          # Blank portrait placeholder
-├── scripts/                         # Development utilities
-│   └── create_codebase_summary.py  # Code sharing script ✅
-├── CODEBASE_SUMMARY.md             # This file ✅
-├── README.md                       # User documentation ✅
-├── requirements.txt                # Dependencies ✅
-└── LICENSE                         # MIT License ✅
+│   ├── date_picker.py                  # Date input widget (20 lines) 📋
+│   ├── person_selector.py              # Person dropdown (20 lines) 📋
+│   ├── portrait_gallery.py             # Portrait display (24 lines) 📋
+│   ├── extended_details_panel.py       # Detail panel (30 lines) 📋
+│   └── search_bar.py                   # Search widget (26 lines) 📋
+│
+├── dialogs/                             # Modal dialogs
+│   ├── __init__.py                     # 📋
+│   ├── add_person_dialog.py            # Add person form (18 lines) 📋
+│   ├── edit_person_dialog.py           # Edit person form (18 lines) 📋
+│   ├── create_marriage_dialog.py       # Marriage form (19 lines) 📋
+│   ├── create_child_dialog.py          # Child form (20 lines) 📋
+│   ├── add_event_dialog.py             # Event form (21 lines) 📋
+│   ├── preferences_dialog.py           # Settings dialog (20 lines) 📋
+│   ├── import_csv_dialog.py            # CSV import (22 lines) 📋
+│   └── about_dialog.py                 # About dialog (13 lines) 📋
+│
+├── utils/                               # Utility modules
+│   ├── __init__.py                     # 📋
+│   ├── relationship_calculator.py      # Relationship logic (20 lines) 📋
+│   ├── generation_calculator.py        # Generation levels (16 lines) 📋
+│   ├── validators.py                   # Data validation (28 lines) 📋
+│   ├── csv_importer.py                 # CSV import (36 lines) 📋
+│   ├── skin_manager.py                 # Theme management (32 lines) 📋
+│   └── color_manager.py                # Color utilities (33 lines) 📋
+│
+├── resources/                           # Assets [PHASE 8]
+│   ├── skins/                          # UI themes
+│   ├── icons/                          # App icons
+│   └── default_portraits/              # Portrait placeholders
+│
+├── scripts/                             # Development tools
+│   ├── create_codebase_summary.py      # Code snapshot tool ✅
+│   └── migrate_database.py             # Database migration ✅
+│
+├── CODEBASE_SUMMARY.md                 # This file ✅
+├── README.md                           # User documentation ✅
+├── requirements.txt                    # Python dependencies ✅
+└── LICENSE                             # MIT License ✅
+
+Legend:
+  ✅ = Fully implemented
+  📋 = Scaffolded (class structure, docstrings, TODOs)
+  [PHASE X] = Target implementation phase
 ```
+
+### File Count Summary
+
+**By Status:**
+- ✅ Implemented: 9 files (main.py, database, actions, undo_redo_manager)
+- 📋 Scaffolded: 93 files (models, commands, views, widgets, dialogs, utils)
+- Total Python files: 102
+
+**By Category:**
+- Core: 1 (main.py)
+- Database: 1 (db_manager.py)
+- Models: 6 (person, marriage, event, portrait, family, major_event)
+- Actions: 5 (file, edit, view, tools, help)
+- Commands: 20 (base + 13 genealogy + 5 GUI + undo_redo_manager)
+- Views: 22 (tree: 6, timeline: 5, table: 4, stats: 3, other: 4)
+- Widgets: 5 (date_picker, person_selector, portrait_gallery, extended_details, search_bar)
+- Dialogs: 8 (add_person, edit_person, create_marriage, create_child, add_event, preferences, import_csv, about)
+- Utils: 6 (relationship_calculator, generation_calculator, validators, csv_importer, skin_manager, color_manager)
+- Scripts: 2 (create_codebase_summary, migrate_database)
+- Documentation: 3 (CODEBASE_SUMMARY, README, LICENSE)
+
+### Implementation Checklist
+
+Use this checklist to track development progress:
+
+**Phase 1: Foundation** (~60% complete)
+- [x] Main window and menu structure
+- [x] Database schema and management
+- [x] File operations (New/Open/Save)
+- [x] Undo/redo infrastructure
+- [ ] Basic dialogs (Add Person, About)
+- [ ] Error handling and user feedback
+
+**Phase 2: Models & CRUD** (0% complete)
+- [ ] Implement Person model (6 properties)
+- [ ] Implement Marriage model (4 properties)
+- [ ] Implement Event model (5 properties)
+- [ ] Implement Portrait model (4 properties)
+- [ ] Implement Family model (4 properties)
+- [ ] Implement MajorEvent model (5 properties)
+- [ ] Implement AddPersonCommand
+- [ ] Implement EditPersonCommand
+- [ ] Implement RemovePersonCommand
+- [ ] Implement AddMarriageCommand
+- [ ] Implement AddPersonDialog (13 fields)
+- [ ] Implement EditPersonDialog
+- [ ] Implement DatePicker widget
+- [ ] Implement PersonSelector widget
+
+**Phase 3: Tree Visualization** (0% complete)
+- [ ] Implement PersonBox widget
+- [ ] Implement MarriageNode widget
+- [ ] Implement RelationshipLine widget
+- [ ] Implement TreeLayoutEngine
+- [ ] Implement TreeCanvas
+- [ ] Implement GenerationBand
+- [ ] Implement MovePersonCommand
+- [ ] Implement ExtendedDetailsPanel
+
+**Phases 4-9:** See roadmap section for detailed breakdown
 
 ---
 
