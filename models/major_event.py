@@ -1,35 +1,35 @@
-"""Data model for Event entities."""
+"""Data model for MajorEvent entities."""
 
 
-class Event:
-    """Represents a life event for a person."""
+class MajorEvent:
+    """Represents a major historical event affecting multiple families."""
 
     def __init__(
         self,
         event_id: int,
-        person_id: int,
+        event_name: str,
         event_type: str,
-        event_title: str,
-        start_year: int | None = None,
+        start_year: int,
         start_month: int | None = None,
         start_day: int | None = None,
         end_year: int | None = None,
         end_month: int | None = None,
         end_day: int | None = None,
-        notes: str | None = None,
+        description: str | None = None,
+        color: str | None = None,
     ) -> None:
-        """Initialize an event."""
+        """Initialize a major historical event."""
         self.id = event_id
-        self.person_id = person_id
+        self.event_name = event_name
         self.event_type = event_type
-        self.event_title = event_title
         self.start_year = start_year
         self.start_month = start_month
         self.start_day = start_day
         self.end_year = end_year
         self.end_month = end_month
         self.end_day = end_day
-        self.notes = notes
+        self.description = description
+        self.color = color
 
     @property
     def is_ongoing(self) -> bool:

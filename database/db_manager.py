@@ -143,49 +143,127 @@ class DatabaseManager:
         cursor = self.conn.cursor()
 
         schema_sql = """
+        -- Person table: Core genealogical data
+        -- Dates support flexible precision (year, year/month, or year/month/day)
         CREATE TABLE IF NOT EXISTS Person (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             first_name TEXT NOT NULL,
             last_name TEXT NOT NULL,
+            maiden_name TEXT,
             gender TEXT,
-            birth_month INTEGER,
             birth_year INTEGER,
-            death_month INTEGER,
+            birth_month INTEGER,
+            birth_day INTEGER,
             death_year INTEGER,
-            arrival_month INTEGER,
+            death_month INTEGER,
+            death_day INTEGER,
             arrival_year INTEGER,
+            arrival_month INTEGER,
+            arrival_day INTEGER,
+            moved_out_year INTEGER,
+            moved_out_month INTEGER,
+            moved_out_day INTEGER,
             father_id INTEGER,
             mother_id INTEGER,
-            moved_out_month INTEGER,
-            moved_out_year INTEGER
+            family_id INTEGER,
+            notes TEXT,
+            FOREIGN KEY(father_id) REFERENCES Person(id) ON DELETE SET NULL,
+            FOREIGN KEY(mother_id) REFERENCES Person(id) ON DELETE SET NULL,
+            FOREIGN KEY(family_id) REFERENCES Family(id) ON DELETE SET NULL
         );
-        
+
+        -- Event table: Life events (jobs, illnesses, moves, etc.)
         CREATE TABLE IF NOT EXISTS Event (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             person_id INTEGER NOT NULL,
             event_type TEXT NOT NULL,
             event_title TEXT NOT NULL,
-            start_month INTEGER,
             start_year INTEGER,
-            end_month INTEGER,
+            start_month INTEGER,
+            start_day INTEGER,
             end_year INTEGER,
+            end_month INTEGER,
+            end_day INTEGER,
             notes TEXT,
-            FOREIGN KEY(person_id) REFERENCES Person(id)
+            FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
         );
 
+        -- Marriage table: Relationships between people
         CREATE TABLE IF NOT EXISTS Marriage (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             spouse1_id INTEGER,
             spouse2_id INTEGER,
-            marriage_month INTEGER,
             marriage_year INTEGER,
-            dissolution_month INTEGER,
+            marriage_month INTEGER,
+            marriage_day INTEGER,
             dissolution_year INTEGER,
+            dissolution_month INTEGER,
+            dissolution_day INTEGER,
             dissolution_reason TEXT,
+            marriage_type TEXT DEFAULT 'spouse',
             FOREIGN KEY(spouse1_id) REFERENCES Person(id)
                 ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY(spouse2_id) REFERENCES Person(id)
                 ON UPDATE CASCADE ON DELETE SET NULL
+        );
+
+        -- Portrait table: Multiple images per person with date ranges
+        CREATE TABLE IF NOT EXISTS Portrait (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            person_id INTEGER NOT NULL,
+            image_path TEXT NOT NULL,
+            valid_from_year INTEGER,
+            valid_from_month INTEGER,
+            valid_from_day INTEGER,
+            valid_to_year INTEGER,
+            valid_to_month INTEGER,
+            valid_to_day INTEGER,
+            is_primary INTEGER DEFAULT 0,
+            display_order INTEGER DEFAULT 0,
+            FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
+        );
+
+        -- Family table: Dynasty/family groupings
+        CREATE TABLE IF NOT EXISTS Family (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            surname TEXT NOT NULL,
+            move_in_year INTEGER,
+            move_in_month INTEGER,
+            move_in_day INTEGER,
+            coat_of_arms_path TEXT,
+            family_color TEXT,
+            is_extinct INTEGER DEFAULT 0,
+            notes TEXT
+        );
+
+        -- MajorEvent table: Historical events affecting multiple families
+        CREATE TABLE IF NOT EXISTS MajorEvent (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_name TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            start_year INTEGER NOT NULL,
+            start_month INTEGER,
+            start_day INTEGER,
+            end_year INTEGER,
+            end_month INTEGER,
+            end_day INTEGER,
+            description TEXT,
+            color TEXT
+        );
+
+        -- PersonPosition table: Custom positions for draggable UI
+        CREATE TABLE IF NOT EXISTS PersonPosition (
+            person_id INTEGER PRIMARY KEY,
+            view_type TEXT NOT NULL,
+            x_position REAL NOT NULL,
+            y_position REAL NOT NULL,
+            FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
+        );
+
+        -- Settings table: User preferences and application settings
+        CREATE TABLE IF NOT EXISTS Settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL
         );
         """
 

@@ -1,34 +1,169 @@
 # DynastyVizualizer
 
-A family tree visualization and management application for the game [Ostriv](https://store.steampowered.com/app/773790/Ostriv/).
+A beautiful, feature-rich family tree visualization and genealogy management application for games with multi-generational families.
 
 ## Overview
 
-DynastyVizualizer provides an intuitive GUI for creating, editing, and visualizing multi-generational family dynasties. Track births, deaths, marriages, occupations, and other life events across your Ostriv settlement's families.
+DynastyVizualizer brings professional genealogy software features to gaming communities. Originally designed for [Ostriv](https://store.steampowered.com/app/773790/Ostriv/), it provides an intuitive interface for tracking complex family dynasties across generations, with support for multiple visualization modes, relationship tracing, portrait galleries, and historical event tracking.
 
-## Features
+### Why DynastyVizualizer?
 
-### Current Features (v0.1)
+- **Multiple Views**: Visualize your dynasty as an interactive tree, chronological timeline, data table, or statistics dashboard
+- **Intelligent Layouts**: Automatic generational hierarchy with cohort positioning (families that move in together are displayed near age-peers)
+- **Rich Relationships**: Track marriages, divorces, remarriages, affairs, step-families, and complex genealogical connections
+- **Visual Customization**: Themeable UI with skins (parchment, blueprint, modern), portrait galleries, and family color coding
+- **Powerful Search**: Real-time filtering and relationship path tracing between any two people
+- **Full History**: Personal event logs, job changes, illnesses, injuries, and major historical events
+- **Undo/Redo Everything**: Every operation is reversible, from data edits to UI changes
+
+---
+
+## Current Features (v0.1 - Early Development)
+
+### ✅ Implemented
 - ✅ Create and manage dynasty database files (`.dyn` format)
-- ✅ SQLite-based data persistence
-- ✅ Undo/redo support for all operations
-- ✅ File operations (New, Open, Save, Save As)
+- ✅ Comprehensive database schema with 8 tables (flexible date support)
+- ✅ SQLite-based data persistence with migration support
+- ✅ File operations (New, Open, Save, Save As) - **fully functional**
 - ✅ Unsaved changes tracking and prompting
+- ✅ Clean, professional UI framework with menu structure
+- ✅ Undo/redo infrastructure (Command pattern framework)
 
-### Planned Features
-- 📋 Person, marriage, and event data management
-- 📋 Interactive dynasty tree visualization
-- 📋 Timeline view for chronological events
-- 📋 Data table view for spreadsheet-like editing
-- 📋 Data validation tools (marriages, parentage)
-- 📋 Generation computation
-- 📋 Import/export capabilities
+### 🚧 In Progress (Phase 1 Completion)
+- 🚧 Edit menu dialogs (Add Person, Remove Person)
+- 🚧 View menu functionality (view switching stubs)
+- 🚧 Tools menu functionality (validation stubs)
+- 🚧 Help menu (About dialog)
+- 🚧 Error handling and user feedback dialogs
+
+---
+
+## Planned Features
+
+### 🎯 Phase 2: Data Management (Weeks 3-5)
+- 📋 Add, edit, and delete people with flexible date handling (year/month/day optional)
+- 📋 Create marriages and parent-child relationships
+- 📋 Track multiple marriages and divorces
+- 📋 Support for portraits with date-based switching
+- 📋 Personal event logs (jobs, illnesses, residences, etc.)
+- 📋 Maiden name tracking and configurable surname inheritance
+
+### 🌳 Phase 3: Interactive Family Tree (Weeks 6-10)
+- 📋 Visual person boxes with portraits, names, and key dates
+- 📋 **Drag-and-drop**: Reposition people or drag onto each other to create marriages
+- 📋 Automatic generational layout with cohort positioning
+- 📋 **In-place editing**: Click any field to edit directly
+- 📋 **Gear icon**: Opens extended details panel with tabs for:
+  - Basic info and all editable fields
+  - Personal event history
+  - Relationship overview
+  - Portrait gallery
+- 📋 Generation bands showing hierarchical levels
+- 📋 Scrollable, zoomable canvas (pan with middle-mouse, zoom with scroll wheel)
+- 📋 Right-click context menus for quick actions
+
+### 🔍 Phase 4: Relationship Analysis (Weeks 11-13)
+- 📋 **Single-click**: Highlight immediate family (parents, spouses, children)
+- 📋 **Double-click**: Set as "primary" person and label all relationships
+  - Brothers, sisters, grandparents, uncles, aunts, cousins
+  - Step-parents, step-siblings, half-siblings
+  - "1st removed", "2nd removed" for distant relatives
+- 📋 **Ctrl+Click two people**: Find and highlight relationship path
+  - Visual gradient (green → yellow → red by distance)
+  - Popup explaining relationship ("Alice is Bob's great-aunt's grandson")
+  - Dim unrelated people
+- 📋 **Real-time search**: Type names to filter tree and auto-scroll to matches
+
+### 📅 Phase 5: Timeline View (Weeks 14-17)
+- 📋 Horizontal scrolling timeline with family lifespans
+- 📋 Collapsible family bars showing move-in to extinction dates
+- 📋 Individual lifespan bars with event markers:
+  - Marriages, children born, job changes, illnesses
+  - Clickable icons showing event details
+- 📋 **Major events**: Add historical context (wars, plagues, disasters)
+  - Vertical lines across all families
+  - Date ranges for ongoing events
+- 📋 **Sticky headers**: Family bars stay pinned while scrolling through members
+- 📋 Portrait thumbnails on person bars
+
+### 📊 Phase 6: Data Tables & Import (Weeks 18-20)
+- 📋 Spreadsheet-style editing for power users
+- 📋 Sortable, filterable tables for people, marriages, events
+- 📋 Family statistics table with computed metrics:
+  - Member count (living/total)
+  - Longest-lived member
+  - Most children (father/mother separately)
+- 📋 **CSV Import**: Bulk data entry with flexible date formats
+  - Auto-detection of date formats (YYYY-MM-DD, DD-MM-YYYY, etc.)
+  - Column mapping and validation preview
+  - Error correction before import
+
+### 📈 Phase 7: Statistics & Validation (Weeks 21-23)
+- 📋 Family dashboard with key metrics:
+  - Population over time
+  - Lifespan averages
+  - Family size distributions
+- 📋 Interactive charts (population trends, deaths per year)
+- 📋 **Family comparison**: Ctrl+Click families to compare side-by-side
+  - Member counts, lifespans, intermarriage statistics
+  - Shared ancestors
+- 📋 **Data validation tools**:
+  - Find overlapping marriages
+  - Detect impossible dates (child born before parent)
+  - Identify circular parentage
+  - Clickable validation reports
+
+### 🎨 Phase 8: Visual Customization (Weeks 24-26)
+- 📋 **UI Skins**: Choose from multiple themes
+  - Default (clean, modern)
+  - Parchment (aged paper aesthetic)
+  - Blueprint (technical drawing)
+  - Medieval (illuminated manuscript)
+  - Import custom skins
+- 📋 **Portrait Management**:
+  - Multiple portraits per person
+  - Date-based portrait switching ("looked like this from 1705-1720")
+  - Auto-cycle or manual selection
+  - Portrait gallery view
+- 📋 **Family Color Coding** (optional):
+  - Visual family identification
+  - Relationship distance gradient (green=close, red=distant)
+  - Toggle on/off in preferences
+
+### ⚙️ Phase 9: Polish & Convenience (Weeks 27-30)
+- 📋 Comprehensive preferences dialog (date formats, auto-save, behavior)
+- 📋 **Keyboard shortcuts**:
+  - Ctrl+N/O/S (File operations)
+  - Ctrl+Z/Y (Undo/Redo)
+  - Ctrl+F (Search), Ctrl+P (Add Person), Del (Delete)
+  - Ctrl+1/2/3/4 (Switch views)
+  - Ctrl+Plus/Minus/0 (Zoom)
+- 📋 **Export functionality**:
+  - Save tree view as high-resolution PNG/JPG
+  - Export entire tree (not just viewport)
+  - Optional PDF export (multi-page)
+- 📋 **Right-click workflows**:
+  - "Get Married" → searchable spouse selector
+  - "Create Child" → searchable partner selector
+  - Quick access to all common operations
+- 📋 First-run tutorial and sample dynasty
+- 📋 Auto-save with configurable intervals
+
+### 🚀 Future Possibilities (Post-Release)
+- 📋 Multi-dynasty support (work on multiple dynasties simultaneously)
+- 📋 Game-specific integrations (Ostriv, Crusader Kings 3 save file import)
+- 📋 Cloud sync and collaboration features
+- 📋 Mobile version (touch-optimized interface)
+- 📋 Advanced genealogy (trait tracking, DNA simulation)
+- 📋 Research citations and media attachments
+
+---
 
 ## Installation
 
 ### Requirements
-- Python 3.10 or higher
-- PySide6 (Qt for Python)
+- **Python 3.10 or higher**
+- **PySide6** (Qt for Python)
 
 ### Setup
 
@@ -48,106 +183,200 @@ pip install -r requirements.txt
 python main.py
 ```
 
-## Usage
+---
+
+## Usage Guide
 
 ### Creating a New Dynasty
-1. Launch the application
+1. Launch DynastyVizualizer
 2. Go to **File → New Dynasty**
 3. Choose a location and name for your `.dyn` file
-4. Start adding families and persons (upcoming feature)
+4. Start adding people and families
 
-### Opening an Existing Dynasty
-1. Go to **File → Open Dynasty**
-2. Select a `.dyn` file
-3. View and edit your dynasty (upcoming feature)
+### Managing People
+- **Add Person**: Right-click canvas or use **Edit → Add Person**
+- **Edit Person**: Double-click person box or click gear icon for extended panel
+- **Quick Edit**: Click any field (name, dates) to edit in-place
+- **Delete Person**: Select and press Delete, or right-click → Delete
+
+### Creating Relationships
+- **Marriage (Drag-Drop)**: Drag a person box onto another to create a marriage
+- **Marriage (Right-Click)**: Right-click person → "Get Married" → search for spouse
+- **Add Child**: Right-click marriage node → "Add Child"
+
+### Navigation
+- **Pan**: Middle-mouse drag or scrollbars
+- **Zoom**: Ctrl + Scroll wheel
+- **Search**: Ctrl+F to open search bar, type name to filter tree
+- **Switch Views**: Ctrl+1 (Tree), Ctrl+2 (Timeline), Ctrl+3 (Table), Ctrl+4 (Stats)
 
 ### Saving Your Work
-- **File → Save** - Save changes to current file
-- **File → Save As** - Save to a new file location
-- The application will prompt you to save unsaved changes when exiting
+- **Save**: File → Save (Ctrl+S)
+- **Save As**: File → Save As (Ctrl+Shift+S)
+- **Auto-Save**: Configurable in preferences (Phase 9)
+- The application will prompt you before closing with unsaved changes
 
-## Architecture
+---
 
-DynastyVizualizer uses a clean MVC architecture with the Command pattern for undo/redo functionality:
+## Technical Architecture
 
-- **Model**: SQLite database with Person, Marriage, and Event tables
-- **View**: PySide6 (Qt) widgets for visualization
+DynastyVizualizer uses a clean **MVC (Model-View-Controller)** architecture combined with the **Command Pattern** for comprehensive undo/redo support:
+
+- **Model**: SQLite database with Person, Marriage, Event, Portrait, Family, and MajorEvent tables
+- **View**: PySide6 (Qt) widgets for multiple visualization modes
 - **Controller**: Action handlers coordinating user interactions
-- **Command Pattern**: All data modifications are undoable/redoable
+- **Command Pattern**: Every operation is undoable/redoable (data edits, UI changes, imports)
 
-See [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for detailed technical documentation.
+This architecture scales seamlessly from simple operations to complex features like draggable UI elements, relationship tracing, and bulk data import.
+
+See [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for comprehensive technical documentation.
+
+---
 
 ## Development Status
 
-**Current Phase**: Core Infrastructure (Phase 1)
-**Progress**: ~15% complete
-**Lines of Code**: ~532 lines across 9 implemented files
+**Current Phase**: Foundation (Phase 1) 🚧 **~60% Complete**
+**Progress**: ~10% of total project
+**Lines of Code**: ~850 (estimated final: 8,000-12,000)
+**Next Milestone**: Complete Phase 1 foundational menus and dialogs
 
-### Project Phases
-1. ✅ **Core Infrastructure** - Application framework, database, file operations
-2. 🚧 **Data Models** - Person, Marriage, Event classes (in progress)
-3. 📋 **Views & Visualization** - Dynasty tree, timeline, data table widgets
-4. 📋 **Commands & Operations** - Full CRUD with undo/redo
-5. 📋 **Polish & Features** - Validation, import/export, preferences
+### What Works Now
+- ✅ Application launches with menu bar
+- ✅ File → New Dynasty (creates `.dyn` database)
+- ✅ File → Open Dynasty (loads existing database)
+- ✅ File → Save / Save As (persists changes)
+- ✅ File → Exit (with unsaved changes prompt)
+- ✅ Database schema with all 8 tables
+- ✅ Migration script for existing files
+
+### What's Next (Completing Phase 1)
+- 🚧 Edit → Add Person (dialog implementation)
+- 🚧 Edit → Remove Person (with confirmation)
+- 🚧 Help → About (application info dialog)
+- 🚧 Basic error handling and feedback
+- 🚧 Application icon and branding
+
+### Roadmap Summary
+
+| Phase | Description | Status | Progress | Weeks |
+|-------|-------------|--------|----------|-------|
+| **1** | Foundation (Database, Menus, Framework) | 🚧 In Progress | ~60% | 1-2 |
+| **2** | Data Models & CRUD Dialogs | 📋 Planned | 0% | 2-5 |
+| **3** | Interactive Family Tree (QGraphicsView) | 📋 Planned | 0% | 6-10 |
+| **4** | Relationship Analysis & Tracing | 📋 Planned | 0% | 11-13 |
+| **5** | Timeline View | 📋 Planned | 0% | 14-17 |
+| **6** | Data Tables & CSV Import | 📋 Planned | 0% | 18-20 |
+| **7** | Statistics & Validation | 📋 Planned | 0% | 21-23 |
+| **8** | Visual Customization (Skins, Portraits) | 📋 Planned | 0% | 24-26 |
+| **9** | Polish & Convenience | 📋 Planned | 0% | 27-30 |
+| **10** | Future Enhancements | 📋 Post-Release | 0% | TBD |
+
+---
 
 ## Database Schema
 
-Dynasty files (`.dyn`) are SQLite databases with the following structure:
+Dynasty files (`.dyn`) are SQLite databases with flexible date handling and comprehensive relationship tracking.
 
-### Person Table
-Stores individual family members with birth, death, and arrival dates, plus parent references.
+### Core Tables
+- **Person**: Names, dates (birth/death/arrival), parent references, portraits
+- **Marriage**: Spouse pairs, marriage dates, dissolution dates and reasons
+- **Event**: Personal history (jobs, illnesses, moves) with start/end dates
 
-### Marriage Table
-Tracks marriages between persons, including marriage and dissolution dates.
+### Extended Tables (Included from Start)
+- **Portrait**: Multiple images per person with date ranges
+- **Family**: Dynasty grouping with move-in dates, coat of arms, colors
+- **MajorEvent**: Historical context markers (wars, plagues, festivals)
+- **PersonPosition**: Custom drag-and-drop positions
+- **Settings**: User preferences
 
-### Event Table
-Records life events (occupations, residences, etc.) associated with persons.
+### Flexible Date Support
 
-See [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for complete SQL schema.
+All date fields support three levels of precision:
+- **Year Only**: `1705` (for unknown month/day)
+- **Year/Month**: `March 1705` (typical for Ostriv)
+- **Year/Month/Day**: `March 15, 1705` (real-world genealogy)
+
+This design seamlessly supports both game contexts (like Ostriv without day precision) and real-world genealogy.
+
+See [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for complete SQL schemas.
+
+---
 
 ## Contributing
 
+This project follows strict coding conventions for consistency and maintainability.
+
 ### Coding Standards
-This project follows strict coding conventions for consistency:
-
-- **Type Hints**: Python 3.10+ syntax (`X | None`, lowercase `list[T]`)
-- **Docstrings**: Concise single-line format (5-15 words)
+- **Type Hints**: Python 3.10+ syntax (`X | None`, lowercase `list[T]`, `dict[K, V]`)
+- **Docstrings**: Concise single-line format (5-15 words, imperative verbs)
 - **Code Style**: PEP 8 compliant
-- **Architecture**: Follow established MVC + Command patterns
-
-See [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for complete style guide.
+- **Architecture**: Follow MVC + Command patterns
 
 ### Development Workflow
-1. Check scaffolded files in the project structure
-2. Implement following the established patterns
+1. Review scaffolded files in project structure
+2. Implement following established patterns (see reference files)
 3. Add undo/redo support via Command pattern
-4. Update UI to integrate new features
-5. Test with sample dynasty files
+4. Update UI integration
+5. Test thoroughly (especially undo/redo)
+
+See [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for complete style guide and file templates.
+
+---
 
 ## Technology Stack
 
 - **Python 3.10+** - Modern Python with type hints
-- **PySide6** - Qt framework for rich GUI
-- **SQLite** - Embedded database for data persistence
-- **Command Pattern** - Comprehensive undo/redo support
+- **PySide6 6.10.1** - Qt framework for rich, cross-platform GUI
+- **SQLite** - Embedded database for `.dyn` file persistence
+- **Command Pattern** - Comprehensive undo/redo architecture
+
+**Future Dependencies** (Phase 7+):
+- **matplotlib** or **Qt Charts** - Statistics visualizations
+- **Pillow** - Image processing for portraits
+
+---
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
 
 ## Acknowledgments
 
-- Built for the [Ostriv](https://store.steampowered.com/app/773790/Ostriv/) community
-- Developed using PySide6 (Qt for Python)
+- Built for the [Ostriv](https://store.steampowered.com/app/773790/Ostriv/) gaming community
+- Developed with PySide6 (Qt for Python)
+- Inspired by professional genealogy software with a focus on gaming use cases
+
+---
 
 ## Project Links
 
 - **Repository**: https://github.com/thief9001-maker/DynastyVizualizer
 - **Issue Tracker**: https://github.com/thief9001-maker/DynastyVizualizer/issues
-- **Documentation**: [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md)
+- **Technical Documentation**: [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md)
+- **Code Sharing Utility**: [scripts/create_codebase_summary.py](scripts/create_codebase_summary.py)
+
+---
+
+## Support
+
+Found a bug? Have a feature request? Please [open an issue](https://github.com/thief9001-maker/DynastyVizualizer/issues) on GitHub.
+
+For questions about Ostriv-specific use cases, visit the Ostriv community forums.
 
 ---
 
 **Version**: 0.1.0-dev
-**Status**: Early Development
-**Last Updated**: 2025-12-07
+**Status**: Early Development (Phase 1: ~60% Complete)
+**Last Updated**: 2025-12-08
+
+---
+
+## Vision Statement
+
+DynastyVizualizer aims to be the definitive tool for managing complex family dynasties in gaming. We're building something that looks professional, feels intuitive, and provides the depth that dynasty-management enthusiasts crave—whether you're tracking three generations in Ostriv or twenty generations in Crusader Kings.
+
+Every feature is designed with both power users and newcomers in mind: drag-and-drop for quick marriages, but also detailed event logs for deep genealogical research. Real-time search to find anyone instantly, but also relationship path tracing to discover how that random villager is actually your character's third cousin twice removed.
+
+This is a labor of love for gaming communities who care about their virtual families as much as we do. 🏰👨‍👩‍👧‍👦
