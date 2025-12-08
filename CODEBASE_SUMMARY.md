@@ -18,9 +18,9 @@ A beautiful, feature-rich genealogy application that combines the depth of profe
 ## Codebase Statistics
 
 - **Total Python Files**: 37 (9 implemented, 28 scaffolded)
-- **Lines of Code**: ~532 (excluding comments and blank lines)
-- **Total Lines**: 718 (including docstrings and comments)
-- **Implementation Status**: ~5% complete (foundation infrastructure)
+- **Lines of Code**: ~720 (excluding comments and blank lines)
+- **Total Lines**: ~850 (including docstrings and comments)
+- **Implementation Status**: ~10% complete (Phase 1 infrastructure in progress)
 - **Estimated Final Size**: 8,000-12,000 lines of code
 
 ---
@@ -497,64 +497,76 @@ DynastyVizualizer/
 
 ## Development Roadmap
 
-### ✅ **Phase 1: Foundation** (CURRENT - Week 1-2)
-**Status**: 100% Complete
-**Lines**: ~720
+### 🚧 **Phase 1: Foundation** (CURRENT - Weeks 1-2)
+**Status**: ~60% Complete
+**Lines**: ~850
 
-Core infrastructure for database management and undo/redo.
+Core infrastructure for database management, undo/redo, and application framework.
 
 **Completed:**
 - [x] Main application window and menu structure
-- [x] SQLite database management (`.dyn` format)
-- [x] File operations (New, Open, Save, Save As, Exit)
-- [x] Undo/redo infrastructure (Command pattern)
-- [x] Action handler framework
+- [x] Comprehensive database schema (all 8 tables with flexible dates)
+- [x] SQLite database management (`.dyn` format with migration support)
+- [x] File operations (New, Open, Save, Save As, Exit) - fully functional
+- [x] Undo/redo infrastructure (Command pattern framework)
+- [x] Action handler framework (scaffolded)
 - [x] Project scaffolding
 
-**Key Files**: `main.py`, `database/db_manager.py`, `actions/`, `commands/undo_redo_manager.py`
+**In Progress:**
+- [ ] Edit menu functionality (Add Person, Remove Person dialogs)
+- [ ] View menu functionality (placeholder stubs)
+- [ ] Tools menu functionality (placeholder stubs)
+- [ ] Help menu functionality (About dialog)
+- [ ] Basic error dialogs and user feedback
+- [ ] Application icon and branding
+
+**Key Files**: `main.py`, `database/db_manager.py`, `actions/file_actions.py`, `commands/undo_redo_manager.py`
+
+**Next Steps**: Complete remaining menu items, add basic dialogs, implement About dialog
 
 ---
 
-### 🚧 **Phase 2: Data Models & Basic CRUD** (Week 3-5)
+### 📋 **Phase 2: Data Models & Basic CRUD** (Weeks 2-5)
 **Status**: Not Started
 **Estimated Lines**: +1,200
 
-Build data models and basic create/read/update/delete operations.
+Build data models and basic create/read/update/delete operations with dialogs.
 
 **Goals:**
 - [ ] Implement `Person`, `Marriage`, `Event` model classes
 - [ ] Create `AddPersonCommand`, `EditPersonCommand`, `DeletePersonCommand`
-- [ ] Create `AddPersonDialog`, `EditPersonDialog`
+- [ ] Create `AddPersonDialog`, `EditPersonDialog` with full validation
 - [ ] Build `CreateMarriageCommand`, `CreateChildCommand`
 - [ ] Build `CreateMarriageDialog`
-- [ ] Implement flexible date handling (year/month/day with nulls)
-- [ ] Add portrait support (`Portrait` model + database table)
+- [ ] Implement flexible date handling widget (year/month/day with nulls)
+- [ ] Add portrait support (`Portrait` model + upload functionality)
 - [ ] Create `DatePicker` widget (supports partial dates)
 - [ ] Create `PersonSelector` widget (searchable dropdown)
+- [ ] Implement basic list view to display people
 
-**Deliverable**: Can add, edit, and delete people and marriages through dialogs
+**Deliverable**: Can add, edit, and delete people and marriages through functional dialogs
 
 **Key Files**: `models/`, `commands/genealogy_commands/`, `dialogs/`, `widgets/date_picker.py`
 
 ---
 
-### 🚧 **Phase 3: Tree Visualization** (Week 6-10)
+### 📋 **Phase 3: Tree Visualization** (Weeks 6-10)
 **Status**: Not Started
 **Estimated Lines**: +2,500
 
-Build the interactive family tree view with draggable person boxes.
+Build the interactive family tree view with QGraphicsView and custom widgets.
 
 **Goals:**
-- [ ] Create `PersonBox` custom widget (portrait + name + dates + gear icon)
+- [ ] Create `PersonBox` custom QGraphicsWidget (portrait + name + dates + gear icon)
 - [ ] Create `MarriageNode` widget (connection point + dates)
-- [ ] Create `RelationshipLine` widget (parent-child connectors)
-- [ ] Implement `TreeLayoutEngine` (automatic generational positioning)
-- [ ] Build `TreeCanvas` (scrollable, zoomable QGraphicsView)
+- [ ] Create `RelationshipLine` widget (parent-child connectors using QPainterPath)
+- [ ] Implement `TreeLayoutEngine` (automatic generational positioning algorithm)
+- [ ] Build `TreeCanvas` (QGraphicsView with scrollable, zoomable scene)
 - [ ] Implement generation bands with labels
-- [ ] Add drag-and-drop for creating marriages
+- [ ] Add drag-and-drop for creating marriages (drop person on person)
 - [ ] Add drag-and-drop for repositioning person boxes
 - [ ] Implement `MovePersonCommand` (undoable position changes)
-- [ ] Add in-place editing (click name to edit)
+- [ ] Add in-place editing (click name/date to edit)
 - [ ] Implement gear icon → extended details panel
 - [ ] Build `ExtendedDetailsPanel` (tabbed: Info, Events, Relationships, Portraits)
 - [ ] Add right-click context menus
@@ -946,5 +958,5 @@ Share examples from each category:
 ---
 
 **Last Updated**: 2025-12-08
-**Codebase Version**: 0.1.0-dev (Phase 1 Complete)
-**Next Milestone**: Phase 2 - Data Models & Basic CRUD
+**Codebase Version**: 0.1.0-dev (Phase 1: ~60% Complete)
+**Next Milestone**: Complete Phase 1 foundational menus and dialogs
