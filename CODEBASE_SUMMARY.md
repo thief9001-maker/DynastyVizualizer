@@ -132,7 +132,13 @@ The architecture successfully scales to support complex features like draggable 
 
 ## Database Schema
 
-### Current Schema (Phase 1)
+### Complete Schema (All Phases)
+
+All tables are created from the start to ensure consistency. Dates support flexible precision: year only, year/month, or full year/month/day. Any component can be NULL.
+
+**Migration**: Existing `.dyn` files can be safely upgraded using `scripts/migrate_database.py`
+
+---
 
 #### Person Table
 ```sql
@@ -140,21 +146,42 @@ CREATE TABLE Person (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     first_name TEXT NOT NULL,
     last_name TEXT NOT NULL,
+    maiden_name TEXT,
     gender TEXT,
-    birth_month INTEGER,
+    -- Birth date (flexible: year, year/month, or year/month/day)
     birth_year INTEGER,
-    death_month INTEGER,
+    birth_month INTEGER,
+    birth_day INTEGER,
+    -- Death date (flexible precision)
     death_year INTEGER,
-    arrival_month INTEGER,
+    death_month INTEGER,
+    death_day INTEGER,
+    -- Arrival date (when moved into town/game)
     arrival_year INTEGER,
+    arrival_month INTEGER,
+    arrival_day INTEGER,
+    -- Move-out date (when left town/game)
+    moved_out_year INTEGER,
+    moved_out_month INTEGER,
+    moved_out_day INTEGER,
+    -- Relationships
     father_id INTEGER,
     mother_id INTEGER,
-    moved_out_month INTEGER,
-    moved_out_year INTEGER,
+    family_id INTEGER,
+    notes TEXT,
     FOREIGN KEY(father_id) REFERENCES Person(id) ON DELETE SET NULL,
-    FOREIGN KEY(mother_id) REFERENCES Person(id) ON DELETE SET NULL
+    FOREIGN KEY(mother_id) REFERENCES Person(id) ON DELETE SET NULL,
+    FOREIGN KEY(family_id) REFERENCES Family(id) ON DELETE SET NULL
 );
 ```
+
+**Features**:
+- Flexible date precision (all day fields can be NULL for Ostriv, populated for real-world genealogy)
+- Maiden name tracking for married individuals
+- Family dynasty grouping via `family_id`
+- General notes field for additional context
+
+---
 
 #### Event Table
 ```sql
@@ -163,14 +190,26 @@ CREATE TABLE Event (
     person_id INTEGER NOT NULL,
     event_type TEXT NOT NULL,
     event_title TEXT NOT NULL,
-    start_month INTEGER,
+    -- Start date (flexible precision)
     start_year INTEGER,
-    end_month INTEGER,
+    start_month INTEGER,
+    start_day INTEGER,
+    -- End date (for ongoing events like jobs)
     end_year INTEGER,
+    end_month INTEGER,
+    end_day INTEGER,
     notes TEXT,
     FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
 );
 ```
+
+**Event Types**: `job`, `illness`, `injury`, `residence`, `education`, `military`, `custom`
+
+**Features**:
+- Support for both point-in-time events (marriage, birth) and duration events (job, illness)
+- Flexible date precision for all historical contexts
+
+---
 
 #### Marriage Table
 ```sql
@@ -178,11 +217,16 @@ CREATE TABLE Marriage (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     spouse1_id INTEGER,
     spouse2_id INTEGER,
-    marriage_month INTEGER,
+    -- Marriage date (flexible precision)
     marriage_year INTEGER,
-    dissolution_month INTEGER,
+    marriage_month INTEGER,
+    marriage_day INTEGER,
+    -- Dissolution date (divorce/death)
     dissolution_year INTEGER,
+    dissolution_month INTEGER,
+    dissolution_day INTEGER,
     dissolution_reason TEXT,
+    marriage_type TEXT DEFAULT 'spouse',  -- 'spouse', 'concubine', 'affair'
     FOREIGN KEY(spouse1_id) REFERENCES Person(id)
         ON UPDATE CASCADE ON DELETE SET NULL,
     FOREIGN KEY(spouse2_id) REFERENCES Person(id)
@@ -190,18 +234,28 @@ CREATE TABLE Marriage (
 );
 ```
 
-### Planned Schema Extensions (Phase 2+)
+**Features**:
+- Support for multiple marriage types (spouse, concubine, affair for games like Crusader Kings)
+- Track dissolution reason (death, divorce, annulment)
+- Flexible date precision
+- Cascade updates for person ID changes
+- Preserve marriage records even if persons are deleted (SET NULL)
 
-#### Portrait Table (Phase 2)
+---
+
+#### Portrait Table
 ```sql
 CREATE TABLE Portrait (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     person_id INTEGER NOT NULL,
     image_path TEXT NOT NULL,
-    valid_from_month INTEGER,
+    -- Date range when this portrait is valid (flexible precision)
     valid_from_year INTEGER,
-    valid_to_month INTEGER,
+    valid_from_month INTEGER,
+    valid_from_day INTEGER,
     valid_to_year INTEGER,
+    valid_to_month INTEGER,
+    valid_to_day INTEGER,
     is_primary INTEGER DEFAULT 0,
     display_order INTEGER DEFAULT 0,
     FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
@@ -210,49 +264,71 @@ CREATE TABLE Portrait (
 
 **Features**:
 - Multiple portraits per person
-- Date-based portrait switching (show different images for different life periods)
-- Cycle through portraits or show based on timeline context
+- Date-based portrait switching (e.g., "looked like this from 1705-1720")
+- Cycle through portraits automatically or manually
 - Primary portrait designation
+- Display order for galleries
 
-#### Family Table (Phase 3)
+---
+
+#### Family Table
 ```sql
 CREATE TABLE Family (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     surname TEXT NOT NULL,
-    move_in_month INTEGER,
+    -- Move-in date (when family arrived)
     move_in_year INTEGER,
+    move_in_month INTEGER,
+    move_in_day INTEGER,
     coat_of_arms_path TEXT,
-    family_color TEXT,  -- RGB hex code
+    family_color TEXT,  -- RGB hex code for visualization
     is_extinct INTEGER DEFAULT 0,
     notes TEXT
 );
-
--- Add to Person table:
--- family_id INTEGER REFERENCES Family(id)
 ```
 
 **Purpose**: Group people by family dynasty (not just surname), track move-in dates, extinction status
 
 **Note**: Multiple families can share the same surname if they moved in separately
 
-#### MajorEvent Table (Phase 4)
+**Features**:
+- Coat of arms/family image support
+- Color-coding for visual identification
+- Extinction tracking
+
+---
+
+#### MajorEvent Table
 ```sql
 CREATE TABLE MajorEvent (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_name TEXT NOT NULL,
-    event_type TEXT NOT NULL,  -- war, disaster, plague, festival, etc.
-    start_month INTEGER,
+    event_type TEXT NOT NULL,  -- 'war', 'disaster', 'plague', 'festival', etc.
+    -- Start date (year required, month/day optional)
     start_year INTEGER NOT NULL,
-    end_month INTEGER,
+    start_month INTEGER,
+    start_day INTEGER,
+    -- End date (for ongoing events like wars)
     end_year INTEGER,
+    end_month INTEGER,
+    end_day INTEGER,
     description TEXT,
     color TEXT  -- For timeline visualization
 );
 ```
 
-**Purpose**: Historical context markers (wars, plagues, town events) displayed across all families in timeline view
+**Purpose**: Historical context markers displayed across all families in timeline view
 
-#### PersonPosition Table (Phase 5 - Draggable UI)
+**Examples**: World War 1, Great Plague of 1665, Town Fire of 1720
+
+**Features**:
+- Flexible date precision
+- Support for both point events and duration events
+- Color-coding for visual distinction in timeline
+
+---
+
+#### PersonPosition Table
 ```sql
 CREATE TABLE PersonPosition (
     person_id INTEGER PRIMARY KEY,
@@ -263,9 +339,16 @@ CREATE TABLE PersonPosition (
 );
 ```
 
-**Purpose**: Store custom positions when user drags person boxes
+**Purpose**: Store custom positions when user drags person boxes in tree view
 
-#### Settings Table (Phase 6)
+**Features**:
+- Per-person custom positioning
+- Automatic layout as fallback if no custom position
+- View-type support for future multiple tree layouts
+
+---
+
+#### Settings Table
 ```sql
 CREATE TABLE Settings (
     key TEXT PRIMARY KEY,
@@ -273,7 +356,34 @@ CREATE TABLE Settings (
 );
 ```
 
-**Purpose**: Store user preferences (surname change rules, date formats, skin selection, etc.)
+**Purpose**: Store user preferences and application settings
+
+**Example Settings**:
+- `date_format` → "YYYY-MM-DD", "DD/MM/YYYY", etc.
+- `auto_surname_change` → "true", "false"
+- `surname_inheritance` → "paternal", "maternal", "choice"
+- `default_skin` → "default", "parchment", "blueprint"
+- `auto_save_interval` → "300" (seconds)
+
+---
+
+### Date Flexibility Design
+
+All date fields follow the pattern: `year`, `month`, `day`
+
+**Ostriv Usage** (no day precision):
+- `birth_year = 1705, birth_month = 3, birth_day = NULL`
+- Display: "March 1705"
+
+**Real-World Genealogy** (full precision):
+- `birth_year = 1705, birth_month = 3, birth_day = 15`
+- Display: "March 15, 1705" or "15/03/1705"
+
+**Unknown Month** (year only):
+- `birth_year = 1705, birth_month = NULL, birth_day = NULL`
+- Display: "1705"
+
+This design supports seamless transitions between game contexts and real-world use.
 
 ---
 

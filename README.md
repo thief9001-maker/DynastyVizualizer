@@ -258,14 +258,21 @@ Dynasty files (`.dyn`) are SQLite databases with flexible date handling and comp
 - **Marriage**: Spouse pairs, marriage dates, dissolution dates and reasons
 - **Event**: Personal history (jobs, illnesses, moves) with start/end dates
 
-### Extended Tables (Phase 2+)
+### Extended Tables (Included from Start)
 - **Portrait**: Multiple images per person with date ranges
 - **Family**: Dynasty grouping with move-in dates, coat of arms, colors
 - **MajorEvent**: Historical context markers (wars, plagues, festivals)
 - **PersonPosition**: Custom drag-and-drop positions
 - **Settings**: User preferences
 
-All dates support partial data (year only, year/month, or full year/month/day).
+### Flexible Date Support
+
+All date fields support three levels of precision:
+- **Year Only**: `1705` (for unknown month/day)
+- **Year/Month**: `March 1705` (typical for Ostriv)
+- **Year/Month/Day**: `March 15, 1705` (real-world genealogy)
+
+This design seamlessly supports both game contexts (like Ostriv without day precision) and real-world genealogy.
 
 See [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for complete SQL schemas.
 
