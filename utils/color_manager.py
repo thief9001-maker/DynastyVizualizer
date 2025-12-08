@@ -14,25 +14,25 @@ class ColorManager:
         # TODO: Define event type colors
         pass
 
-    def get_person_color(self, gender: str | None) -> QColor:
+    def get_person_color(self, gender: str | None) -> QColor: # type: ignore 
         """Get color for person based on gender."""
         # TODO: Return blue for male
         # TODO: Return pink for female
         # TODO: Return gray for unknown
         pass
 
-    def get_generation_color(self, generation: int) -> QColor:
+    def get_generation_color(self, generation: int) -> QColor: # type: ignore 
         """Get alternating color for generation bands."""
         # TODO: Return alternating colors based on generation number
         pass
 
-    def get_event_color(self, event_type: str) -> QColor:
+    def get_event_color(self, event_type: str) -> QColor: # type: ignore 
         """Get color for event type."""
         # TODO: Return different colors for different event types
         # TODO: Birth, death, marriage, arrival, etc.
         pass
 
-    def interpolate_color(self, color1: QColor, color2: QColor, ratio: float) -> QColor:
+    def interpolate_color(self, color1: QColor, color2: QColor, ratio: float) -> QColor: # type: ignore 
         """Blend two colors together."""
         # TODO: Calculate intermediate color
         # TODO: Return blended QColor
