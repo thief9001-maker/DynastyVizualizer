@@ -4,8 +4,9 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar
 from PySide6.QtGui import QAction
 
 from database.db_manager import DatabaseManager
-from actions import FileActions, EditActions, ViewActions, ToolsActions, HelpActions
+from actions import FileActions, EditActions, ViewActions, ToolsActions, HelpActions, SettingsActions
 from commands.undo_redo_manager import UndoRedoManager
+from utils.settings_manager import SettingsManager
 
 class MainWindow(QMainWindow):
     """Main application window for Dynasty Visualizer."""
@@ -23,6 +24,9 @@ class MainWindow(QMainWindow):
         # Initialize undo/redo manager
         self.undo_manager = UndoRedoManager()
 
+        # Initialize settings manager
+        self.settings_manager = SettingsManager()
+
         # Create UI elements
         self._create_menus()
 
@@ -31,6 +35,7 @@ class MainWindow(QMainWindow):
         self.edit_actions = EditActions(self)
         self.view_actions = ViewActions(self)
         self.tools_actions = ToolsActions(self)
+        self.settings_actions = SettingsActions(self)
         self.help_actions = HelpActions(self)
 
         # Connect menu actions to handlers
@@ -52,6 +57,7 @@ class MainWindow(QMainWindow):
         self._create_edit_menu(menubar)
         self._create_view_menu(menubar)
         self._create_tools_menu(menubar)
+        self._create_settings_menu(menubar)
         self._create_help_menu(menubar)
 
     def _create_file_menu(self, menubar: QMenuBar) -> None:
@@ -59,10 +65,24 @@ class MainWindow(QMainWindow):
         file_menu = menubar.addMenu("File")
 
         self.action_new_dynasty = QAction("New Dynasty", self)
+        self.action_new_dynasty.setObjectName("file.new")
+        self.action_new_dynasty.setShortcut(self.settings_manager.get_shortcut("file.new"))
+
         self.action_open_dynasty = QAction("Open Dynasty", self)
+        self.action_open_dynasty.setObjectName("file.open")
+        self.action_open_dynasty.setShortcut(self.settings_manager.get_shortcut("file.open"))
+
         self.action_save = QAction("Save", self)
+        self.action_save.setObjectName("file.save")
+        self.action_save.setShortcut(self.settings_manager.get_shortcut("file.save"))
+        
         self.action_save_as = QAction("Save As", self)
+        self.action_save_as.setObjectName("file.save_as")
+        self.action_save_as.setShortcut(self.settings_manager.get_shortcut("file.save_as"))
+
         self.action_exit = QAction("Exit", self)
+        self.action_exit.setObjectName("file.exit")
+        self.action_exit.setShortcut(self.settings_manager.get_shortcut("file.exit"))
 
         file_menu.addAction(self.action_new_dynasty)
         file_menu.addAction(self.action_open_dynasty)
@@ -77,10 +97,24 @@ class MainWindow(QMainWindow):
         edit_menu = menubar.addMenu("Edit")
 
         self.action_undo = QAction("Undo", self)
+        self.action_undo.setObjectName("edit.undo")
+        self.action_undo.setShortcut(self.settings_manager.get_shortcut("edit.undo"))
+
         self.action_redo = QAction("Redo", self)
+        self.action_redo.setObjectName("edit.redo")
+        self.action_redo.setShortcut(self.settings_manager.get_shortcut("edit.redo"))
+        
         self.action_add_person = QAction("Add Person", self)
+        self.action_add_person.setObjectName("edit.add_person")
+        self.action_add_person.setShortcut(self.settings_manager.get_shortcut("edit.add_person"))
+
         self.action_remove_person = QAction("Remove Person", self)
+        self.action_remove_person.setObjectName("edit.remove_person")
+        self.action_remove_person.setShortcut(self.settings_manager.get_shortcut("edit.remove_person"))
+
         self.action_add_new_family = QAction("Add New Family", self)
+        self.action_add_new_family.setObjectName("edit.add_new_family")
+        self.action_add_new_family.setShortcut(self.settings_manager.get_shortcut("edit.add_new_family"))
 
         edit_menu.addAction(self.action_undo)
         edit_menu.addAction(self.action_redo)
@@ -94,9 +128,20 @@ class MainWindow(QMainWindow):
         view_menu = menubar.addMenu("View")
 
         self.action_view_family_trees = QAction("Family Trees", self)
+        self.action_view_family_trees.setObjectName("view.family_trees")
+        self.action_view_family_trees.setShortcut(self.settings_manager.get_shortcut("view.family_trees"))
+
         self.action_view_timeline = QAction("Timeline", self)
+        self.action_view_timeline.setObjectName("view.timeline")
+        self.action_view_timeline.setShortcut(self.settings_manager.get_shortcut("view.timeline"))
+        
         self.action_view_dynasty = QAction("Dynasty", self)
+        self.action_view_dynasty.setObjectName("view.dynasty")
+        self.action_view_dynasty.setShortcut(self.settings_manager.get_shortcut("view.dynasty"))
+
         self.action_view_data_table = QAction("Data Table", self)
+        self.action_view_data_table.setObjectName("view.data_table")
+        self.action_view_data_table.setShortcut(self.settings_manager.get_shortcut("view.data_table"))
 
         view_menu.addAction(self.action_view_family_trees)
         view_menu.addAction(self.action_view_timeline)
@@ -108,21 +153,70 @@ class MainWindow(QMainWindow):
         tools_menu = menubar.addMenu("Tools")
 
         self.action_rebuild_scene = QAction("Rebuild Scene", self)
+        self.action_rebuild_scene.setObjectName("tools.rebuild_scene")
+        self.action_rebuild_scene.setShortcut(self.settings_manager.get_shortcut("tools.rebuild_scene"))
+
         self.action_recompute_generations = QAction("Recompute Generations", self)
+        self.action_recompute_generations.setObjectName("tools.recompute_generations")
+        self.action_recompute_generations.setShortcut(self.settings_manager.get_shortcut("tools.recompute_generations"))
+        
         self.action_validate_marriages = QAction("Validate Marriages", self)
+        self.action_validate_marriages.setObjectName("tools.validate_marriages")
+        self.action_validate_marriages.setShortcut(self.settings_manager.get_shortcut("tools.validate_marriages"))
+
         self.action_validate_parentage = QAction("Validate Parentage", self)
+        self.action_validate_parentage.setObjectName("tools.validate_parentage")
+        self.action_validate_parentage.setShortcut(self.settings_manager.get_shortcut("tools.validate_parentage"))
 
         tools_menu.addAction(self.action_rebuild_scene)
         tools_menu.addAction(self.action_recompute_generations)
         tools_menu.addAction(self.action_validate_marriages)
         tools_menu.addAction(self.action_validate_parentage)
 
+    def _create_settings_menu(self, menubar: QMenuBar) -> None:
+        """Create the settings menu with application options."""
+        settings_menu = menubar.addMenu("Settings")
+
+        self.action_settings = QAction("Settings", self)
+        self.action_settings.setObjectName("settings.settings")
+        self.action_settings.setShortcut(self.settings_manager.get_shortcut("settings.settings"))
+
+        self.action_general = QAction("General", self)
+        self.action_general.setObjectName("settings.general")
+        self.action_general.setShortcut(self.settings_manager.get_shortcut("settings.general"))
+
+        self.action_shortcuts = QAction("Shortcuts", self)
+        self.action_shortcuts.setObjectName("settings.shortcuts")
+        self.action_shortcuts.setShortcut(self.settings_manager.get_shortcut("settings.shortcuts"))
+
+        self.action_display = QAction("Display", self)
+        self.action_display.setObjectName("settings.display")
+        self.action_display.setShortcut(self.settings_manager.get_shortcut("settings.display"))
+
+        self.action_appearance = QAction("Appearance", self)
+        self.action_appearance.setObjectName("settings.appearance")
+        self.action_appearance.setShortcut(self.settings_manager.get_shortcut("settings.appearance"))
+
+        self.action_formats = QAction("Formats", self)
+        self.action_formats.setObjectName("settings.formats")
+        self.action_formats.setShortcut(self.settings_manager.get_shortcut("settings.formats"))
+
+        settings_menu.addAction(self.action_settings)
+        settings_menu.addSeparator()
+        settings_menu.addAction(self.action_general)
+        settings_menu.addAction(self.action_shortcuts)
+        settings_menu.addAction(self.action_display)
+        settings_menu.addAction(self.action_appearance)
+        settings_menu.addAction(self.action_formats)
+
+
     def _create_help_menu(self, menubar: QMenuBar) -> None:
         """Create the Help menu with application information."""
         help_menu = menubar.addMenu("Help")
 
         self.action_about = QAction("About", self)
-
+        self.action_about.setObjectName("help.about")
+        self.action_about.setShortcut(self.settings_manager.get_shortcut("help.about"))
         help_menu.addAction(self.action_about)
 
     # ------------------------------------------------------------------
@@ -156,6 +250,14 @@ class MainWindow(QMainWindow):
         self.action_recompute_generations.triggered.connect(self.tools_actions.recompute_generations)
         self.action_validate_marriages.triggered.connect(self.tools_actions.validate_marriages)
         self.action_validate_parentage.triggered.connect(self.tools_actions.validate_parentage)
+
+        # Settings menu connections
+        self.action_settings.triggered.connect(self.settings_actions.settings)
+        self.action_general.triggered.connect(self.settings_actions.general)
+        self.action_shortcuts.triggered.connect(self.settings_actions.shortcuts)
+        self.action_display.triggered.connect(self.settings_actions.display)
+        self.action_appearance.triggered.connect(self.settings_actions.appearance)
+        self.action_formats.triggered.connect(self.settings_actions.formats)
 
         # Help menu connections
         self.action_about.triggered.connect(self.help_actions.about)
