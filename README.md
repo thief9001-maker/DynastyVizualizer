@@ -20,19 +20,31 @@ DynastyVizualizer brings professional genealogy software features to gaming comm
 
 ## Current Features (v0.1 - Early Development)
 
-### ✅ Implemented
+### ✅ Implemented (Phase 1: ~80% Complete)
 - ✅ Create and manage dynasty database files (`.dyn` format)
 - ✅ Comprehensive database schema with 8 tables (flexible date support)
-- ✅ SQLite-based data persistence with migration support
+- ✅ SQLite-based data persistence with automatic migration support
 - ✅ File operations (New, Open, Save, Save As) - **fully functional**
 - ✅ Unsaved changes tracking and prompting
 - ✅ Clean, professional UI framework with menu structure
 - ✅ Undo/redo infrastructure (Command pattern framework)
+- ✅ **Settings management system** with disk persistence (QSettings)
+- ✅ **Keyboard shortcuts** - All menu actions have customizable shortcuts:
+  - **File**: Ctrl+N (New), Ctrl+O (Open), Ctrl+S (Save), Ctrl+Shift+S (Save As), Ctrl+Q (Exit)
+  - **Edit**: Ctrl+Z (Undo), Ctrl+Y (Redo), Ctrl+P (Add Person), Del (Remove Person)
+  - **View**: Ctrl+1 (Family Trees), Ctrl+2 (Timeline), Ctrl+3 (Dynasty), Ctrl+4 (Data Table)
+  - **Tools**: F5 (Rebuild Scene), Ctrl+R (Recompute Generations)
+  - **Settings**: Ctrl+, (Open Settings)
+  - **Help**: F1 (About)
+- ✅ **Person data model** - Full dataclass implementation with 20+ fields:
+  - Name fields (first, middle, last, maiden, nickname)
+  - Flexible date support (birth/death/arrival/moved_out with year/month/day)
+  - Relationships (father, mother, family)
+  - Computed properties and utility methods
 
 ### 🚧 In Progress (Phase 1 Completion)
 - 🚧 Edit menu dialogs (Add Person, Remove Person)
-- 🚧 View menu functionality (view switching stubs)
-- 🚧 Tools menu functionality (validation stubs)
+- 🚧 Settings dialog UI (keyboard shortcut customization, appearance, formats)
 - 🚧 Help menu (About dialog)
 - 🚧 Error handling and user feedback dialogs
 
@@ -40,13 +52,16 @@ DynastyVizualizer brings professional genealogy software features to gaming comm
 
 ## Planned Features
 
-### 🎯 Phase 2: Data Management (Weeks 3-5)
+### 🎯 Phase 2: Data Management (Weeks 3-5) - Started (~8% Complete)
+- ✅ Person data model with dataclass (20+ fields, computed properties, date formatting)
 - 📋 Add, edit, and delete people with flexible date handling (year/month/day optional)
 - 📋 Create marriages and parent-child relationships
 - 📋 Track multiple marriages and divorces
 - 📋 Support for portraits with date-based switching
 - 📋 Personal event logs (jobs, illnesses, residences, etc.)
 - 📋 Maiden name tracking and configurable surname inheritance
+
+**Next**: PersonRepository, AddPersonCommand, AddPersonDialog
 
 ### 🌳 Phase 3: Interactive Family Tree (Weeks 6-10)
 - 📋 Visual person boxes with portraits, names, and key dates
