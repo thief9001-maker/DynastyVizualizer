@@ -6,7 +6,7 @@
 
 Project: Family tree GUI for game Ostriv
 Tech Stack: PySide6, SQLite, Python 3.10+
-Code Files: 9 files, ~655 lines
+Code Files: 12 files, ~1057 lines
 
 ======================================================================
 
@@ -1744,7 +1744,7 @@ IMPLEMENTATION CODE
 
 
 ──────────────────────────────────────────────────────────────────────
-FILE: main.py (173 lines)
+FILE: main.py (251 lines)
 ──────────────────────────────────────────────────────────────────────
 
 import sys
@@ -1753,8 +1753,9 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar
 from PySide6.QtGui import QAction
 
 from database.db_manager import DatabaseManager
-from actions import FileActions, EditActions, ViewActions, ToolsActions, HelpActions
+from actions import FileActions, EditActions, ViewActions, ToolsActions, HelpActions, SettingsActions
 from commands.undo_redo_manager import UndoRedoManager
+from utils.settings_manager import SettingsManager
 
 class MainWindow(QMainWindow):
     """Main application window for Dynasty Visualizer."""
@@ -1772,6 +1773,9 @@ class MainWindow(QMainWindow):
         # Initialize undo/redo manager
         self.undo_manager = UndoRedoManager()
 
+        # Initialize settings manager
+        self.settings_manager = SettingsManager()
+
         # Create UI elements
         self._create_menus()
 
@@ -1780,6 +1784,7 @@ class MainWindow(QMainWindow):
         self.edit_actions = EditActions(self)
         self.view_actions = ViewActions(self)
         self.tools_actions = ToolsActions(self)
+        self.settings_actions = SettingsActions(self)
         self.help_actions = HelpActions(self)
 
         # Connect menu actions to handlers
@@ -1801,6 +1806,7 @@ class MainWindow(QMainWindow):
         self._create_edit_menu(menubar)
         self._create_view_menu(menubar)
         self._create_tools_menu(menubar)
+        self._create_settings_menu(menubar)
         self._create_help_menu(menubar)
 
     def _create_file_menu(self, menubar: QMenuBar) -> None:
@@ -1808,10 +1814,24 @@ class MainWindow(QMainWindow):
         file_menu = menubar.addMenu("File")
 
         self.action_new_dynasty = QAction("New Dynasty", self)
+        self.action_new_dynasty.setObjectName("file.new")
+        self.action_new_dynasty.setShortcut(self.settings_manager.get_shortcut("file.new"))
+
         self.action_open_dynasty = QAction("Open Dynasty", self)
+        self.action_open_dynasty.setObjectName("file.open")
+        self.action_open_dynasty.setShortcut(self.settings_manager.get_shortcut("file.open"))
+
         self.action_save = QAction("Save", self)
+        self.action_save.setObjectName("file.save")
+        self.action_save.setShortcut(self.settings_manager.get_shortcut("file.save"))
+        
         self.action_save_as = QAction("Save As", self)
+        self.action_save_as.setObjectName("file.save_as")
+        self.action_save_as.setShortcut(self.settings_manager.get_shortcut("file.save_as"))
+
         self.action_exit = QAction("Exit", self)
+        self.action_exit.setObjectName("file.exit")
+        self.action_exit.setShortcut(self.settings_manager.get_shortcut("file.exit"))
 
         file_menu.addAction(self.action_new_dynasty)
         file_menu.addAction(self.action_open_dynasty)
@@ -1826,10 +1846,24 @@ class MainWindow(QMainWindow):
         edit_menu = menubar.addMenu("Edit")
 
         self.action_undo = QAction("Undo", self)
+        self.action_undo.setObjectName("edit.undo")
+        self.action_undo.setShortcut(self.settings_manager.get_shortcut("edit.undo"))
+
         self.action_redo = QAction("Redo", self)
+        self.action_redo.setObjectName("edit.redo")
+        self.action_redo.setShortcut(self.settings_manager.get_shortcut("edit.redo"))
+        
         self.action_add_person = QAction("Add Person", self)
+        self.action_add_person.setObjectName("edit.add_person")
+        self.action_add_person.setShortcut(self.settings_manager.get_shortcut("edit.add_person"))
+
         self.action_remove_person = QAction("Remove Person", self)
+        self.action_remove_person.setObjectName("edit.remove_person")
+        self.action_remove_person.setShortcut(self.settings_manager.get_shortcut("edit.remove_person"))
+
         self.action_add_new_family = QAction("Add New Family", self)
+        self.action_add_new_family.setObjectName("edit.add_new_family")
+        self.action_add_new_family.setShortcut(self.settings_manager.get_shortcut("edit.add_new_family"))
 
         edit_menu.addAction(self.action_undo)
         edit_menu.addAction(self.action_redo)
@@ -1843,9 +1877,20 @@ class MainWindow(QMainWindow):
         view_menu = menubar.addMenu("View")
 
         self.action_view_family_trees = QAction("Family Trees", self)
+        self.action_view_family_trees.setObjectName("view.family_trees")
+        self.action_view_family_trees.setShortcut(self.settings_manager.get_shortcut("view.family_trees"))
+
         self.action_view_timeline = QAction("Timeline", self)
+        self.action_view_timeline.setObjectName("view.timeline")
+        self.action_view_timeline.setShortcut(self.settings_manager.get_shortcut("view.timeline"))
+        
         self.action_view_dynasty = QAction("Dynasty", self)
+        self.action_view_dynasty.setObjectName("view.dynasty")
+        self.action_view_dynasty.setShortcut(self.settings_manager.get_shortcut("view.dynasty"))
+
         self.action_view_data_table = QAction("Data Table", self)
+        self.action_view_data_table.setObjectName("view.data_table")
+        self.action_view_data_table.setShortcut(self.settings_manager.get_shortcut("view.data_table"))
 
         view_menu.addAction(self.action_view_family_trees)
         view_menu.addAction(self.action_view_timeline)
@@ -1857,21 +1902,70 @@ class MainWindow(QMainWindow):
         tools_menu = menubar.addMenu("Tools")
 
         self.action_rebuild_scene = QAction("Rebuild Scene", self)
+        self.action_rebuild_scene.setObjectName("tools.rebuild_scene")
+        self.action_rebuild_scene.setShortcut(self.settings_manager.get_shortcut("tools.rebuild_scene"))
+
         self.action_recompute_generations = QAction("Recompute Generations", self)
+        self.action_recompute_generations.setObjectName("tools.recompute_generations")
+        self.action_recompute_generations.setShortcut(self.settings_manager.get_shortcut("tools.recompute_generations"))
+        
         self.action_validate_marriages = QAction("Validate Marriages", self)
+        self.action_validate_marriages.setObjectName("tools.validate_marriages")
+        self.action_validate_marriages.setShortcut(self.settings_manager.get_shortcut("tools.validate_marriages"))
+
         self.action_validate_parentage = QAction("Validate Parentage", self)
+        self.action_validate_parentage.setObjectName("tools.validate_parentage")
+        self.action_validate_parentage.setShortcut(self.settings_manager.get_shortcut("tools.validate_parentage"))
 
         tools_menu.addAction(self.action_rebuild_scene)
         tools_menu.addAction(self.action_recompute_generations)
         tools_menu.addAction(self.action_validate_marriages)
         tools_menu.addAction(self.action_validate_parentage)
 
+    def _create_settings_menu(self, menubar: QMenuBar) -> None:
+        """Create the settings menu with application options."""
+        settings_menu = menubar.addMenu("Settings")
+
+        self.action_settings = QAction("Settings", self)
+        self.action_settings.setObjectName("settings.settings")
+        self.action_settings.setShortcut(self.settings_manager.get_shortcut("settings.settings"))
+
+        self.action_general = QAction("General", self)
+        self.action_general.setObjectName("settings.general")
+        self.action_general.setShortcut(self.settings_manager.get_shortcut("settings.general"))
+
+        self.action_shortcuts = QAction("Shortcuts", self)
+        self.action_shortcuts.setObjectName("settings.shortcuts")
+        self.action_shortcuts.setShortcut(self.settings_manager.get_shortcut("settings.shortcuts"))
+
+        self.action_display = QAction("Display", self)
+        self.action_display.setObjectName("settings.display")
+        self.action_display.setShortcut(self.settings_manager.get_shortcut("settings.display"))
+
+        self.action_appearance = QAction("Appearance", self)
+        self.action_appearance.setObjectName("settings.appearance")
+        self.action_appearance.setShortcut(self.settings_manager.get_shortcut("settings.appearance"))
+
+        self.action_formats = QAction("Formats", self)
+        self.action_formats.setObjectName("settings.formats")
+        self.action_formats.setShortcut(self.settings_manager.get_shortcut("settings.formats"))
+
+        settings_menu.addAction(self.action_settings)
+        settings_menu.addSeparator()
+        settings_menu.addAction(self.action_general)
+        settings_menu.addAction(self.action_shortcuts)
+        settings_menu.addAction(self.action_display)
+        settings_menu.addAction(self.action_appearance)
+        settings_menu.addAction(self.action_formats)
+
+
     def _create_help_menu(self, menubar: QMenuBar) -> None:
         """Create the Help menu with application information."""
         help_menu = menubar.addMenu("Help")
 
         self.action_about = QAction("About", self)
-
+        self.action_about.setObjectName("help.about")
+        self.action_about.setShortcut(self.settings_manager.get_shortcut("help.about"))
         help_menu.addAction(self.action_about)
 
     # ------------------------------------------------------------------
@@ -1905,6 +1999,14 @@ class MainWindow(QMainWindow):
         self.action_recompute_generations.triggered.connect(self.tools_actions.recompute_generations)
         self.action_validate_marriages.triggered.connect(self.tools_actions.validate_marriages)
         self.action_validate_parentage.triggered.connect(self.tools_actions.validate_parentage)
+
+        # Settings menu connections
+        self.action_settings.triggered.connect(self.settings_actions.settings)
+        self.action_general.triggered.connect(self.settings_actions.general)
+        self.action_shortcuts.triggered.connect(self.settings_actions.shortcuts)
+        self.action_display.triggered.connect(self.settings_actions.display)
+        self.action_appearance.triggered.connect(self.settings_actions.appearance)
+        self.action_formats.triggered.connect(self.settings_actions.formats)
 
         # Help menu connections
         self.action_about.triggered.connect(self.help_actions.about)
@@ -1972,7 +2074,7 @@ if __name__ == "__main__":
     main()
 
 ──────────────────────────────────────────────────────────────────────
-FILE: database/db_manager.py (234 lines)
+FILE: database/db_manager.py (253 lines)
 ──────────────────────────────────────────────────────────────────────
 
 import sqlite3
@@ -2050,6 +2152,7 @@ class DatabaseManager:
             self.conn = sqlite3.connect(file_path)
             self.conn.execute("PRAGMA foreign_keys = ON;")
             self.file_path = file_path
+            self._migrate_schema()
             self._unsaved_changes = False
         except sqlite3.Error as e:
             raise RuntimeError(f"Failed to open database: {e}")
@@ -2125,8 +2228,10 @@ class DatabaseManager:
         CREATE TABLE IF NOT EXISTS Person (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             first_name TEXT NOT NULL,
+            middle_name TEXT DEFAULT '',
             last_name TEXT NOT NULL,
             maiden_name TEXT,
+            nickname TEXT DEFAULT '',
             gender TEXT,
             birth_year INTEGER,
             birth_month INTEGER,
@@ -2143,6 +2248,9 @@ class DatabaseManager:
             father_id INTEGER,
             mother_id INTEGER,
             family_id INTEGER,
+            dynasty_id INTEGER DEFAULT 1,
+            is_founder INTEGER DEFAULT 0,
+            education INTEGER DEFAULT 0,
             notes TEXT,
             FOREIGN KEY(father_id) REFERENCES Person(id) ON DELETE SET NULL,
             FOREIGN KEY(mother_id) REFERENCES Person(id) ON DELETE SET NULL,
@@ -2236,20 +2344,36 @@ class DatabaseManager:
             y_position REAL NOT NULL,
             FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
         );
-
-        -- Settings table: User preferences and application settings
-        CREATE TABLE IF NOT EXISTS Settings (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        );
         """
-
         cursor.executescript(schema_sql)
         self.conn.commit()
+    
+    def _migrate_schema(self) -> None:
+        """Migrate existing database schema to latest version."""
+        if self.conn is None:
+            raise RuntimeError("Database connection is not established.")
+            
+        cursor = self.conn.cursor()
+
+        cursor.execute("PRAGMA table_info(Person)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+
+        migrations = [
+            # Dec/10/2025 - Person Model updates
+            ("middle_name", "ALTER TABLE Person ADD COLUMN middle_name TEXT DEFAULT ''"),
+            ("nickname", "ALTER TABLE Person ADD COLUMN nickname TEXT DEFAULT ''"),
+            ("dynasty_id", "ALTER TABLE Person ADD COLUMN dynasty_id INTEGER DEFAULT 1"),
+            ("is_founder", "ALTER TABLE Person ADD COLUMN is_founder INTEGER DEFAULT 0"),
+            ("education", "ALTER TABLE Person ADD COLUMN education INTEGER DEFAULT 0"),
+            ]
+        for column_name, sql in migrations:
+            if column_name not in existing_columns:
+                cursor.execute(sql)
+
 
 
 ──────────────────────────────────────────────────────────────────────
-FILE: actions/__init__.py (6 lines)
+FILE: actions/__init__.py (7 lines)
 ──────────────────────────────────────────────────────────────────────
 
 from .file_actions import FileActions
@@ -2257,8 +2381,9 @@ from .edit_actions import EditActions
 from .view_actions import ViewActions
 from .tools_actions import ToolsActions
 from .help_actions import HelpActions
+from .settings_actions import SettingsActions
 
-__all__ = ['FileActions', 'EditActions', 'ViewActions', 'ToolsActions', 'HelpActions']
+__all__ = ['FileActions', 'EditActions', 'ViewActions', 'ToolsActions', 'HelpActions', 'SettingsActions']
 
 ──────────────────────────────────────────────────────────────────────
 FILE: actions/file_actions.py (133 lines)
@@ -2533,6 +2658,41 @@ class HelpActions:
 
 
 ──────────────────────────────────────────────────────────────────────
+FILE: actions/settings_actions.py (23 lines)
+──────────────────────────────────────────────────────────────────────
+
+class SettingsActions:
+    """Handles settings menu actions for various configuration options."""
+
+    def __init__(self, parent: 'MainWindow') -> None:  # type: ignore
+        """Initialize settings actions handler."""
+        self.parent = parent
+
+    def settings(self) -> None:
+        """Open settings dialog to modify application settings."""
+        pass  # TODO: Implement settings dialog interaction
+
+    def general(self) -> None:
+        """Open general settings tab."""
+        pass  # TODO: Implement general settings tab
+
+    def shortcuts(self) -> None:
+        """Open shortcuts settings tab."""
+        pass  # TODO: Implement shortcuts settings tab
+
+    def display(self) -> None:
+        """Open display settings tab."""
+        pass  # TODO: Implement display settings tab
+
+    def appearance(self) -> None:
+        """Open appearance settings tab."""
+        pass  # TODO: Implement appearance settings tab
+
+    def formats(self) -> None:
+        """Open formats settings tab."""
+        pass  # TODO: Implement formats settings tab
+
+──────────────────────────────────────────────────────────────────────
 FILE: commands/undo_redo_manager.py (43 lines)
 ──────────────────────────────────────────────────────────────────────
 
@@ -2593,7 +2753,378 @@ class UndoRedoManager:
         return len(self.redo_stack) > 0
 
 
+──────────────────────────────────────────────────────────────────────
+FILE: utils/settings_manager.py (169 lines)
+──────────────────────────────────────────────────────────────────────
+
+"""User preferences and settings management."""
+
+from __future__ import annotations
+from typing import Any
+from PySide6.QtCore import QSettings
+
+class SettingsManager:
+    """Manages user preferences and disk persistence."""
+
+    DEFAULTS = {
+        "shortcuts": {
+            # File Menu shortcuts
+            "file.new": "Ctrl+N",
+            "file.open": "Ctrl+O",
+            "file.save": "Ctrl+S",
+            "file.save_as": "Ctrl+Shift+S",
+            "file.exit": "Ctrl+Q",
+
+            # Edit Menu shortcuts
+            "edit.undo": "Ctrl+Z",
+            "edit.redo": "Ctrl+Y",
+            "edit.add_person": "Ctrl+P",
+            "edit.remove_person": "Del",
+            "edit.add_new_family": "Ctrl+F",
+
+            # View Menu shortcuts
+            "view.family_trees": "Ctrl+1",
+            "view.timeline": "Ctrl+2",
+            "view.dynasty": "Ctrl+3",
+            "view.data_table": "Ctrl+4",
+
+            # Tools Menu shortcuts
+            "tools.rebuild_scene": "F5",
+            "tools.recompute_generations": "Ctrl+R",
+            "tools.validate_marriages": "Ctrl+M",
+            "tools.validate_parentage": "Ctrl+Shift+P",
+
+            # Settings Menu shortcuts
+            "settings.settings": "Ctrl+,",
+            "settings.general": "",
+            "settings.shortcuts": "",
+            "settings.display": "",
+            "settings.appearance": "",
+            "settings.formats": "",
+
+            # Help Menu shortcuts
+            "help.about": "F1",
+        },
+
+        "general": {
+            # TODO: Define general settings defaults
+            # e.g., autosave interval, default file paths, etc.
+            # including different header sections as above
+        },
+
+        "display": {
+            # TODO: Define display settings defaults
+            # e.g., default zoom level, layout preferences, etc.
+            # including different header sections as above
+            # window size, position, maximized state, fonts, themes etc.
+        },
+
+        "appearance": {
+            # TODO: Define appearance settings defaults
+            # e.g., color schemes, node styles, edge styles, Colorblindness modes,
+            # Male/Female/Unknown color preferences, generation band colors, genetic line styles, etc.
+            # including different header sections as above to keep things organized
+        },
+
+        "formats": {
+            # TODO: Define format settings defaults
+            # e.g., date formats, name display formats, event display formats, etc.
+            # Undo/Redo stack size, autosave file format, import/export preferences, etc.
+            # including different header sections as above
+        },
+    }
+
+    def __init__(self) -> None:
+        """Initialize settings manager and load user settings."""
+        
+        self.qsettings = QSettings("DynastyVizualizer", "DynastyVisualizer")
+
+        self.custom_shortcuts: dict[str, str | None] = {}
+        self.custom_general: dict[str, Any] = {}
+        self.custom_display: dict[str, Any] = {}
+        self.custom_appearance: dict[str, Any] = {}
+        self.custom_formats: dict[str, Any] = {}
+    
+        self._load_from_disk()
+
+    # ------------------------------------------------------------------
+    # Helper Methods
+    # ------------------------------------------------------------------
+
+    def _get_custom_dict(self, category: str) -> dict[str, Any]:
+        """Get the custom dictionary for a given category."""
+        category_map = {
+            "shortcuts": self.custom_shortcuts,
+            "general": self.custom_general,
+            "display": self.custom_display,
+            "appearance": self.custom_appearance,
+            "formats": self.custom_formats,
+        }
+        return category_map.get(category, {})
+
+    def _load_from_disk(self) -> None:
+        """Load user's saved settings from disk."""
+        for category in self.DEFAULTS.keys():
+            self.qsettings.beginGroup(category)
+            custom_dict = self._get_custom_dict(category)
+            
+            for key in self.DEFAULTS[category].keys():
+                if self.qsettings.contains(key):
+                    value = self.qsettings.value(key)
+                    custom_dict[key] = value if value else None
+            
+            self.qsettings.endGroup()
+    def _save_to_disk(self) -> None:
+        """Save user's custom settings to disk."""
+        for category in self.DEFAULTS.keys():
+            # Clear existing category on disk
+            self.qsettings.beginGroup(category)
+            self.qsettings.remove("")
+            self.qsettings.endGroup()
+            
+            # Save only settings that exist in current DEFAULTS
+            self.qsettings.beginGroup(category)
+            custom_dict = self._get_custom_dict(category)
+            
+            for key in self.DEFAULTS[category].keys():
+                if key in custom_dict:  
+                    value = custom_dict[key]
+                    default = self.DEFAULTS[category][key]
+
+                    if value != default:
+                        self.qsettings.setValue(key, value if value else "")
+            
+            self.qsettings.endGroup()
+        
+        self.qsettings.sync()
+
+    # ------------------------------------------------------------------
+    # Shortcut Operations (Specific, Type-Safe)
+    # ------------------------------------------------------------------
+
+    def get_shortcut(self, action_name: str) -> str:
+        """Get the shortcut for a given action, falling back to default if not customized."""
+        return self.get_setting("shortcuts", action_name)
+
+    def set_shortcut(self, action_name: str, shortcut: str) -> None:
+        """Set custom shortcut in memory without saving to disk."""
+        self.set_setting("shortcuts", action_name, shortcut)
+
+        if shortcut:
+            for other_action in list(self.custom_shortcuts.keys()):
+                if other_action != action_name:
+                    if self.custom_shortcuts[other_action] == shortcut:
+                        self.custom_shortcuts[other_action] = None
+
+
+    # ------------------------------------------------------------------
+    # Generic Settings Operations
+    # ------------------------------------------------------------------
+
+    def get_setting(self, category: str, key: str) -> Any:
+        """Get setting from any category, checking custom then default."""
+        # Check custom value first
+        custom_dict = self._get_custom_dict(category)
+        if key in custom_dict:
+            value = custom_dict[key]
+            return value if value is not None else ""
+        
+        # Fall back to default
+        if category in self.DEFAULTS and key in self.DEFAULTS[category]:
+            return self.DEFAULTS[category][key]
+        
+        return ""
+    
+    def set_setting(self, category: str, key: str, value: Any) -> None:
+        """Set setting in any category (memory only, not saved to disk)."""
+        custom_dict = self._get_custom_dict(category)
+        custom_dict[key] = value if value else None
+
+    # ------------------------------------------------------------------
+    # Save/Discard/Reset Operations
+    # ------------------------------------------------------------------
+
+    def save(self) -> None:
+        """Save all custom settings to disk."""
+        self._save_to_disk()
+
+    def discard_changes(self) -> None:
+        """Discard unsaved changes by reloading from disk."""
+        self.custom_shortcuts.clear()
+        self.custom_general.clear()
+        self.custom_display.clear()
+        self.custom_appearance.clear()
+        self.custom_formats.clear()
+        self._load_from_disk()
+
+    def reset_category_to_defaults(self, category: str) -> None:
+        """Reset one category to defaults and save to disk."""
+        custom_dict = self._get_custom_dict(category)
+        custom_dict.clear()
+        self._save_to_disk()
+
+    def reset_all_to_defaults(self) -> None:
+        """Reset all categories to defaults and save to disk."""
+        for category in self.DEFAULTS.keys():
+            self.reset_category_to_defaults(category)
+
+──────────────────────────────────────────────────────────────────────
+FILE: models/person.py (112 lines)
+──────────────────────────────────────────────────────────────────────
+
+"""Data model for Person entities."""
+
+from __future__ import annotations
+from dataclasses import dataclass
+
+
+@dataclass
+class Person:
+    """Represents a person in a dynasty with flexible date precision."""
+    
+    # Database identity
+    id: int | None = None  # None until saved to database
+    dynasty_id: int = 1
+    family_id: int | None = None
+    
+    # Name fields (full structure for flexibility)
+    first_name: str = ""
+    middle_name: str = ""
+    last_name: str = ""
+    maiden_name: str = ""
+    nickname: str = ""
+    
+    # Biological information
+    sex: str = "Unknown"  # "Male", "Female", "Unknown", "Other"
+    
+    # Birth date (year should be provided, month/day optional)
+    birth_year: int | None = None
+    birth_month: int | None = None
+    birth_day: int | None = None
+    
+    # Death date (all optional - None if alive)
+    death_year: int | None = None
+    death_month: int | None = None
+    death_day: int | None = None
+    
+    # Arrival/departure dates (tracking when joined/left settlement)
+    arrival_year: int | None = None
+    arrival_month: int | None = None
+    arrival_day: int | None = None
+    moved_out_year: int | None = None
+    moved_out_month: int | None = None
+    moved_out_day: int | None = None
+    
+    # Relationships (parent IDs link to database)
+    father_id: int | None = None
+    mother_id: int | None = None
+    
+    # Game-specific fields
+    is_founder: bool = False
+    education: int = 0  # 0-5 scale from Ostriv
+    
+    # User notes
+    notes: str = ""
+    
+    # ------------------------------------------------------------------
+    # Computed Properties
+    # ------------------------------------------------------------------
+    
+    @property
+    def full_name(self) -> str:
+        """Get full name with optional middle name and nickname."""
+        parts = [self.first_name]
+        
+        if self.middle_name:
+            parts.append(self.middle_name)
+        
+        parts.append(self.last_name)
+
+        name = " ".join(parts)
+        
+        if self.nickname:
+            name += f' "{self.nickname}"'
+
+        return name
+    
+    @property
+    def display_name(self) -> str:
+        """Get display name (first + last, no middle or nickname)."""
+        return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def is_deceased(self) -> bool:
+        """Check if person is deceased."""
+        return self.death_year is not None
+    
+    def get_age(self, current_year: int) -> int | None:
+        """
+        Calculate age at a given year.
+        
+        Returns None if birth year unknown or if person died before current year.
+        """
+        if self.birth_year is None:
+            return None
+        
+        # If person died, use death year as upper bound
+        if self.death_year is not None and current_year > self.death_year:
+            return None
+        
+        return current_year - self.birth_year
+    
+    def is_alive_in_year(self, year: int) -> bool:
+        """Check if person was alive in a given year."""
+        # Must have been born by that year
+        if self.birth_year is None or year < self.birth_year:
+            return False
+        
+        # If no death year, assume still alive
+        if self.death_year is None:
+            return True
+        
+        # Check if year is before death
+        return year <= self.death_year
+    
+    def get_age_at_death(self) -> int | None:
+        """Calculate age at death, or None if not deceased or birth year unknown."""
+        if not self.is_deceased or self.birth_year is None or self.death_year is None:
+            return None
+        
+        return self.death_year - self.birth_year
+    
+    def get_birth_date_string(self) -> str:
+        """Format birth date as string with available precision (European format)."""
+        if self.birth_year is None:
+            return "Unknown"
+        
+        if self.birth_day and self.birth_month:
+            return f"{self.birth_day:02d}/{self.birth_month:02d}/{self.birth_year}"
+        
+        if self.birth_month:
+            return f"{self.birth_month:02d}/{self.birth_year}"
+        
+        return str(self.birth_year)
+    
+    def get_death_date_string(self) -> str:
+        """Format death date as string with available precision (European format)."""
+        if self.death_year is None:
+            return "Alive"
+        
+        if self.death_day and self.death_month:
+            return f"{self.death_day:02d}/{self.death_month:02d}/{self.death_year}"
+        
+        if self.death_month:
+            return f"{self.death_month:02d}/{self.death_year}"
+        
+        return str(self.death_year)
+    
+    def get_lifespan_string(self) -> str:
+        """Get lifespan as formatted string (e.g., '1420-1475' or '1450-')."""
+        birth = str(self.birth_year) if self.birth_year else "?"
+        death = str(self.death_year) if self.death_year else ""
+        return f"{birth}-{death}"
+
 ======================================================================
 End of DynastyVizualizer codebase
-Total: 9 implementation files, 655 lines
+Total: 12 implementation files, 1057 lines
 ======================================================================

@@ -70,6 +70,11 @@ def migrate_database(file_path: str) -> None:
             ("maiden_name", "ALTER TABLE Person ADD COLUMN maiden_name TEXT"),
             ("family_id", "ALTER TABLE Person ADD COLUMN family_id INTEGER REFERENCES Family(id) ON DELETE SET NULL"),
             ("notes", "ALTER TABLE Person ADD COLUMN notes TEXT"),
+            ("middle_name", "ALTER TABLE Person ADD COLUMN middle_name TEXT DEFAULT ''"),
+            ("nickname", "ALTER TABLE Person ADD COLUMN nickname TEXT DEFAULT ''"),
+            ("dynasty_id", "ALTER TABLE Person ADD COLUMN dynasty_id INTEGER DEFAULT 1"),
+            ("is_founder", "ALTER TABLE Person ADD COLUMN is_founder INTEGER DEFAULT 0"),
+            ("education", "ALTER TABLE Person ADD COLUMN education INTEGER DEFAULT 0"),
         ]
 
         for col_name, sql in person_migrations:

@@ -73,6 +73,7 @@ class DatabaseManager:
             self.conn = sqlite3.connect(file_path)
             self.conn.execute("PRAGMA foreign_keys = ON;")
             self.file_path = file_path
+            self._migrate_schema()
             self._unsaved_changes = False
         except sqlite3.Error as e:
             raise RuntimeError(f"Failed to open database: {e}")
@@ -148,8 +149,10 @@ class DatabaseManager:
         CREATE TABLE IF NOT EXISTS Person (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             first_name TEXT NOT NULL,
+            middle_name TEXT DEFAULT '',
             last_name TEXT NOT NULL,
             maiden_name TEXT,
+            nickname TEXT DEFAULT '',
             gender TEXT,
             birth_year INTEGER,
             birth_month INTEGER,
@@ -166,6 +169,9 @@ class DatabaseManager:
             father_id INTEGER,
             mother_id INTEGER,
             family_id INTEGER,
+            dynasty_id INTEGER DEFAULT 1,
+            is_founder INTEGER DEFAULT 0,
+            education INTEGER DEFAULT 0,
             notes TEXT,
             FOREIGN KEY(father_id) REFERENCES Person(id) ON DELETE SET NULL,
             FOREIGN KEY(mother_id) REFERENCES Person(id) ON DELETE SET NULL,
@@ -259,13 +265,29 @@ class DatabaseManager:
             y_position REAL NOT NULL,
             FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
         );
-
-        -- Settings table: User preferences and application settings
-        CREATE TABLE IF NOT EXISTS Settings (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        );
         """
-
         cursor.executescript(schema_sql)
         self.conn.commit()
+    
+    def _migrate_schema(self) -> None:
+        """Migrate existing database schema to latest version."""
+        if self.conn is None:
+            raise RuntimeError("Database connection is not established.")
+            
+        cursor = self.conn.cursor()
+
+        cursor.execute("PRAGMA table_info(Person)")
+        existing_columns = {row[1] for row in cursor.fetchall()}
+
+        migrations = [
+            # Dec/10/2025 - Person Model updates
+            ("middle_name", "ALTER TABLE Person ADD COLUMN middle_name TEXT DEFAULT ''"),
+            ("nickname", "ALTER TABLE Person ADD COLUMN nickname TEXT DEFAULT ''"),
+            ("dynasty_id", "ALTER TABLE Person ADD COLUMN dynasty_id INTEGER DEFAULT 1"),
+            ("is_founder", "ALTER TABLE Person ADD COLUMN is_founder INTEGER DEFAULT 0"),
+            ("education", "ALTER TABLE Person ADD COLUMN education INTEGER DEFAULT 0"),
+            ]
+        for column_name, sql in migrations:
+            if column_name not in existing_columns:
+                cursor.execute(sql)
+

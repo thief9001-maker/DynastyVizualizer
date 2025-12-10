@@ -32,7 +32,10 @@ FILES_TO_INCLUDE = [
     "actions/view_actions.py",
     "actions/tools_actions.py",
     "actions/help_actions.py",
+    "actions/settings_actions.py",
     "commands/undo_redo_manager.py",
+    "utils/settings_manager.py",
+    "models/person.py",
     # Add more files here as you implement them
     # "models/person.py",
     # "models/marriage.py",
