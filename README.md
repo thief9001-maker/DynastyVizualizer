@@ -20,48 +20,76 @@ DynastyVizualizer brings professional genealogy software features to gaming comm
 
 ## Current Features (v0.1 - Early Development)
 
-### ✅ Implemented (Phase 1: ~80% Complete)
-- ✅ Create and manage dynasty database files (`.dyn` format)
-- ✅ Comprehensive database schema with 8 tables (flexible date support)
-- ✅ SQLite-based data persistence with automatic migration support
-- ✅ File operations (New, Open, Save, Save As) - **fully functional**
-- ✅ Unsaved changes tracking and prompting
-- ✅ Clean, professional UI framework with menu structure
-- ✅ Undo/redo infrastructure (Command pattern framework)
-- ✅ **Settings management system** with disk persistence (QSettings)
-- ✅ **Keyboard shortcuts** - All menu actions have customizable shortcuts:
+### ✅ Implemented (Phase 1 Complete + Phase 2 Started)
+- ✅ Database & File Management
+  - Create and manage dynasty database files (`.dyn` format)
+  - Comprehensive database schema with 8 tables (flexible date support)
+  - SQLite-based data persistence with automatic migration support
+  - File operations (New, Open, Save, Save As) - **fully functional**
+  - Unsaved changes tracking and prompting
+- ✅ Application Framework
+  - Clean, professional UI framework with menu structure
+  - Undo/redo infrastructure (Command pattern framework)
+  - Settings management system with disk persistence (QSettings)
+- ✅ **Keyboard Shortcuts** - All menu actions have customizable shortcuts:
   - **File**: Ctrl+N (New), Ctrl+O (Open), Ctrl+S (Save), Ctrl+Shift+S (Save As), Ctrl+Q (Exit)
   - **Edit**: Ctrl+Z (Undo), Ctrl+Y (Redo), Ctrl+P (Add Person), Del (Remove Person)
   - **View**: Ctrl+1 (Family Trees), Ctrl+2 (Timeline), Ctrl+3 (Dynasty), Ctrl+4 (Data Table)
   - **Tools**: F5 (Rebuild Scene), Ctrl+R (Recompute Generations)
   - **Settings**: Ctrl+, (Open Settings)
   - **Help**: F1 (About)
-- ✅ **Person data model** - Full dataclass implementation with 20+ fields:
-  - Name fields (first, middle, last, maiden, nickname)
-  - Flexible date support (birth/death/arrival/moved_out with year/month/day)
-  - Relationships (father, mother, family)
-  - Computed properties and utility methods
+- ✅ **Add Person Feature** (COMPLETE) - Full implementation with undo/redo:
+  - **Person data model** - Complete dataclass with 25 fields:
+    - Name fields: first, middle, last, maiden, nickname
+    - Flexible date support: birth/death/arrival/moved_out (year/month/day)
+    - Relationships: father, mother, family
+    - Game fields: dynasty_id, is_founder, education
+    - Computed properties: full_name, display_name, is_deceased, age calculations
+    - Date formatting methods with European format support
+  - **PersonRepository** - Full CRUD operations:
+    - Create: insert(), insert_with_id() (preserves ID on redo)
+    - Read: get_by_id(), get_all(), get_by_name(), get_children(), get_alive_in_year()
+    - Update: update()
+    - Delete: delete()
+  - **AddPersonCommand** - Undoable command with ID preservation:
+    - run() method for execution
+    - undo() method for reversal
+    - Preserves person ID across undo/redo cycles
+  - **AddPersonDialog** - Professional dialog interface:
+    - Special character toolbar (á, ý, ó, é, í) for non-English names
+    - Required fields: first name, last name, birth year
+    - Optional fields: gender, notes
+    - Input validation with error messages
+    - Close warning for unsaved changes (Qt built-in)
+  - **Database migration system** - Automatic schema upgrade:
+    - Safely adds new columns to existing databases
+    - Creates backup before migration
+    - Preserves all existing data
 
-### 🚧 In Progress (Phase 1 Completion)
-- 🚧 Edit menu dialogs (Add Person, Remove Person)
+### 🚧 In Progress (Phase 1-2 Completion)
 - 🚧 Settings dialog UI (keyboard shortcut customization, appearance, formats)
 - 🚧 Help menu (About dialog)
-- 🚧 Error handling and user feedback dialogs
+- 🚧 Remove Person dialog with confirmation
+- 🚧 Edit Person dialog (modify existing people)
 
 ---
 
 ## Planned Features
 
-### 🎯 Phase 2: Data Management (Weeks 3-5) - Started (~8% Complete)
-- ✅ Person data model with dataclass (20+ fields, computed properties, date formatting)
-- 📋 Add, edit, and delete people with flexible date handling (year/month/day optional)
+### 🎯 Phase 2: Data Management (Weeks 3-5) - In Progress (~35% Complete)
+- ✅ Person data model with dataclass (25 fields, computed properties, date formatting)
+- ✅ PersonRepository with full CRUD operations and search methods
+- ✅ AddPersonCommand with undo/redo and ID preservation
+- ✅ AddPersonDialog with special character support and validation
+- ✅ Database migration system for schema upgrades
+- 📋 EditPersonCommand and EditPersonDialog
+- 📋 RemovePersonCommand and RemovePersonDialog with confirmation
 - 📋 Create marriages and parent-child relationships
 - 📋 Track multiple marriages and divorces
 - 📋 Support for portraits with date-based switching
 - 📋 Personal event logs (jobs, illnesses, residences, etc.)
-- 📋 Maiden name tracking and configurable surname inheritance
 
-**Next**: PersonRepository, AddPersonCommand, AddPersonDialog
+**Next**: Edit Person dialog, Remove Person dialog, Marriage creation
 
 ### 🌳 Phase 3: Interactive Family Tree (Weeks 6-10)
 - 📋 Visual person boxes with portraits, names, and key dates
@@ -250,33 +278,37 @@ See [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for comprehensive technical docum
 
 ## Development Status
 
-**Current Phase**: Foundation (Phase 1) 🚧 **~60% Complete**
-**Progress**: ~10% of total project
-**Lines of Code**: ~850 (estimated final: 8,000-12,000)
-**Next Milestone**: Complete Phase 1 foundational menus and dialogs
+**Current Phase**: Phase 1 Complete, Phase 2 In Progress
+**Progress**: ~15% of total project
+**Lines of Code**: ~1,900 (estimated final: 8,000-12,000)
+**Next Milestone**: Complete Edit/Remove Person dialogs, begin marriage creation
 
 ### What Works Now
-- ✅ Application launches with menu bar
+- ✅ Application launches with menu bar and keyboard shortcuts
 - ✅ File → New Dynasty (creates `.dyn` database)
 - ✅ File → Open Dynasty (loads existing database)
 - ✅ File → Save / Save As (persists changes)
 - ✅ File → Exit (with unsaved changes prompt)
 - ✅ Database schema with all 8 tables
 - ✅ Migration script for existing files
+- ✅ **Edit → Add Person** (full dialog with undo/redo)
+  - Special character support for non-English names
+  - Input validation
+  - Preserves ID on undo/redo
 
-### What's Next (Completing Phase 1)
-- 🚧 Edit → Add Person (dialog implementation)
+### What's Next (Completing Phase 2)
 - 🚧 Edit → Remove Person (with confirmation)
+- 🚧 Edit → Edit Person (modify existing person)
 - 🚧 Help → About (application info dialog)
-- 🚧 Basic error handling and feedback
-- 🚧 Application icon and branding
+- 🚧 Marriage creation dialog
+- 🚧 Parent-child relationship assignment
 
 ### Roadmap Summary
 
 | Phase | Description | Status | Progress | Weeks |
 |-------|-------------|--------|----------|-------|
-| **1** | Foundation (Database, Menus, Framework) | 🚧 In Progress | ~60% | 1-2 |
-| **2** | Data Models & CRUD Dialogs | 📋 Planned | 0% | 2-5 |
+| **1** | Foundation (Database, Menus, Framework) | ✅ Complete | 100% | 1-2 |
+| **2** | Data Models & CRUD Dialogs | 🚧 In Progress | ~35% | 2-5 |
 | **3** | Interactive Family Tree (QGraphicsView) | 📋 Planned | 0% | 6-10 |
 | **4** | Relationship Analysis & Tracing | 📋 Planned | 0% | 11-13 |
 | **5** | Timeline View | 📋 Planned | 0% | 14-17 |
@@ -383,8 +415,8 @@ For questions about Ostriv-specific use cases, visit the Ostriv community forums
 ---
 
 **Version**: 0.1.0-dev
-**Status**: Early Development (Phase 1: ~60% Complete)
-**Last Updated**: 2025-12-08
+**Status**: Early Development (Phase 1 Complete, Phase 2: ~35% Complete)
+**Last Updated**: 2025-12-13
 
 ---
 

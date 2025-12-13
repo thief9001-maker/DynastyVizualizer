@@ -17,10 +17,10 @@ A beautiful, feature-rich genealogy application that combines the depth of profe
 
 ## Codebase Statistics
 
-- **Total Python Files**: 104 (12 implemented, 92 scaffolded)
-- **Lines of Code**: ~1,400 (excluding comments and blank lines)
-- **Total Lines**: ~2,900 (including docstrings and comments)
-- **Implementation Status**: ~12% complete (Phase 1 nearing completion)
+- **Total Python Files**: 104 (16 implemented, 88 scaffolded)
+- **Lines of Code**: ~1,900 (excluding comments and blank lines)
+- **Total Lines**: ~3,800 (including docstrings and comments)
+- **Implementation Status**: ~15% complete (Phase 1 complete, Phase 2 in progress)
 - **Estimated Final Size**: 10,000-15,000 lines of code
 
 ---
@@ -672,11 +672,12 @@ DynastyVizualizer/
 │
 ├── database/                            # Data layer (Model)
 │   ├── __init__.py
-│   └── db_manager.py                   # SQLite CRUD operations (268 lines) ✅
+│   ├── db_manager.py                   # SQLite operations (268 lines) ✅
+│   └── person_repository.py            # Person CRUD repository (273 lines) ✅
 │
 ├── models/                              # Data model classes
 │   ├── __init__.py
-│   ├── person.py                       # Person dataclass model (170 lines) ✅
+│   ├── person.py                       # Person dataclass (151 lines) ✅
 │   ├── marriage.py                     # Marriage relationship (41 lines) 📋
 │   ├── event.py                        # Life events (41 lines) 📋
 │   ├── portrait.py                     # Portrait metadata (30 lines) 📋
@@ -697,11 +698,11 @@ DynastyVizualizer/
 │   ├── undo_redo_manager.py            # Command manager (55 lines) ✅
 │   ├── base_command.py                 # Base command class (13 lines) 📋
 │   │
-│   ├── genealogy commands/             # Genealogy operations [PHASE 2-3]
+│   ├── genealogy_commands/             # Genealogy operations [PHASE 2-3]
 │   │   ├── __init__.py
-│   │   ├── add_person.py               # Create new person (23 lines) 📋
+│   │   ├── add_person.py               # Create person with undo (35 lines) ✅
 │   │   ├── edit_person.py              # Modify person data (24 lines) 📋
-│   │   ├── remove_person.py            # Delete person (24 lines) 📋
+│   │   ├── delete_person.py            # Delete person (24 lines) 📋
 │   │   ├── add_marriage.py             # Create marriage (25 lines) 📋
 │   │   ├── edit_marriage.py            # Modify marriage (25 lines) 📋
 │   │   ├── end_marriage.py             # End marriage (30 lines) 📋
@@ -764,7 +765,7 @@ DynastyVizualizer/
 │
 ├── dialogs/                             # Modal dialogs
 │   ├── __init__.py                     # 📋
-│   ├── add_person_dialog.py            # Add person form (18 lines) 📋
+│   ├── add_person_dialog.py            # Add person form (197 lines) ✅
 │   ├── edit_person_dialog.py           # Edit person form (18 lines) 📋
 │   ├── create_marriage_dialog.py       # Marriage form (19 lines) 📋
 │   ├── create_child_dialog.py          # Child form (20 lines) 📋
@@ -790,7 +791,7 @@ DynastyVizualizer/
 │
 ├── scripts/                             # Development tools
 │   ├── create_codebase_summary.py      # Code snapshot tool ✅
-│   └── migrate_database.py             # Database migration ✅
+│   └── migrate_database.py             # Schema migration (225 lines) ✅
 │
 ├── CODEBASE_SUMMARY.md                 # This file ✅
 ├── README.md                           # User documentation ✅
@@ -806,28 +807,36 @@ Legend:
 ### File Count Summary
 
 **By Status:**
-- ✅ Implemented: 12 files (main.py, database, actions, models/person.py, utils/settings_manager.py, undo_redo_manager)
-- 📋 Scaffolded: 92 files (models, commands, views, widgets, dialogs, utils)
+- ✅ Implemented: 16 files
+  - Core: main.py
+  - Database: db_manager.py, person_repository.py
+  - Models: person.py
+  - Actions: all 6 action files
+  - Commands: undo_redo_manager.py, add_person.py
+  - Dialogs: add_person_dialog.py
+  - Utils: settings_manager.py
+  - Scripts: create_codebase_summary.py, migrate_database.py
+- 📋 Scaffolded: 88 files (remaining models, commands, views, widgets, dialogs, utils)
 - Total Python files: 104
 
 **By Category:**
-- Core: 1 (main.py)
-- Database: 1 (db_manager.py)
+- Core: 1 (main.py ✅)
+- Database: 2 (db_manager ✅, person_repository ✅)
 - Models: 6 (person ✅, marriage, event, portrait, family, major_event)
-- Actions: 6 (file, edit, view, tools, settings ✅, help)
-- Commands: 20 (base + 13 genealogy + 5 GUI + undo_redo_manager)
-- Views: 22 (tree: 6, timeline: 5, table: 4, stats: 3, other: 4)
-- Widgets: 5 (date_picker, person_selector, portrait_gallery, extended_details, search_bar)
-- Dialogs: 9 (add_person, edit_person, create_marriage, create_child, add_event, settings 📋, import_csv, about)
-- Utils: 7 (settings_manager ✅, relationship_calculator, generation_calculator, validators, csv_importer, skin_manager, color_manager)
-- Scripts: 2 (create_codebase_summary, migrate_database)
-- Documentation: 3 (CODEBASE_SUMMARY, README, LICENSE)
+- Actions: 6 (all implemented ✅)
+- Commands: 20 (undo_redo_manager ✅, add_person ✅, 18 scaffolded)
+- Views: 22 (all scaffolded)
+- Widgets: 5 (all scaffolded)
+- Dialogs: 9 (add_person ✅, 8 scaffolded)
+- Utils: 7 (settings_manager ✅, 6 scaffolded)
+- Scripts: 2 (both implemented ✅)
+- Documentation: 3 (CODEBASE_SUMMARY ✅, README ✅, LICENSE ✅)
 
 ### Implementation Checklist
 
 Use this checklist to track development progress:
 
-**Phase 1: Foundation** (~80% complete)
+**Phase 1: Foundation** (✅ 100% complete)
 - [x] Main window and menu structure
 - [x] Database schema and management
 - [x] File operations (New/Open/Save)
@@ -835,22 +844,25 @@ Use this checklist to track development progress:
 - [x] Settings management system
 - [x] Keyboard shortcut handling
 - [x] Settings menu with configuration options
-- [ ] Basic dialogs (Add Person, About)
-- [ ] Error handling and user feedback
+- [x] Database migration system
+- [x] Error handling and user feedback
 
-**Phase 2: Models & CRUD** (~8% complete)
-- [x] Implement Person model with dataclass
+**Phase 2: Models & CRUD** (🚧 ~35% complete)
+- [x] Implement Person model with dataclass (25 fields)
+- [x] Implement PersonRepository (CRUD + search methods)
+- [x] Implement AddPersonCommand (with ID preservation)
+- [x] Implement AddPersonDialog (special chars, validation)
+- [ ] Implement EditPersonCommand
+- [ ] Implement EditPersonDialog
+- [ ] Implement DeletePersonCommand
+- [ ] Implement DeletePersonDialog with confirmation
 - [ ] Implement Marriage model (4 properties)
+- [ ] Implement AddMarriageCommand
+- [ ] Implement CreateMarriageDialog
 - [ ] Implement Event model (5 properties)
 - [ ] Implement Portrait model (4 properties)
 - [ ] Implement Family model (4 properties)
 - [ ] Implement MajorEvent model (5 properties)
-- [ ] Implement AddPersonCommand
-- [ ] Implement EditPersonCommand
-- [ ] Implement RemovePersonCommand
-- [ ] Implement AddMarriageCommand
-- [ ] Implement AddPersonDialog (13 fields)
-- [ ] Implement EditPersonDialog
 - [ ] Implement DatePicker widget
 - [ ] Implement PersonSelector widget
 
@@ -870,75 +882,80 @@ Use this checklist to track development progress:
 
 ## Development Roadmap
 
-### 🚧 **Phase 1: Foundation** (CURRENT - Weeks 1-2)
-**Status**: ~80% Complete
-**Lines**: ~1,150
+### ✅ **Phase 1: Foundation** (COMPLETE - Weeks 1-2)
+**Status**: 100% Complete
+**Lines**: ~1,200
 
 Core infrastructure for database management, undo/redo, settings, and application framework.
 
 **Completed:**
 - [x] Main application window and menu structure with Settings menu
 - [x] Comprehensive database schema (all 8 tables with flexible dates)
-- [x] SQLite database management (`.dyn` format with automatic migration support)
-- [x] File operations (New, Open, Save, Save As, Exit) - fully functional
+- [x] SQLite database management (`.dyn` format)
+- [x] Database migration system for schema upgrades
+- [x] File operations (New, Open, Save, Save As, Exit)
 - [x] Undo/redo infrastructure (Command pattern framework)
 - [x] Action handler framework (file, edit, view, tools, settings, help)
 - [x] Settings management system with disk persistence (QSettings)
 - [x] **Keyboard shortcut system** - All menu actions have customizable shortcuts:
-  - File: Ctrl+N (New), Ctrl+O (Open), Ctrl+S (Save), Ctrl+Shift+S (Save As), Ctrl+Q (Exit)
-  - Edit: Ctrl+Z (Undo), Ctrl+Y (Redo), Ctrl+P (Add Person), Del (Remove Person)
-  - View: Ctrl+1-4 (Switch views)
-  - Tools: F5 (Rebuild Scene), Ctrl+R (Recompute Generations)
-  - Settings: Ctrl+, (Settings)
-  - Help: F1 (About)
+  - File: Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+Q
+  - Edit: Ctrl+Z, Ctrl+Y, Ctrl+P, Del
+  - View: Ctrl+1-4
+  - Tools: F5, Ctrl+R
+  - Settings: Ctrl+,
+  - Help: F1
 - [x] Project scaffolding (all 104 files created)
+- [x] Error handling and user feedback
 
-**In Progress:**
-- [ ] Edit menu functionality (Add Person, Remove Person dialogs)
-- [ ] Settings dialog implementation (currently scaffolded placeholders)
-- [ ] Help menu functionality (About dialog)
-- [ ] Basic error dialogs and user feedback
-- [ ] Application icon and branding
-
-**Key Files**: `main.py`, `database/db_manager.py`, `actions/`, `utils/settings_manager.py`, `commands/undo_redo_manager.py`
-
-**Next Steps**: Implement Add Person dialog and command, implement Settings dialog UI
+**Key Files**: `main.py`, `database/db_manager.py`, `actions/`, `utils/settings_manager.py`, `commands/undo_redo_manager.py`, `scripts/migrate_database.py`
 
 ---
 
-### 📋 **Phase 2: Data Models & Basic CRUD** (Weeks 2-5)
-**Status**: Started (~8% complete)
+### 🚧 **Phase 2: Data Models & Basic CRUD** (CURRENT - Weeks 2-5)
+**Status**: In Progress (~35% complete)
 **Estimated Lines**: +1,200
 
 Build data models and basic create/read/update/delete operations with dialogs.
 
 **Completed:**
-- [x] **Person model with dataclass** - Full implementation with 20+ properties:
-  - Name fields: first_name, middle_name, last_name, maiden_name, nickname
+- [x] **Person model** - Complete dataclass with 25 properties:
+  - Name fields: first, middle, last, maiden, nickname
   - Flexible date support: birth/death/arrival/moved_out (year/month/day)
   - Relationships: father_id, mother_id, family_id
   - Game fields: is_founder, education, dynasty_id
   - Computed properties: full_name, display_name, is_deceased
-  - Utility methods: get_age(year), is_alive_in_year(year), get_age_at_death()
+  - Utility methods: get_age(), is_alive_in_year(), get_age_at_death()
   - Date formatting: get_birth_date_string(), get_death_date_string(), get_lifespan_string()
+- [x] **PersonRepository** - Full CRUD implementation:
+  - Create: insert(), insert_with_id() (for redo with ID preservation)
+  - Read: get_by_id(), get_all(), get_by_name(), get_children(), get_alive_in_year()
+  - Update: update()
+  - Delete: delete()
+- [x] **AddPersonCommand** - Undoable command:
+  - run() method inserts person or restores with specific ID
+  - undo() method deletes person
+  - Preserves person ID across undo/redo cycles
+- [x] **AddPersonDialog** - Professional UI:
+  - Special character toolbar (á, ý, ó, é, í) for non-English names
+  - Required fields: first name, last name, birth year
+  - Optional fields: gender, notes
+  - Input validation with error messages
+  - Focus management and keyboard navigation
 
-**Goals:**
-- [ ] Implement `Marriage`, `Event` model classes
-- [ ] Create `AddPersonCommand`, `EditPersonCommand`, `DeletePersonCommand`
-- [ ] Create `AddPersonDialog`, `EditPersonDialog` with full validation
-- [ ] Build `CreateMarriageCommand`, `CreateChildCommand`
-- [ ] Build `CreateMarriageDialog`
-- [ ] Implement flexible date handling widget (year/month/day with nulls)
-- [ ] Add portrait support (`Portrait` model + upload functionality)
-- [ ] Create `DatePicker` widget (supports partial dates)
-- [ ] Create `PersonSelector` widget (searchable dropdown)
-- [ ] Implement basic list view to display people
+**In Progress:**
+- [ ] EditPersonCommand and EditPersonDialog
+- [ ] DeletePersonCommand and RemovePersonDialog with confirmation
+- [ ] Marriage model and commands
+- [ ] CreateMarriageDialog
+- [ ] Event model
+- [ ] DatePicker widget (flexible year/month/day)
+- [ ] PersonSelector widget (searchable dropdown)
 
 **Deliverable**: Can add, edit, and delete people and marriages through functional dialogs
 
-**Key Files**: `models/person.py` ✅, `commands/genealogy_commands/`, `dialogs/`, `widgets/date_picker.py`
+**Key Files**: `models/person.py` ✅, `database/person_repository.py` ✅, `commands/genealogy_commands/add_person.py` ✅, `dialogs/add_person_dialog.py` ✅
 
-**Next Steps**: Implement AddPersonDialog and AddPersonCommand, create PersonRepository
+**Next Steps**: EditPersonDialog, RemovePersonDialog with confirmation, Marriage creation
 
 ---
 
@@ -1353,6 +1370,6 @@ Share examples from each category:
 
 ---
 
-**Last Updated**: 2025-12-10
-**Codebase Version**: 0.1.0-dev (Phase 1: ~80% Complete)
-**Next Milestone**: Implement AddPersonDialog, AddPersonCommand, and PersonRepository (Phase 2 start)
+**Last Updated**: 2025-12-13
+**Codebase Version**: 0.1.0-dev (Phase 1 Complete, Phase 2: ~35% Complete)
+**Next Milestone**: EditPersonDialog, RemovePersonDialog, Marriage creation (Phase 2 continuation)
