@@ -1,3 +1,5 @@
+from PySide6.QtWidgets import QDialog
+
 class EditActions:
     """Handles edit menu actions (Undo, Redo, Add/Remove operations)."""
     
@@ -19,7 +21,19 @@ class EditActions:
     
     def add_person(self) -> None:
         """Open dialog to add a new person to the database."""
-        pass  # TODO: Implement with AddPersonDialog
+        from dialogs.add_person_dialog import AddPersonDialog
+        from commands.genealogy_commands import AddPersonCommand
+
+        dialog = AddPersonDialog(self.parent)
+        result = dialog.exec()
+
+        if result == 1:  # QDialog.accepted
+            person = dialog.get_person()
+
+            if person:
+                command = AddPersonCommand(self.parent.db, person)
+                self.parent.undo_manager.execute(command)
+                self.parent.refresh_ui()
     
     def remove_person(self) -> None:
         """Remove the selected person from the database."""

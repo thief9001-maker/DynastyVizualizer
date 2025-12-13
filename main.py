@@ -1,6 +1,6 @@
 import sys
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar
+from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar, QMessageBox
 from PySide6.QtGui import QAction
 
 from database.db_manager import DatabaseManager
@@ -309,7 +309,39 @@ class MainWindow(QMainWindow):
         """Refresh window title and menu states after database changes."""
         self._update_window_title()
         self._update_menu_states()
+    # ------------------------------------------------------------------
+    # Event Handlers
+    # ------------------------------------------------------------------
 
+    def closeEvent(self, event) -> None:
+        """Handle window close event - intercept X button, Alt+F4, etc."""
+
+        if self.db.is_open and self.db.is_dirty:
+
+            msg = QMessageBox(self)
+            msg.setWindowTitle("Unsaved Changes")
+            msg.setText("You have unsaved changes. Do you want to save before exiting?")
+            msg.setStandardButtons(
+                QMessageBox.StandardButton.Save | 
+                QMessageBox.StandardButton.Discard | 
+                QMessageBox.StandardButton.Cancel
+            )
+            choice = msg.exec()
+            
+            if choice == QMessageBox.StandardButton.Save:
+
+                if self.file_actions.save():
+                    event.accept()
+                else:
+                    event.ignore()
+            elif choice == QMessageBox.StandardButton.Discard:
+                event.accept()
+            
+            else: 
+                event.ignore()
+        
+        else:
+            event.accept()
 
 def main() -> None:
     """Application entry point."""

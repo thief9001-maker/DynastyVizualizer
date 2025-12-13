@@ -57,6 +57,7 @@ class DatabaseManager:
         
         try:
             self.conn = sqlite3.connect(file_path)
+            self.conn.row_factory = sqlite3.Row
             self.conn.execute("PRAGMA foreign_keys = ON;")
             self.file_path = file_path
             self._initialize_schema()
@@ -71,6 +72,7 @@ class DatabaseManager:
         
         try:
             self.conn = sqlite3.connect(file_path)
+            self.conn.row_factory = sqlite3.Row
             self.conn.execute("PRAGMA foreign_keys = ON;")
             self.file_path = file_path
             self._migrate_schema()

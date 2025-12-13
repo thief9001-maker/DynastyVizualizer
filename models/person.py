@@ -21,7 +21,7 @@ class Person:
     nickname: str = ""
     
     # Biological information
-    sex: str = "Unknown"  # "Male", "Female", "Unknown", "Other"
+    gender: str = "Unknown"  # "Male", "Female", "Unknown", "Other"
     
     # Birth date (year should be provided, month/day optional)
     birth_year: int | None = None

@@ -40,19 +40,31 @@ DynastyVizualizer brings professional genealogy software features to gaming comm
 
 ## Current Features (v0.1 - Early Development)
 
-### ✅ Implemented
+### ✅ Implemented (Phase 1: ~80% Complete)
 - ✅ Create and manage dynasty database files (`.dyn` format)
 - ✅ Comprehensive database schema with 8 tables (flexible date support)
-- ✅ SQLite-based data persistence with migration support
+- ✅ SQLite-based data persistence with automatic migration support
 - ✅ File operations (New, Open, Save, Save As) - **fully functional**
 - ✅ Unsaved changes tracking and prompting
 - ✅ Clean, professional UI framework with menu structure
 - ✅ Undo/redo infrastructure (Command pattern framework)
+- ✅ **Settings management system** with disk persistence (QSettings)
+- ✅ **Keyboard shortcuts** - All menu actions have customizable shortcuts:
+  - **File**: Ctrl+N (New), Ctrl+O (Open), Ctrl+S (Save), Ctrl+Shift+S (Save As), Ctrl+Q (Exit)
+  - **Edit**: Ctrl+Z (Undo), Ctrl+Y (Redo), Ctrl+P (Add Person), Del (Remove Person)
+  - **View**: Ctrl+1 (Family Trees), Ctrl+2 (Timeline), Ctrl+3 (Dynasty), Ctrl+4 (Data Table)
+  - **Tools**: F5 (Rebuild Scene), Ctrl+R (Recompute Generations)
+  - **Settings**: Ctrl+, (Open Settings)
+  - **Help**: F1 (About)
+- ✅ **Person data model** - Full dataclass implementation with 20+ fields:
+  - Name fields (first, middle, last, maiden, nickname)
+  - Flexible date support (birth/death/arrival/moved_out with year/month/day)
+  - Relationships (father, mother, family)
+  - Computed properties and utility methods
 
 ### 🚧 In Progress (Phase 1 Completion)
 - 🚧 Edit menu dialogs (Add Person, Remove Person)
-- 🚧 View menu functionality (view switching stubs)
-- 🚧 Tools menu functionality (validation stubs)
+- 🚧 Settings dialog UI (keyboard shortcut customization, appearance, formats)
 - 🚧 Help menu (About dialog)
 - 🚧 Error handling and user feedback dialogs
 
@@ -60,13 +72,16 @@ DynastyVizualizer brings professional genealogy software features to gaming comm
 
 ## Planned Features
 
-### 🎯 Phase 2: Data Management (Weeks 3-5)
+### 🎯 Phase 2: Data Management (Weeks 3-5) - Started (~8% Complete)
+- ✅ Person data model with dataclass (20+ fields, computed properties, date formatting)
 - 📋 Add, edit, and delete people with flexible date handling (year/month/day optional)
 - 📋 Create marriages and parent-child relationships
 - 📋 Track multiple marriages and divorces
 - 📋 Support for portraits with date-based switching
 - 📋 Personal event logs (jobs, illnesses, residences, etc.)
 - 📋 Maiden name tracking and configurable surname inheritance
+
+**Next**: PersonRepository, AddPersonCommand, AddPersonDialog
 
 ### 🌳 Phase 3: Interactive Family Tree (Weeks 6-10)
 - 📋 Visual person boxes with portraits, names, and key dates
@@ -425,10 +440,10 @@ A beautiful, feature-rich genealogy application that combines the depth of profe
 
 ## Codebase Statistics
 
-- **Total Python Files**: 102 (9 implemented, 93 scaffolded)
-- **Lines of Code**: ~1,100 (excluding comments and blank lines)
-- **Total Lines**: ~2,500 (including docstrings and comments)
-- **Implementation Status**: ~10% complete (Phase 1 infrastructure in progress)
+- **Total Python Files**: 104 (12 implemented, 92 scaffolded)
+- **Lines of Code**: ~1,400 (excluding comments and blank lines)
+- **Total Lines**: ~2,900 (including docstrings and comments)
+- **Implementation Status**: ~12% complete (Phase 1 nearing completion)
 - **Estimated Final Size**: 10,000-15,000 lines of code
 
 ---
@@ -1076,7 +1091,7 @@ Complete file structure with implementation status:
 
 ```
 DynastyVizualizer/
-├── main.py                              # Application entry point (222 lines) ✅
+├── main.py                              # Application entry point (280 lines) ✅
 │
 ├── database/                            # Data layer (Model)
 │   ├── __init__.py
@@ -1084,7 +1099,7 @@ DynastyVizualizer/
 │
 ├── models/                              # Data model classes
 │   ├── __init__.py
-│   ├── person.py                       # Person with properties (68 lines) 📋
+│   ├── person.py                       # Person dataclass model (170 lines) ✅
 │   ├── marriage.py                     # Marriage relationship (41 lines) 📋
 │   ├── event.py                        # Life events (41 lines) 📋
 │   ├── portrait.py                     # Portrait metadata (30 lines) 📋
@@ -1097,6 +1112,7 @@ DynastyVizualizer/
 │   ├── edit_actions.py                 # Undo/Redo/Add/Remove (29 lines) ✅
 │   ├── view_actions.py                 # View switching (22 lines) ✅
 │   ├── tools_actions.py                # Validation tools (22 lines) ✅
+│   ├── settings_actions.py             # Settings configuration (27 lines) ✅
 │   └── help_actions.py                 # About dialog (10 lines) ✅
 │
 ├── commands/                            # Command pattern for undo/redo
@@ -1176,12 +1192,13 @@ DynastyVizualizer/
 │   ├── create_marriage_dialog.py       # Marriage form (19 lines) 📋
 │   ├── create_child_dialog.py          # Child form (20 lines) 📋
 │   ├── add_event_dialog.py             # Event form (21 lines) 📋
-│   ├── preferences_dialog.py           # Settings dialog (20 lines) 📋
+│   ├── settings_dialog.py              # Settings configuration (15 lines) 📋
 │   ├── import_csv_dialog.py            # CSV import (22 lines) 📋
 │   └── about_dialog.py                 # About dialog (13 lines) 📋
 │
 ├── utils/                               # Utility modules
 │   ├── __init__.py                     # 📋
+│   ├── settings_manager.py             # Settings/shortcuts mgr (180 lines) ✅
 │   ├── relationship_calculator.py      # Relationship logic (20 lines) 📋
 │   ├── generation_calculator.py        # Generation levels (16 lines) 📋
 │   ├── validators.py                   # Data validation (28 lines) 📋
@@ -1212,20 +1229,20 @@ Legend:
 ### File Count Summary
 
 **By Status:**
-- ✅ Implemented: 9 files (main.py, database, actions, undo_redo_manager)
-- 📋 Scaffolded: 93 files (models, commands, views, widgets, dialogs, utils)
-- Total Python files: 102
+- ✅ Implemented: 12 files (main.py, database, actions, models/person.py, utils/settings_manager.py, undo_redo_manager)
+- 📋 Scaffolded: 92 files (models, commands, views, widgets, dialogs, utils)
+- Total Python files: 104
 
 **By Category:**
 - Core: 1 (main.py)
 - Database: 1 (db_manager.py)
-- Models: 6 (person, marriage, event, portrait, family, major_event)
-- Actions: 5 (file, edit, view, tools, help)
+- Models: 6 (person ✅, marriage, event, portrait, family, major_event)
+- Actions: 6 (file, edit, view, tools, settings ✅, help)
 - Commands: 20 (base + 13 genealogy + 5 GUI + undo_redo_manager)
 - Views: 22 (tree: 6, timeline: 5, table: 4, stats: 3, other: 4)
 - Widgets: 5 (date_picker, person_selector, portrait_gallery, extended_details, search_bar)
-- Dialogs: 8 (add_person, edit_person, create_marriage, create_child, add_event, preferences, import_csv, about)
-- Utils: 6 (relationship_calculator, generation_calculator, validators, csv_importer, skin_manager, color_manager)
+- Dialogs: 9 (add_person, edit_person, create_marriage, create_child, add_event, settings 📋, import_csv, about)
+- Utils: 7 (settings_manager ✅, relationship_calculator, generation_calculator, validators, csv_importer, skin_manager, color_manager)
 - Scripts: 2 (create_codebase_summary, migrate_database)
 - Documentation: 3 (CODEBASE_SUMMARY, README, LICENSE)
 
@@ -1233,16 +1250,19 @@ Legend:
 
 Use this checklist to track development progress:
 
-**Phase 1: Foundation** (~60% complete)
+**Phase 1: Foundation** (~80% complete)
 - [x] Main window and menu structure
 - [x] Database schema and management
 - [x] File operations (New/Open/Save)
 - [x] Undo/redo infrastructure
+- [x] Settings management system
+- [x] Keyboard shortcut handling
+- [x] Settings menu with configuration options
 - [ ] Basic dialogs (Add Person, About)
 - [ ] Error handling and user feedback
 
-**Phase 2: Models & CRUD** (0% complete)
-- [ ] Implement Person model (6 properties)
+**Phase 2: Models & CRUD** (~8% complete)
+- [x] Implement Person model with dataclass
 - [ ] Implement Marriage model (4 properties)
 - [ ] Implement Event model (5 properties)
 - [ ] Implement Portrait model (4 properties)
@@ -1274,42 +1294,59 @@ Use this checklist to track development progress:
 ## Development Roadmap
 
 ### 🚧 **Phase 1: Foundation** (CURRENT - Weeks 1-2)
-**Status**: ~60% Complete
-**Lines**: ~850
+**Status**: ~80% Complete
+**Lines**: ~1,150
 
-Core infrastructure for database management, undo/redo, and application framework.
+Core infrastructure for database management, undo/redo, settings, and application framework.
 
 **Completed:**
-- [x] Main application window and menu structure
+- [x] Main application window and menu structure with Settings menu
 - [x] Comprehensive database schema (all 8 tables with flexible dates)
-- [x] SQLite database management (`.dyn` format with migration support)
+- [x] SQLite database management (`.dyn` format with automatic migration support)
 - [x] File operations (New, Open, Save, Save As, Exit) - fully functional
 - [x] Undo/redo infrastructure (Command pattern framework)
-- [x] Action handler framework (scaffolded)
-- [x] Project scaffolding
+- [x] Action handler framework (file, edit, view, tools, settings, help)
+- [x] Settings management system with disk persistence (QSettings)
+- [x] **Keyboard shortcut system** - All menu actions have customizable shortcuts:
+  - File: Ctrl+N (New), Ctrl+O (Open), Ctrl+S (Save), Ctrl+Shift+S (Save As), Ctrl+Q (Exit)
+  - Edit: Ctrl+Z (Undo), Ctrl+Y (Redo), Ctrl+P (Add Person), Del (Remove Person)
+  - View: Ctrl+1-4 (Switch views)
+  - Tools: F5 (Rebuild Scene), Ctrl+R (Recompute Generations)
+  - Settings: Ctrl+, (Settings)
+  - Help: F1 (About)
+- [x] Project scaffolding (all 104 files created)
 
 **In Progress:**
 - [ ] Edit menu functionality (Add Person, Remove Person dialogs)
-- [ ] View menu functionality (placeholder stubs)
-- [ ] Tools menu functionality (placeholder stubs)
+- [ ] Settings dialog implementation (currently scaffolded placeholders)
 - [ ] Help menu functionality (About dialog)
 - [ ] Basic error dialogs and user feedback
 - [ ] Application icon and branding
 
-**Key Files**: `main.py`, `database/db_manager.py`, `actions/file_actions.py`, `commands/undo_redo_manager.py`
+**Key Files**: `main.py`, `database/db_manager.py`, `actions/`, `utils/settings_manager.py`, `commands/undo_redo_manager.py`
 
-**Next Steps**: Complete remaining menu items, add basic dialogs, implement About dialog
+**Next Steps**: Implement Add Person dialog and command, implement Settings dialog UI
 
 ---
 
 ### 📋 **Phase 2: Data Models & Basic CRUD** (Weeks 2-5)
-**Status**: Not Started
+**Status**: Started (~8% complete)
 **Estimated Lines**: +1,200
 
 Build data models and basic create/read/update/delete operations with dialogs.
 
+**Completed:**
+- [x] **Person model with dataclass** - Full implementation with 20+ properties:
+  - Name fields: first_name, middle_name, last_name, maiden_name, nickname
+  - Flexible date support: birth/death/arrival/moved_out (year/month/day)
+  - Relationships: father_id, mother_id, family_id
+  - Game fields: is_founder, education, dynasty_id
+  - Computed properties: full_name, display_name, is_deceased
+  - Utility methods: get_age(year), is_alive_in_year(year), get_age_at_death()
+  - Date formatting: get_birth_date_string(), get_death_date_string(), get_lifespan_string()
+
 **Goals:**
-- [ ] Implement `Person`, `Marriage`, `Event` model classes
+- [ ] Implement `Marriage`, `Event` model classes
 - [ ] Create `AddPersonCommand`, `EditPersonCommand`, `DeletePersonCommand`
 - [ ] Create `AddPersonDialog`, `EditPersonDialog` with full validation
 - [ ] Build `CreateMarriageCommand`, `CreateChildCommand`
@@ -1322,7 +1359,9 @@ Build data models and basic create/read/update/delete operations with dialogs.
 
 **Deliverable**: Can add, edit, and delete people and marriages through functional dialogs
 
-**Key Files**: `models/`, `commands/genealogy_commands/`, `dialogs/`, `widgets/date_picker.py`
+**Key Files**: `models/person.py` ✅, `commands/genealogy_commands/`, `dialogs/`, `widgets/date_picker.py`
+
+**Next Steps**: Implement AddPersonDialog and AddPersonCommand, create PersonRepository
 
 ---
 
@@ -1511,23 +1550,27 @@ Implement UI skins, portrait management, and family color coding.
 ---
 
 ### 🚧 **Phase 9: Polish & Advanced Features** (Week 27-30)
-**Status**: Not Started
+**Status**: Partially Started (~15% complete)
 **Estimated Lines**: +800
 
 Final polish, preferences, keyboard shortcuts, and quality-of-life features.
 
-**Goals:**
-- [ ] Build `PreferencesDialog` with tabs:
-  - General (date format, auto-save interval, confirmations)
-  - Display (skin, font size, color scheme)
-  - Behavior (surname change rules, portrait auto-cycle)
-  - Advanced (validation strictness, close relative marriages)
-- [ ] Implement keyboard shortcuts:
+**Completed:**
+- [x] **Keyboard shortcuts** - Full implementation with customizable shortcuts via SettingsManager:
   - Ctrl+N/O/S (File operations)
   - Ctrl+Z/Y (Undo/Redo)
-  - Ctrl+F (Search), Ctrl+P (Add Person), Del (Delete)
+  - Ctrl+P (Add Person), Del (Delete)
   - Ctrl+1/2/3/4 (Switch views)
-  - Ctrl+Plus/Minus/0 (Zoom)
+  - F5 (Rebuild Scene), Ctrl+R (Recompute Generations)
+- [x] Settings management infrastructure with disk persistence
+
+**Goals:**
+- [ ] Build `SettingsDialog` with tabs:
+  - General (date format, auto-save interval, confirmations)
+  - Shortcuts (customize all keyboard shortcuts)
+  - Display (skin, font size, color scheme)
+  - Appearance (colors, node styles)
+  - Formats (date/name display formats)
 - [ ] Add comprehensive right-click context menus
 - [ ] Build `AboutDialog` with credits and version info
 - [ ] Implement export functionality:
@@ -1733,9 +1776,9 @@ Share examples from each category:
 
 ---
 
-**Last Updated**: 2025-12-08
-**Codebase Version**: 0.1.0-dev (Phase 1: ~60% Complete)
-**Next Milestone**: Complete Phase 1 foundational menus and dialogs
+**Last Updated**: 2025-12-10
+**Codebase Version**: 0.1.0-dev (Phase 1: ~80% Complete)
+**Next Milestone**: Implement AddPersonDialog, AddPersonCommand, and PersonRepository (Phase 2 start)
 
 
 ======================================================================
