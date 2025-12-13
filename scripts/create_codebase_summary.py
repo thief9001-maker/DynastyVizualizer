@@ -1,146 +1,272 @@
 """
-Script to create a single text file containing your entire codebase
-for sharing with Claude in chat conversations.
+Generate dynasty_codebase.txt - Complete codebase snapshot optimized for LLMs.
+
+Creates a token-efficient snapshot of ALL source code that LLMs can use to
+understand the complete project state in a single context window.
 
 Usage:
-1. Copy this script to your project root folder
-2. Run: python scripts/create_codebase_summary.py
-3. Upload the generated dynasty_codebase.txt to Claude
+    python scripts/create_codebase_summary.py
 
-This script is useful for:
-- Sharing code with claude.ai for architecture discussions
-- Getting feedback on implementation approaches
-- Planning new features with full codebase context
+Output:
+    dynasty_codebase.txt - Complete codebase, LLM-optimized
+
+Features:
+    - Token-efficient: Minimal headers, maximum code density
+    - Complete: ALL Python files included
+    - Organized: Grouped by category for easy parsing
+    - Compact: No visual trees, just clean code listings
+    - Smart encoding: Handles UTF-8, UTF-16
 """
 
 import os
 from pathlib import Path
+from datetime import datetime
+from typing import List, Tuple
+
 
 # Configuration
 OUTPUT_FILE = "dynasty_codebase.txt"
 PROJECT_NAME = "DynastyVizualizer"
-PROJECT_DESCRIPTION = "Family tree GUI for game Ostriv"
-TECH_STACK = "PySide6, SQLite, Python 3.10+"
 
-# Files to include (add or remove as needed)
-FILES_TO_INCLUDE = [
-    "main.py",
-    "database/db_manager.py",
-    "actions/__init__.py",
-    "actions/file_actions.py",
-    "actions/edit_actions.py",
-    "actions/view_actions.py",
-    "actions/tools_actions.py",
-    "actions/help_actions.py",
-    "actions/settings_actions.py",
-    "commands/undo_redo_manager.py",
-    "utils/settings_manager.py",
-    "models/person.py",
-    # Add more files here as you implement them
-    # "models/person.py",
-    # "models/marriage.py",
-    # "models/event.py",
-]
+# Files/directories to ignore
+IGNORE_PATTERNS = {
+    "__pycache__", ".git", ".pytest_cache", ".venv", "venv", "env",
+    ".env", "*.pyc", "*.pyo", "*.pyd", ".DS_Store", "*.egg-info",
+    "dist", "build", ".idea", ".vscode", "*.dyn", "*.backup",
+    "node_modules", "*.md", "dynasty_codebase.txt"
+}
 
-# Additional context files to include
-CONTEXT_FILES = [
-    "README.md",
-    "CODEBASE_SUMMARY.md",
-]
+# File extensions to include
+SOURCE_EXTENSIONS = {".py"}
+
+# Config files to include
+CONFIG_FILES = {"requirements.txt"}
 
 
-def count_lines(filepath):
-    """Count non-empty lines in a file."""
+def should_ignore(path: Path) -> bool:
+    """Check if path should be ignored."""
+    path_str = str(path)
+    name = path.name
+
+    if name in IGNORE_PATTERNS:
+        return True
+
+    for pattern in IGNORE_PATTERNS:
+        if "*" in pattern:
+            ext = pattern.replace("*", "")
+            if path_str.endswith(ext):
+                return True
+
+    if name == OUTPUT_FILE:
+        return True
+
+    return False
+
+
+def count_code_lines(filepath: Path) -> int:
+    """Count non-empty, non-comment lines."""
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            return sum(1 for line in f if line.strip())
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            count = 0
+            in_multiline = False
+
+            for line in f:
+                stripped = line.strip()
+                if not stripped:
+                    continue
+
+                if '"""' in stripped or "'''" in stripped:
+                    in_multiline = not in_multiline
+                    continue
+
+                if in_multiline or stripped.startswith('#'):
+                    continue
+
+                count += 1
+
+            return count
     except Exception:
         return 0
 
 
-def create_summary():
-    """Create the codebase summary file."""
+def discover_files(root_dir: Path) -> Tuple[List[Path], List[Path]]:
+    """Discover all source and config files."""
+    source_files = []
+    config_files = []
 
-    # Calculate total lines
-    total_lines = sum(count_lines(f) for f in FILES_TO_INCLUDE if os.path.exists(f))
-    file_count = sum(1 for f in FILES_TO_INCLUDE if os.path.exists(f))
+    for path in sorted(root_dir.rglob("*")):
+        if path.is_dir() or should_ignore(path):
+            continue
 
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as output:
-        # Write header
-        output.write(f"{'='*70}\n")
-        output.write(f"{'='*70}\n")
-        output.write(f"  {PROJECT_NAME} - Complete Codebase\n")
-        output.write(f"{'='*70}\n")
-        output.write(f"{'='*70}\n\n")
-        output.write(f"Project: {PROJECT_DESCRIPTION}\n")
-        output.write(f"Tech Stack: {TECH_STACK}\n")
-        output.write(f"Code Files: {file_count} files, ~{total_lines} lines\n")
-        output.write(f"\n{'='*70}\n\n")
+        if path.suffix in SOURCE_EXTENSIONS:
+            source_files.append(path)
+        elif path.name in CONFIG_FILES:
+            config_files.append(path)
 
-        # Write context files first (README, CODEBASE_SUMMARY)
-        output.write("CONTEXT & DOCUMENTATION\n")
-        output.write(f"{'='*70}\n\n")
+    return source_files, config_files
 
-        for filepath in CONTEXT_FILES:
-            if not os.path.exists(filepath):
+
+def get_relative_path(filepath: Path, root: Path) -> str:
+    """Get path relative to project root."""
+    try:
+        return str(filepath.relative_to(root))
+    except ValueError:
+        return str(filepath)
+
+
+def read_file_content(filepath: Path) -> str:
+    """Read file content with multiple encoding support."""
+    for encoding in ['utf-8', 'utf-16', 'utf-16-le', 'latin-1']:
+        try:
+            with open(filepath, 'r', encoding=encoding) as f:
+                content = f.read()
+                if '\x00' not in content or encoding.startswith('utf-16'):
+                    return content
+        except (UnicodeDecodeError, Exception):
+            continue
+
+    try:
+        with open(filepath, 'rb') as f:
+            return f.read().decode('utf-8', errors='replace')
+    except Exception as e:
+        return f"[Error: {e}]"
+
+
+def categorize_files(source_files: List[Path], root: Path) -> dict:
+    """Organize files by category."""
+    categories = {
+        "Core": [], "Database": [], "Models": [], "Actions": [],
+        "Commands": [], "Dialogs": [], "Views": [], "Widgets": [],
+        "Utils": [], "Scripts": []
+    }
+
+    for f in source_files:
+        rel_path = get_relative_path(f, root)
+        parent = str(Path(rel_path).parent)
+
+        if rel_path == "main.py":
+            categories["Core"].append(f)
+        elif "database" in parent:
+            categories["Database"].append(f)
+        elif "models" in parent:
+            categories["Models"].append(f)
+        elif "actions" in parent:
+            categories["Actions"].append(f)
+        elif "commands" in parent:
+            categories["Commands"].append(f)
+        elif "dialogs" in parent:
+            categories["Dialogs"].append(f)
+        elif "views" in parent:
+            categories["Views"].append(f)
+        elif "widgets" in parent:
+            categories["Widgets"].append(f)
+        elif "utils" in parent:
+            categories["Utils"].append(f)
+        elif "scripts" in parent:
+            categories["Scripts"].append(f)
+        else:
+            categories["Core"].append(f)
+
+    return categories
+
+
+def generate_summary(root_dir: Path) -> None:
+    """Generate the token-efficient codebase snapshot."""
+
+    print(f"🔍 Discovering files in {PROJECT_NAME}...")
+    source_files, config_files = discover_files(root_dir)
+
+    total_files = len(source_files)
+    implemented = sum(1 for f in source_files if count_code_lines(f) > 20)
+    code_lines = sum(count_code_lines(f) for f in source_files)
+
+    print(f"📊 Found {total_files} files ({implemented} implemented, {code_lines} code lines)")
+
+    categories = categorize_files(source_files, root_dir)
+    output_path = root_dir / OUTPUT_FILE
+
+    with open(output_path, 'w', encoding='utf-8') as out:
+        # Compact header
+        out.write(f"{'='*70}\n")
+        out.write(f"{PROJECT_NAME} - Complete Codebase\n")
+        out.write(f"{'='*70}\n")
+        out.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n")
+        out.write(f"Files: {implemented}/{total_files} implemented | {code_lines} code lines\n")
+        out.write(f"Tech: PySide6, SQLite, Python 3.10+ | MVC + Command pattern\n")
+        out.write(f"Status: Phase 1 Complete, Phase 2 ~35% (Add Person done)\n")
+        out.write(f"{'='*70}\n\n")
+
+        # Quick context
+        out.write("QUICK CONTEXT:\n")
+        out.write("Family tree/genealogy GUI for gaming (Ostriv). Features: Person CRUD,\n")
+        out.write("undo/redo, flexible dates, special char support, DB migration.\n")
+        out.write("Pattern: User Action → Dialog → Command → Repository → Database\n\n")
+
+        # File index (compact)
+        out.write("FILE INDEX:\n")
+        for category, files in categories.items():
+            if files:
+                out.write(f"{category}: ")
+                file_names = [get_relative_path(f, root_dir) for f in sorted(files)]
+                out.write(", ".join(file_names[:5]))
+                if len(files) > 5:
+                    out.write(f", ... ({len(files)} total)")
+                out.write("\n")
+        out.write(f"\n{'='*70}\n")
+        out.write("COMPLETE SOURCE CODE\n")
+        out.write(f"{'='*70}\n\n")
+
+        # Output code by category (compact format)
+        for category, files in categories.items():
+            if not files:
                 continue
 
-            lines = count_lines(filepath)
-            print(f"📄 Adding context: {filepath} ({lines} lines)")
+            out.write(f"\n{'─'*70}\n")
+            out.write(f"{category.upper()}\n")
+            out.write(f"{'─'*70}\n\n")
 
-            output.write(f"\n{'─'*70}\n")
-            output.write(f"FILE: {filepath}\n")
-            output.write(f"{'─'*70}\n\n")
+            for filepath in sorted(files):
+                rel_path = get_relative_path(filepath, root_dir)
+                lines = count_code_lines(filepath)
+                status = "✅" if lines > 20 else "📋"
 
-            try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    output.write(f.read())
-            except Exception as e:
-                output.write(f"[Error reading file: {e}]\n")
+                # Compact file header
+                out.write(f">> {status} {rel_path} ({lines} code lines)\n")
+                out.write(read_file_content(filepath))
+                out.write("\n\n")
 
-            output.write("\n")
+                print(f"✅ {rel_path} ({lines} lines)")
 
-        # Write implementation files
-        output.write(f"\n{'='*70}\n")
-        output.write("IMPLEMENTATION CODE\n")
-        output.write(f"{'='*70}\n\n")
+        # Config files
+        if config_files:
+            out.write(f"\n{'─'*70}\n")
+            out.write("CONFIGURATION\n")
+            out.write(f"{'─'*70}\n\n")
 
-        for filepath in FILES_TO_INCLUDE:
-            if not os.path.exists(filepath):
-                print(f"⚠️  Skipping {filepath} (file not found)")
-                continue
+            for filepath in config_files:
+                rel_path = get_relative_path(filepath, root_dir)
+                out.write(f">> {rel_path}\n")
+                out.write(read_file_content(filepath))
+                out.write("\n\n")
 
-            lines = count_lines(filepath)
-            print(f"✅ Adding {filepath} ({lines} lines)")
+        # Compact footer
+        out.write(f"\n{'='*70}\n")
+        out.write(f"END - {implemented}/{total_files} files, {code_lines} code lines\n")
+        out.write(f"{'='*70}\n")
 
-            output.write(f"\n{'─'*70}\n")
-            output.write(f"FILE: {filepath} ({lines} lines)\n")
-            output.write(f"{'─'*70}\n\n")
-
-            try:
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    output.write(f.read())
-            except Exception as e:
-                output.write(f"[Error reading file: {e}]\n")
-
-            output.write("\n")
-
-        # Write footer
-        output.write(f"\n{'='*70}\n")
-        output.write(f"End of {PROJECT_NAME} codebase\n")
-        output.write(f"Total: {file_count} implementation files, {total_lines} lines\n")
-        output.write(f"{'='*70}\n")
-
-    print(f"\n✅ Successfully created {OUTPUT_FILE}")
-    print(f"📊 Total: {file_count} files, {total_lines} lines of code")
-    print(f"📤 Ready to upload to Claude for discussion!\n")
+    print(f"\n✅ Generated {OUTPUT_FILE}")
+    print(f"📊 {implemented}/{total_files} files, {code_lines:,} code lines")
+    print(f"📄 Output: {output_path}")
+    print(f"🤖 Token-optimized for LLM consumption!\n")
 
 
 if __name__ == "__main__":
-    # Change to project root directory
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
     os.chdir(project_root)
 
-    print(f"Creating codebase summary for {PROJECT_NAME}...\n")
-    create_summary()
+    print(f"{'='*60}")
+    print(f"  {PROJECT_NAME} - Codebase Generator")
+    print(f"{'='*60}\n")
+
+    generate_summary(project_root)
