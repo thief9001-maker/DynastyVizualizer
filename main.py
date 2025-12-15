@@ -27,9 +27,6 @@ class MainWindow(QMainWindow):
         # Initialize settings manager
         self.settings_manager = SettingsManager()
 
-        # Create UI elements
-        self._create_menus()
-
         # Initialize action handlers
         self.file_actions = FileActions(self)
         self.edit_actions = EditActions(self)
@@ -37,6 +34,9 @@ class MainWindow(QMainWindow):
         self.tools_actions = ToolsActions(self)
         self.settings_actions = SettingsActions(self)
         self.help_actions = HelpActions(self)
+
+        # Create UI elements
+        self._create_menus()
 
         # Connect menu actions to handlers
         self._connect_actions()
@@ -122,6 +122,10 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(self.action_add_person)
         edit_menu.addAction(self.action_remove_person)
         edit_menu.addAction(self.action_add_new_family)
+
+        self.edit_actions.undo_action = self.action_undo
+        self.edit_actions.redo_action = self.action_redo
+        self.edit_actions.update_undo_redo_actions()
 
     def _create_view_menu(self, menubar: QMenuBar) -> None:
         """Create the View menu with different visualization options."""

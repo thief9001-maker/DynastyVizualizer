@@ -4,13 +4,14 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from models.person import Person
+from commands.base_command import BaseCommand
 from database.person_repository import PersonRepository
 
 if TYPE_CHECKING:
     from database.db_manager import DatabaseManager
 
 
-class AddPersonCommand:
+class AddPersonCommand(BaseCommand):
     """Add a new person to the dynasty database with undo support."""
 
     def __init__(self, db_manager: DatabaseManager, person: Person) -> None:

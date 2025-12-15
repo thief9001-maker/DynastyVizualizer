@@ -44,24 +44,26 @@ CONFIG_FILES = {"requirements.txt"}
 
 
 def should_ignore(path: Path) -> bool:
-    """Check if path should be ignored."""
+    """Check if path or any parent should be ignored."""
     path_str = str(path)
+    
+    # Check if any part of the path matches ignore patterns
+    for part in path.parts:
+        if part in IGNORE_PATTERNS:
+            return True
+    
+    # Check filename patterns
     name = path.name
-
-    if name in IGNORE_PATTERNS:
-        return True
-
     for pattern in IGNORE_PATTERNS:
         if "*" in pattern:
             ext = pattern.replace("*", "")
             if path_str.endswith(ext):
                 return True
-
+    
     if name == OUTPUT_FILE:
         return True
-
+    
     return False
-
 
 def count_code_lines(filepath: Path) -> int:
     """Count non-empty, non-comment lines."""

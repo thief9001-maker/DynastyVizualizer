@@ -1,8 +1,8 @@
 ======================================================================
 DynastyVizualizer - Complete Codebase
 ======================================================================
-Generated: 2025-12-13 15:26
-Files: 10/94 implemented | 1163 code lines
+Generated: 2025-12-14 15:16
+Files: 11/94 implemented | 1186 code lines
 Tech: PySide6, SQLite, Python 3.10+ | MVC + Command pattern
 Status: Phase 1 Complete, Phase 2 ~35% (Add Person done)
 ======================================================================
@@ -14,15 +14,15 @@ Pattern: User Action → Dialog → Command → Repository → Database
 
 FILE INDEX:
 Core: main.py
-Database: database/__init__.py, database/db_manager.py, database/person_repository.py
-Models: models/__init__.py, models/event.py, models/family.py, models/major_event.py, models/marriage.py, ... (7 total)
-Actions: actions/__init__.py, actions/edit_actions.py, actions/file_actions.py, actions/help_actions.py, actions/settings_actions.py, ... (7 total)
-Commands: commands/GUI_commands/__init__.py, commands/GUI_commands/change_skin.py, commands/GUI_commands/change_view.py, commands/GUI_commands/move_node.py, commands/GUI_commands/move_person.py, ... (28 total)
-Dialogs: dialogs/__init__.py, dialogs/about_dialog.py, dialogs/add_event_dialog.py, dialogs/add_person_dialog.py, dialogs/create_child_dialog.py, ... (9 total)
-Views: views/__init__.py, views/data_table.py, views/dynasty_view.py, views/stats_view/charts.py, views/stats_view/comparison_widget.py, ... (23 total)
-Widgets: widgets/__init__.py, widgets/date_picker.py, widgets/extended_details_panel.py, widgets/person_selector.py, widgets/portrait_gallery.py, ... (6 total)
-Utils: utils/__init__.py, utils/color_manager.py, utils/csv_importer.py, utils/generation_calculator.py, utils/relationship_calculator.py, ... (8 total)
-Scripts: scripts/create_codebase_summary.py, scripts/migrate_database.py
+Database: database\__init__.py, database\db_manager.py, database\person_repository.py
+Models: models\__init__.py, models\event.py, models\family.py, models\major_event.py, models\marriage.py, ... (7 total)
+Actions: actions\__init__.py, actions\edit_actions.py, actions\file_actions.py, actions\help_actions.py, actions\settings_actions.py, ... (7 total)
+Commands: commands\___init__.py, commands\base_command.py, commands\genealogy_commands\__init__.py, commands\genealogy_commands\add_event.py, commands\genealogy_commands\add_marriage.py, ... (28 total)
+Dialogs: dialogs\__init__.py, dialogs\about_dialog.py, dialogs\add_event_dialog.py, dialogs\add_person_dialog.py, dialogs\create_child_dialog.py, ... (9 total)
+Views: views\__init__.py, views\data_table.py, views\dynasty_view.py, views\stats_view\charts.py, views\stats_view\comparison_widget.py, ... (23 total)
+Widgets: widgets\__init__.py, widgets\date_picker.py, widgets\extended_details_panel.py, widgets\person_selector.py, widgets\portrait_gallery.py, ... (6 total)
+Utils: utils\__init__.py, utils\color_manager.py, utils\csv_importer.py, utils\generation_calculator.py, utils\relationship_calculator.py, ... (8 total)
+Scripts: scripts\create_codebase_summary.py, scripts\migrate_database.py
 
 ======================================================================
 COMPLETE SOURCE CODE
@@ -63,9 +63,6 @@ class MainWindow(QMainWindow):
         # Initialize settings manager
         self.settings_manager = SettingsManager()
 
-        # Create UI elements
-        self._create_menus()
-
         # Initialize action handlers
         self.file_actions = FileActions(self)
         self.edit_actions = EditActions(self)
@@ -73,6 +70,9 @@ class MainWindow(QMainWindow):
         self.tools_actions = ToolsActions(self)
         self.settings_actions = SettingsActions(self)
         self.help_actions = HelpActions(self)
+
+        # Create UI elements
+        self._create_menus()
 
         # Connect menu actions to handlers
         self._connect_actions()
@@ -158,6 +158,10 @@ class MainWindow(QMainWindow):
         edit_menu.addAction(self.action_add_person)
         edit_menu.addAction(self.action_remove_person)
         edit_menu.addAction(self.action_add_new_family)
+
+        self.edit_actions.undo_action = self.action_undo
+        self.edit_actions.redo_action = self.action_redo
+        self.edit_actions.update_undo_redo_actions()
 
     def _create_view_menu(self, menubar: QMenuBar) -> None:
         """Create the View menu with different visualization options."""
@@ -397,13 +401,13 @@ if __name__ == "__main__":
 DATABASE
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 database/__init__.py (3 code lines)
+>> 📋 database\__init__.py (3 code lines)
 from .db_manager import DatabaseManager
 from .person_repository import PersonRepository
 
 __all__ = ['DatabaseManager', 'PersonRepository']
 
->> ✅ database/db_manager.py (171 code lines)
+>> ✅ database\db_manager.py (171 code lines)
 import sqlite3
 import shutil
 import os
@@ -701,7 +705,7 @@ class DatabaseManager:
 
 
 
->> ✅ database/person_repository.py (104 code lines)
+>> ✅ database\person_repository.py (104 code lines)
 """Database repository for Person entity operations."""
 
 from __future__ import annotations
@@ -981,10 +985,10 @@ class PersonRepository:
 MODELS
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 models/__init__.py (0 code lines)
+>> 📋 models\__init__.py (0 code lines)
 
 
->> 📋 models/event.py (15 code lines)
+>> 📋 models\event.py (15 code lines)
 """Data model for Event entities."""
 
 
@@ -1028,7 +1032,7 @@ class Event:
     # TODO: Add end_date_string property
 
 
->> 📋 models/family.py (12 code lines)
+>> 📋 models\family.py (12 code lines)
 """Data model for Family dynasties."""
 
 
@@ -1065,7 +1069,7 @@ class Family:
     # TODO: Add longest_lived_member property
 
 
->> 📋 models/major_event.py (15 code lines)
+>> 📋 models\major_event.py (15 code lines)
 """Data model for MajorEvent entities."""
 
 
@@ -1109,7 +1113,7 @@ class MajorEvent:
     # TODO: Add end_date_string property
 
 
->> 📋 models/marriage.py (15 code lines)
+>> 📋 models\marriage.py (15 code lines)
 """Data model for Marriage relationships."""
 
 
@@ -1153,7 +1157,7 @@ class Marriage:
     # TODO: Add dissolution_date_string property
 
 
->> ✅ models/person.py (50 code lines)
+>> ✅ models\person.py (50 code lines)
 """Data model for Person entities."""
 
 from __future__ import annotations
@@ -1306,7 +1310,7 @@ class Person:
         death = str(self.death_year) if self.death_year else ""
         return f"{birth}-{death}"
 
->> 📋 models/portrait.py (14 code lines)
+>> 📋 models\portrait.py (14 code lines)
 """Data model for Portrait entities."""
 
 
@@ -1350,7 +1354,7 @@ class Portrait:
 ACTIONS
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 actions/__init__.py (7 code lines)
+>> 📋 actions\__init__.py (7 code lines)
 from .file_actions import FileActions
 from .edit_actions import EditActions
 from .view_actions import ViewActions
@@ -1360,8 +1364,13 @@ from .settings_actions import SettingsActions
 
 __all__ = ['FileActions', 'EditActions', 'ViewActions', 'ToolsActions', 'HelpActions', 'SettingsActions']
 
->> 📋 actions/edit_actions.py (10 code lines)
+>> ✅ actions\edit_actions.py (25 code lines)
 from PySide6.QtWidgets import QDialog
+from PySide6.QtGui import QAction
+
+from dialogs.add_person_dialog import AddPersonDialog
+from commands.genealogy_commands import AddPersonCommand
+        
 
 class EditActions:
     """Handles edit menu actions (Undo, Redo, Add/Remove operations)."""
@@ -1369,34 +1378,66 @@ class EditActions:
     def __init__(self, parent: 'MainWindow') -> None:  # type: ignore
         """Initialize edit actions handler."""
         self.parent = parent
+        
+        # Store references to the menu actions so we can update their text
+        # These will be set by MainWindow after it creates the menu
+        self.undo_action: QAction | None = None
+        self.redo_action: QAction | None = None
+    
+    def update_undo_redo_actions(self) -> None:
+        """Update Undo/Redo menu items with current action descriptions."""
+        if self.undo_action is None or self.redo_action is None:
+            return 
+        
+        undo_manager = self.parent.undo_manager
+        
+        # Update Undo action
+        if undo_manager.can_undo():
+            next_undo = undo_manager.peek_undo()
+            if next_undo:
+                self.undo_action.setText(f"Undo {next_undo.description()}")
+                self.undo_action.setEnabled(True)
+        else:
+            self.undo_action.setText("Undo")
+            self.undo_action.setEnabled(False)
+        
+        # Update Redo action
+        if undo_manager.can_redo():
+            next_redo = undo_manager.peek_redo()
+            if next_redo:
+                self.redo_action.setText(f"Redo {next_redo.description()}")
+                self.redo_action.setEnabled(True)
+        else:
+            self.redo_action.setText("Redo")
+            self.redo_action.setEnabled(False)
     
     def undo(self) -> None:
         """Undo the last action."""
         if self.parent.undo_manager.undo():
             self.parent.db.mark_dirty()
             self.parent.refresh_ui()
+            self.update_undo_redo_actions()  # Update menu after undo
     
     def redo(self) -> None:
         """Redo the last undone action."""
         if self.parent.undo_manager.redo():
             self.parent.db.mark_dirty()
             self.parent.refresh_ui()
+            self.update_undo_redo_actions()  # Update menu after redo
     
     def add_person(self) -> None:
         """Open dialog to add a new person to the database."""
-        from dialogs.add_person_dialog import AddPersonDialog
-        from commands.genealogy_commands import AddPersonCommand
 
         dialog = AddPersonDialog(self.parent)
         result = dialog.exec()
-
+        
         if result == 1:  # QDialog.accepted
             person = dialog.get_person()
-
             if person:
                 command = AddPersonCommand(self.parent.db, person)
                 self.parent.undo_manager.execute(command)
                 self.parent.refresh_ui()
+                self.update_undo_redo_actions()  # Update menu after adding person
     
     def remove_person(self) -> None:
         """Remove the selected person from the database."""
@@ -1406,7 +1447,7 @@ class EditActions:
         """Create a new family branch in the dynasty."""
         pass  # TODO: Implement family creation
 
->> ✅ actions/file_actions.py (52 code lines)
+>> ✅ actions\file_actions.py (52 code lines)
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 
@@ -1568,7 +1609,7 @@ class FileActions:
         self.parent.close()
 
 
->> 📋 actions/help_actions.py (3 code lines)
+>> 📋 actions\help_actions.py (3 code lines)
 class HelpActions:
     """Handles help menu actions for application information."""
 
@@ -1581,7 +1622,7 @@ class HelpActions:
         pass  # TODO: Implement about dialog
 
 
->> 📋 actions/settings_actions.py (8 code lines)
+>> 📋 actions\settings_actions.py (8 code lines)
 class SettingsActions:
     """Handles settings menu actions for various configuration options."""
 
@@ -1613,7 +1654,7 @@ class SettingsActions:
         """Open formats settings tab."""
         pass  # TODO: Implement formats settings tab
 
->> 📋 actions/tools_actions.py (6 code lines)
+>> 📋 actions\tools_actions.py (6 code lines)
 class ToolsActions:
     """Handles tools menu actions for validation and scene utilities."""
 
@@ -1638,7 +1679,7 @@ class ToolsActions:
         pass  # TODO: Implement parentage validation
 
 
->> 📋 actions/view_actions.py (6 code lines)
+>> 📋 actions\view_actions.py (6 code lines)
 class ViewActions:
     """Handles view menu actions for switching between visualizations."""
 
@@ -1668,196 +1709,38 @@ class ViewActions:
 COMMANDS
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 commands/GUI_commands/__init__.py (0 code lines)
+>> 📋 commands\___init__.py (0 code lines)
 
 
->> 📋 commands/GUI_commands/change_skin.py (3 code lines)
-"""Command for changing the application color scheme."""
-
-from commands.base_command import BaseCommand
-
-
-class ChangeSkinCommand(BaseCommand):
-    """Switch between different UI color schemes."""
-
-    def __init__(self, new_skin: str, old_skin: str) -> None:
-        """Initialize the change skin command."""
-        self.new_skin = new_skin
-        self.old_skin = old_skin
-        # TODO: Add reference to skin manager
-
-    def run(self) -> None:
-        """Apply the new color scheme."""
-        # TODO: Load new skin from SkinManager
-        # TODO: Update all UI elements
-        # TODO: Save preference to Settings table
-        pass
-
-    def undo(self) -> None:
-        """Restore previous color scheme."""
-        # TODO: Load old skin from SkinManager
-        # TODO: Update all UI elements
-        # TODO: Save preference to Settings table
-        pass
-
-
->> 📋 commands/GUI_commands/change_view.py (3 code lines)
-"""Command for switching between different visualization views."""
-
-from commands.base_command import BaseCommand
-
-
-class ChangeViewCommand(BaseCommand):
-    """Switch between tree, timeline, table, and stats views."""
-
-    def __init__(self, new_view: str, old_view: str) -> None:
-        """Initialize the change view command."""
-        self.new_view = new_view  # "tree", "timeline", "table", "stats"
-        self.old_view = old_view
-        # TODO: Add reference to main window
-
-    def run(self) -> None:
-        """Switch to the new visualization view."""
-        # TODO: Hide current view widget
-        # TODO: Show new view widget
-        # TODO: Update menu checkmarks
-        pass
-
-    def undo(self) -> None:
-        """Switch back to the previous view."""
-        # TODO: Hide current view widget
-        # TODO: Show old view widget
-        # TODO: Update menu checkmarks
-        pass
-
-
->> 📋 commands/GUI_commands/move_node.py (0 code lines)
-
-
->> 📋 commands/GUI_commands/move_person.py (10 code lines)
-"""Command for moving a person box in the tree view."""
-
-from commands.base_command import BaseCommand
-
-
-class MovePersonCommand(BaseCommand):
-    """Move a person's visual position in the tree canvas."""
-
-    def __init__(
-        self,
-        person_id: int,
-        new_x: float,
-        new_y: float,
-        old_x: float,
-        old_y: float,
-    ) -> None:
-        """Initialize the move person command."""
-        self.person_id = person_id
-        self.new_x = new_x
-        self.new_y = new_y
-        self.old_x = old_x
-        self.old_y = old_y
-        # TODO: Add reference to canvas/scene for visual updates
-
-    def run(self) -> None:
-        """Move person box to new position."""
-        # TODO: Update PersonPosition table in database
-        # TODO: Update visual position on canvas
-        pass
-
-    def undo(self) -> None:
-        """Restore person box to original position."""
-        # TODO: Update PersonPosition table with old coordinates
-        # TODO: Update visual position on canvas
-        pass
-
-
->> 📋 commands/GUI_commands/preference_changes.py (0 code lines)
-
-
->> 📋 commands/GUI_commands/rebuild_scene.py (3 code lines)
-"""Command for rebuilding the entire visualization scene."""
-
-from commands.base_command import BaseCommand
-
-
-class RebuildSceneCommand(BaseCommand):
-    """Rebuild the current view from database state."""
-
-    def __init__(self, database_connection, view_type: str) -> None:
-        """Initialize the rebuild scene command."""
-        self.db = database_connection
-        self.view_type = view_type  # "tree", "timeline", "table", "stats"
-        # TODO: Store current scene state for undo
-
-    def run(self) -> None:
-        """Clear and rebuild the visualization scene."""
-        # TODO: Clear current scene/view
-        # TODO: Reload all data from database
-        # TODO: Recreate all visual elements
-        pass
-
-    def undo(self) -> None:
-        """Restore previous scene state."""
-        # TODO: Restore from saved scene state
-        pass
-
-
->> 📋 commands/GUI_commands/recompute_generation.py (0 code lines)
-
-
->> 📋 commands/GUI_commands/recompute_generations.py (3 code lines)
-"""Command for recalculating generation levels for all people."""
-
-from commands.base_command import BaseCommand
-
-
-class RecomputeGenerationsCommand(BaseCommand):
-    """Recalculate generation numbers for entire family tree."""
-
-    def __init__(self, database_connection) -> None:
-        """Initialize the recompute generations command."""
-        self.db = database_connection
-        self.old_generations: dict[int, int] = {}
-        # TODO: Store original generation assignments for undo
-
-    def run(self) -> None:
-        """Calculate and update generation levels."""
-        # TODO: Use GenerationCalculator to compute levels
-        # TODO: Update Person table with new generation values
-        # TODO: Update tree view layout
-        pass
-
-    def undo(self) -> None:
-        """Restore original generation assignments."""
-        # TODO: Restore generation values from old_generations
-        # TODO: Update tree view layout
-        pass
-
-
->> 📋 commands/GUI_commands/timeline_scroll.py (0 code lines)
-
-
->> 📋 commands/___init__.py (0 code lines)
-
-
->> 📋 commands/base_command.py (2 code lines)
-"""Base command class for undoable operations."""
-
+>> 📋 commands\base_command.py (9 code lines)
+import re
 
 class BaseCommand:
-    """Base class for all undoable commands in the application."""
+    """Base class for all undoable commands."""
+    
+    def __init__(self):
+        self._executed = False  
+    
+    def description(self) -> str:
+        """Return human-readable description for UI display."""
+        class_name = self.__class__.__name__
+        if class_name.endswith("Command"):
+            class_name = class_name[:-7]
 
+        spaced = re.sub(r'([a-z])([A-Z])', r'\1 \2', class_name)
+        
+        return spaced
+    
     def run(self) -> None:
         """Execute the command."""
         raise NotImplementedError("Subclasses must implement run()")
-
+    
     def undo(self) -> None:
         """Reverse the command's effects."""
         raise NotImplementedError("Subclasses must implement undo()")
 
 
->> ✅ commands/genealogy_commands/__init__.py (26 code lines)
+>> ✅ commands\genealogy_commands\__init__.py (26 code lines)
 from .add_event import AddEventCommand
 from .add_marriage import CreateMarriageCommand
 from .add_person import AddPersonCommand
@@ -1886,7 +1769,7 @@ __all__ = [
     "UnassignParentCommand"
 ]
 
->> 📋 commands/genealogy_commands/add_event.py (3 code lines)
+>> 📋 commands\genealogy_commands\add_event.py (3 code lines)
 """Command for adding an event to a person."""
 
 from commands.base_command import BaseCommand
@@ -1912,7 +1795,7 @@ class AddEventCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/add_marriage.py (3 code lines)
+>> 📋 commands\genealogy_commands\add_marriage.py (3 code lines)
 """Command for creating a marriage between two people."""
 
 from commands.base_command import BaseCommand
@@ -1940,20 +1823,21 @@ class CreateMarriageCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/add_person.py (8 code lines)
+>> 📋 commands\genealogy_commands\add_person.py (8 code lines)
 """Command for adding a new person to the database."""
 
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from models.person import Person
+from commands.base_command import BaseCommand
 from database.person_repository import PersonRepository
 
 if TYPE_CHECKING:
     from database.db_manager import DatabaseManager
 
 
-class AddPersonCommand:
+class AddPersonCommand(BaseCommand):
     """Add a new person to the dynasty database with undo support."""
 
     def __init__(self, db_manager: DatabaseManager, person: Person) -> None:
@@ -1977,7 +1861,7 @@ class AddPersonCommand:
         if self.person_id is not None:
             self.repo.delete(self.person_id)
 
->> 📋 commands/genealogy_commands/assign_parent.py (9 code lines)
+>> 📋 commands\genealogy_commands\assign_parent.py (9 code lines)
 """Command for assigning a parent to a person."""
 
 from commands.base_command import BaseCommand
@@ -2013,7 +1897,7 @@ class AssignParentCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/create_child.py (11 code lines)
+>> 📋 commands\genealogy_commands\create_child.py (11 code lines)
 """Command for creating a child with automatic parent assignment."""
 
 from commands.base_command import BaseCommand
@@ -2054,7 +1938,7 @@ class CreateChildCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/delete_event.py (3 code lines)
+>> 📋 commands\genealogy_commands\delete_event.py (3 code lines)
 """Command for deleting an event from the database."""
 
 from commands.base_command import BaseCommand
@@ -2082,7 +1966,7 @@ class DeleteEventCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/delete_marriage.py (3 code lines)
+>> 📋 commands\genealogy_commands\delete_marriage.py (3 code lines)
 """Command for deleting a marriage from the database."""
 
 from commands.base_command import BaseCommand
@@ -2110,7 +1994,7 @@ class DeleteMarriageCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/delete_person.py (3 code lines)
+>> 📋 commands\genealogy_commands\delete_person.py (3 code lines)
 """Command for removing a person from the database."""
 
 from commands.base_command import BaseCommand
@@ -2137,7 +2021,7 @@ class DeletePersonCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/edit_event.py (3 code lines)
+>> 📋 commands\genealogy_commands\edit_event.py (3 code lines)
 """Command for editing an existing event."""
 
 from commands.base_command import BaseCommand
@@ -2166,7 +2050,7 @@ class EditEventCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/edit_marriage.py (3 code lines)
+>> 📋 commands\genealogy_commands\edit_marriage.py (3 code lines)
 """Command for editing an existing marriage."""
 
 from commands.base_command import BaseCommand
@@ -2195,7 +2079,7 @@ class EditMarriageCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/edit_person.py (3 code lines)
+>> 📋 commands\genealogy_commands\edit_person.py (3 code lines)
 """Command for editing an existing person."""
 
 from commands.base_command import BaseCommand
@@ -2222,7 +2106,7 @@ class EditPersonCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/end_marriage.py (10 code lines)
+>> 📋 commands\genealogy_commands\end_marriage.py (10 code lines)
 """Command for ending a marriage with divorce or death."""
 
 from commands.base_command import BaseCommand
@@ -2260,7 +2144,7 @@ class EndMarriageCommand(BaseCommand):
         pass
 
 
->> 📋 commands/genealogy_commands/unassign_parent.py (8 code lines)
+>> 📋 commands\genealogy_commands\unassign_parent.py (8 code lines)
 """Command for removing a parent assignment from a person."""
 
 from commands.base_command import BaseCommand
@@ -2294,37 +2178,196 @@ class UnassignParentCommand(BaseCommand):
         pass
 
 
->> 📋 commands/undo_redo_manager.py (18 code lines)
-from __future__ import annotations
-from typing import Protocol
+>> 📋 commands\GUI_commands\__init__.py (0 code lines)
 
 
-class Command(Protocol):
-    """Protocol defining the interface for undoable commands."""
+>> 📋 commands\GUI_commands\change_skin.py (3 code lines)
+"""Command for changing the application color scheme."""
+
+from commands.base_command import BaseCommand
+
+
+class ChangeSkinCommand(BaseCommand):
+    """Switch between different UI color schemes."""
+
+    def __init__(self, new_skin: str, old_skin: str) -> None:
+        """Initialize the change skin command."""
+        self.new_skin = new_skin
+        self.old_skin = old_skin
+        # TODO: Add reference to skin manager
 
     def run(self) -> None:
-        """Execute the command."""
-        ...
+        """Apply the new color scheme."""
+        # TODO: Load new skin from SkinManager
+        # TODO: Update all UI elements
+        # TODO: Save preference to Settings table
+        pass
 
     def undo(self) -> None:
-        """Reverse the command's effects."""
-        ...
+        """Restore previous color scheme."""
+        # TODO: Load old skin from SkinManager
+        # TODO: Update all UI elements
+        # TODO: Save preference to Settings table
+        pass
+
+
+>> 📋 commands\GUI_commands\change_view.py (3 code lines)
+"""Command for switching between different visualization views."""
+
+from commands.base_command import BaseCommand
+
+
+class ChangeViewCommand(BaseCommand):
+    """Switch between tree, timeline, table, and stats views."""
+
+    def __init__(self, new_view: str, old_view: str) -> None:
+        """Initialize the change view command."""
+        self.new_view = new_view  # "tree", "timeline", "table", "stats"
+        self.old_view = old_view
+        # TODO: Add reference to main window
+
+    def run(self) -> None:
+        """Switch to the new visualization view."""
+        # TODO: Hide current view widget
+        # TODO: Show new view widget
+        # TODO: Update menu checkmarks
+        pass
+
+    def undo(self) -> None:
+        """Switch back to the previous view."""
+        # TODO: Hide current view widget
+        # TODO: Show old view widget
+        # TODO: Update menu checkmarks
+        pass
+
+
+>> 📋 commands\GUI_commands\move_node.py (0 code lines)
+
+
+>> 📋 commands\GUI_commands\move_person.py (10 code lines)
+"""Command for moving a person box in the tree view."""
+
+from commands.base_command import BaseCommand
+
+
+class MovePersonCommand(BaseCommand):
+    """Move a person's visual position in the tree canvas."""
+
+    def __init__(
+        self,
+        person_id: int,
+        new_x: float,
+        new_y: float,
+        old_x: float,
+        old_y: float,
+    ) -> None:
+        """Initialize the move person command."""
+        self.person_id = person_id
+        self.new_x = new_x
+        self.new_y = new_y
+        self.old_x = old_x
+        self.old_y = old_y
+        # TODO: Add reference to canvas/scene for visual updates
+
+    def run(self) -> None:
+        """Move person box to new position."""
+        # TODO: Update PersonPosition table in database
+        # TODO: Update visual position on canvas
+        pass
+
+    def undo(self) -> None:
+        """Restore person box to original position."""
+        # TODO: Update PersonPosition table with old coordinates
+        # TODO: Update visual position on canvas
+        pass
+
+
+>> 📋 commands\GUI_commands\preference_changes.py (0 code lines)
+
+
+>> 📋 commands\GUI_commands\rebuild_scene.py (3 code lines)
+"""Command for rebuilding the entire visualization scene."""
+
+from commands.base_command import BaseCommand
+
+
+class RebuildSceneCommand(BaseCommand):
+    """Rebuild the current view from database state."""
+
+    def __init__(self, database_connection, view_type: str) -> None:
+        """Initialize the rebuild scene command."""
+        self.db = database_connection
+        self.view_type = view_type  # "tree", "timeline", "table", "stats"
+        # TODO: Store current scene state for undo
+
+    def run(self) -> None:
+        """Clear and rebuild the visualization scene."""
+        # TODO: Clear current scene/view
+        # TODO: Reload all data from database
+        # TODO: Recreate all visual elements
+        pass
+
+    def undo(self) -> None:
+        """Restore previous scene state."""
+        # TODO: Restore from saved scene state
+        pass
+
+
+>> 📋 commands\GUI_commands\recompute_generation.py (0 code lines)
+
+
+>> 📋 commands\GUI_commands\recompute_generations.py (3 code lines)
+"""Command for recalculating generation levels for all people."""
+
+from commands.base_command import BaseCommand
+
+
+class RecomputeGenerationsCommand(BaseCommand):
+    """Recalculate generation numbers for entire family tree."""
+
+    def __init__(self, database_connection) -> None:
+        """Initialize the recompute generations command."""
+        self.db = database_connection
+        self.old_generations: dict[int, int] = {}
+        # TODO: Store original generation assignments for undo
+
+    def run(self) -> None:
+        """Calculate and update generation levels."""
+        # TODO: Use GenerationCalculator to compute levels
+        # TODO: Update Person table with new generation values
+        # TODO: Update tree view layout
+        pass
+
+    def undo(self) -> None:
+        """Restore original generation assignments."""
+        # TODO: Restore generation values from old_generations
+        # TODO: Update tree view layout
+        pass
+
+
+>> 📋 commands\GUI_commands\timeline_scroll.py (0 code lines)
+
+
+>> 📋 commands\undo_redo_manager.py (19 code lines)
+from __future__ import annotations
+
+from commands.base_command import BaseCommand
 
 
 class UndoRedoManager:
     """Manages undo and redo stacks for command pattern operations."""
-
+    
     def __init__(self) -> None:
         """Initialize the undo/redo manager with empty stacks."""
-        self.undo_stack: list[Command] = []
-        self.redo_stack: list[Command] = []
-
-    def execute(self, command: Command) -> None:
+        self.undo_stack: list[BaseCommand] = []
+        self.redo_stack: list[BaseCommand] = []
+    
+    def execute(self, command: BaseCommand) -> None:  
         """Execute a command and add it to the undo stack."""
         command.run()
         self.undo_stack.append(command)
         self.redo_stack.clear()
-
+    
     def undo(self) -> bool:
         """Undo the last executed command."""
         if not self.undo_stack:
@@ -2333,7 +2376,7 @@ class UndoRedoManager:
         cmd.undo()
         self.redo_stack.append(cmd)
         return True
-
+    
     def redo(self) -> bool:
         """Redo the last undone command."""
         if not self.redo_stack:
@@ -2342,17 +2385,28 @@ class UndoRedoManager:
         cmd.run()
         self.undo_stack.append(cmd)
         return True
-
+    
     def can_undo(self) -> bool:
         """Check if there are commands available to undo."""
         return len(self.undo_stack) > 0
-
+    
     def can_redo(self) -> bool:
         """Check if there are commands available to redo."""
         return len(self.redo_stack) > 0
+    
+    def peek_undo(self) -> BaseCommand | None:
+        """Get the next command that would be undone without executing it."""
+        if self.can_undo():
+            return self.undo_stack[-1]
+        return None
+    
+    def peek_redo(self) -> BaseCommand | None:
+        """Get the next command that would be redone without executing it."""
+        if self.can_redo():
+            return self.redo_stack[-1]
+        return None
 
-
->> 📋 commands/view_changes.py (0 code lines)
+>> 📋 commands\view_changes.py (0 code lines)
 
 
 
@@ -2360,14 +2414,14 @@ class UndoRedoManager:
 DIALOGS
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 dialogs/__init__.py (0 code lines)
+>> 📋 dialogs\__init__.py (0 code lines)
 """Dialog implementations for user interactions."""
 
 from .add_person_dialog import AddPersonDialog
 
 __all__ = ['AddPersonDialog']
 
->> 📋 dialogs/about_dialog.py (1 code lines)
+>> 📋 dialogs\about_dialog.py (1 code lines)
 """About dialog showing application information."""
 
 from PySide6.QtWidgets import QDialog
@@ -2386,7 +2440,7 @@ class AboutDialog(QDialog):
         pass
 
 
->> 📋 dialogs/add_event_dialog.py (1 code lines)
+>> 📋 dialogs\add_event_dialog.py (1 code lines)
 """Dialog for adding a new event to a person."""
 
 from PySide6.QtWidgets import QDialog
@@ -2409,7 +2463,7 @@ class AddEventDialog(QDialog):
         pass
 
 
->> ✅ dialogs/add_person_dialog.py (47 code lines)
+>> ✅ dialogs\add_person_dialog.py (47 code lines)
 """Dialog for adding a new person to the dynasty."""
 
 from __future__ import annotations
@@ -2608,7 +2662,7 @@ class AddPersonDialog(QDialog):
         """Return the created Person object, or None if dialog was cancelled."""
         return self._person
 
->> 📋 dialogs/create_child_dialog.py (1 code lines)
+>> 📋 dialogs\create_child_dialog.py (1 code lines)
 """Dialog for creating a new child with parent selection."""
 
 from PySide6.QtWidgets import QDialog
@@ -2630,7 +2684,7 @@ class CreateChildDialog(QDialog):
         pass
 
 
->> 📋 dialogs/create_marriage_dialog.py (1 code lines)
+>> 📋 dialogs\create_marriage_dialog.py (1 code lines)
 """Dialog for creating a new marriage between two people."""
 
 from PySide6.QtWidgets import QDialog
@@ -2651,7 +2705,7 @@ class CreateMarriageDialog(QDialog):
         pass
 
 
->> 📋 dialogs/edit_person_dialog.py (1 code lines)
+>> 📋 dialogs\edit_person_dialog.py (1 code lines)
 """Dialog for editing an existing person."""
 
 from PySide6.QtWidgets import QDialog
@@ -2671,7 +2725,7 @@ class EditPersonDialog(QDialog):
         pass
 
 
->> 📋 dialogs/import_csv_dialog.py (1 code lines)
+>> 📋 dialogs\import_csv_dialog.py (1 code lines)
 """Dialog for importing genealogy data from CSV files."""
 
 from PySide6.QtWidgets import QDialog
@@ -2693,7 +2747,7 @@ class ImportCSVDialog(QDialog):
         pass
 
 
->> 📋 dialogs/settings_dialog.py (1 code lines)
+>> 📋 dialogs\settings_dialog.py (1 code lines)
 """Dialog for application preferences and settings."""
 
 from PySide6.QtWidgets import QDialog
@@ -2720,16 +2774,16 @@ class PreferencesDialog(QDialog):
 VIEWS
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 views/__init__.py (0 code lines)
+>> 📋 views\__init__.py (0 code lines)
 
 
->> 📋 views/data_table.py (0 code lines)
+>> 📋 views\data_table.py (0 code lines)
 
 
->> 📋 views/dynasty_view.py (0 code lines)
+>> 📋 views\dynasty_view.py (0 code lines)
 
 
->> 📋 views/stats_view/charts.py (2 code lines)
+>> 📋 views\stats_view\charts.py (2 code lines)
 """Chart widgets for statistical visualizations."""
 
 from PySide6.QtWidgets import QWidget
@@ -2758,7 +2812,7 @@ class Charts(QWidget):
         pass
 
 
->> 📋 views/stats_view/comparison_widget.py (2 code lines)
+>> 📋 views\stats_view\comparison_widget.py (2 code lines)
 """Widget for comparing statistics between families or people."""
 
 from PySide6.QtWidgets import QWidget
@@ -2786,7 +2840,7 @@ class ComparisonWidget(QWidget):
         pass
 
 
->> 📋 views/stats_view/family_dashboard.py (2 code lines)
+>> 📋 views\stats_view\family_dashboard.py (2 code lines)
 """Dashboard widget showing dynasty statistics."""
 
 from PySide6.QtWidgets import QWidget
@@ -2816,7 +2870,7 @@ class FamilyDashboard(QWidget):
         pass
 
 
->> 📋 views/table_view/event_table.py (2 code lines)
+>> 📋 views\table_view\event_table.py (2 code lines)
 """Table view for listing all events in the database."""
 
 from PySide6.QtWidgets import QTableWidget
@@ -2846,7 +2900,7 @@ class EventTable(QTableWidget):
         pass
 
 
->> 📋 views/table_view/family_table.py (2 code lines)
+>> 📋 views\table_view\family_table.py (2 code lines)
 """Table view for listing all families in the database."""
 
 from PySide6.QtWidgets import QTableWidget
@@ -2875,7 +2929,7 @@ class FamilyTable(QTableWidget):
         pass
 
 
->> 📋 views/table_view/marriage_table.py (2 code lines)
+>> 📋 views\table_view\marriage_table.py (2 code lines)
 """Table view for listing all marriages in the database."""
 
 from PySide6.QtWidgets import QTableWidget
@@ -2905,7 +2959,7 @@ class MarriageTable(QTableWidget):
         pass
 
 
->> 📋 views/table_view/person_table.py (2 code lines)
+>> 📋 views\table_view\person_table.py (2 code lines)
 """Table view for listing all people in the database."""
 
 from PySide6.QtWidgets import QTableWidget
@@ -2935,7 +2989,7 @@ class PersonTable(QTableWidget):
         pass
 
 
->> 📋 views/timeline_view/event_marker.py (1 code lines)
+>> 📋 views\timeline_view\event_marker.py (1 code lines)
 """Visual marker for person events on timeline."""
 
 from PySide6.QtWidgets import QGraphicsWidget
@@ -2956,7 +3010,7 @@ class EventMarker(QGraphicsWidget):
         pass
 
 
->> 📋 views/timeline_view/family_bar.py (1 code lines)
+>> 📋 views\timeline_view\family_bar.py (1 code lines)
 """Horizontal bar representing a family's timespan."""
 
 from PySide6.QtWidgets import QGraphicsWidget
@@ -2978,7 +3032,7 @@ class FamilyBar(QGraphicsWidget):
         pass
 
 
->> 📋 views/timeline_view/major_event_marker.py (1 code lines)
+>> 📋 views\timeline_view\major_event_marker.py (1 code lines)
 """Visual marker for major historical events."""
 
 from PySide6.QtWidgets import QGraphicsWidget
@@ -3000,7 +3054,7 @@ class MajorEventMarker(QGraphicsWidget):
         pass
 
 
->> 📋 views/timeline_view/person_bar.py (1 code lines)
+>> 📋 views\timeline_view\person_bar.py (1 code lines)
 """Horizontal bar representing a person's lifespan."""
 
 from PySide6.QtWidgets import QGraphicsWidget
@@ -3023,7 +3077,7 @@ class PersonBar(QGraphicsWidget):
         pass
 
 
->> 📋 views/timeline_view/timeline_canvas.py (2 code lines)
+>> 📋 views\timeline_view\timeline_canvas.py (2 code lines)
 """Main canvas for the timeline visualization view."""
 
 from PySide6.QtWidgets import QGraphicsView
@@ -3051,14 +3105,14 @@ class TimelineCanvas(QGraphicsView):
         pass
 
 
->> 📋 views/timeline_view.py (0 code lines)
+>> 📋 views\timeline_view.py (0 code lines)
 
 
->> 📋 views/tree_view/__init__.py (0 code lines)
+>> 📋 views\tree_view\__init__.py (0 code lines)
 """Tree view components for family tree visualization."""
 
 
->> 📋 views/tree_view/generation_band.py (2 code lines)
+>> 📋 views\tree_view\generation_band.py (2 code lines)
 """Horizontal band showing a generation level in the tree."""
 
 from PySide6.QtWidgets import QGraphicsWidget
@@ -3086,7 +3140,7 @@ class GenerationBand(QGraphicsWidget):
         pass
 
 
->> 📋 views/tree_view/layout_engine.py (2 code lines)
+>> 📋 views\tree_view\layout_engine.py (2 code lines)
 """Automatic layout engine for positioning people in the tree."""
 
 
@@ -3106,7 +3160,7 @@ class TreeLayoutEngine:
         pass
 
 
->> 📋 views/tree_view/marriage_node.py (1 code lines)
+>> 📋 views\tree_view\marriage_node.py (1 code lines)
 """Visual representation of a marriage in the tree view."""
 
 from PySide6.QtWidgets import QGraphicsWidget
@@ -3127,7 +3181,7 @@ class MarriageNode(QGraphicsWidget):
         pass
 
 
->> 📋 views/tree_view/person_box.py (1 code lines)
+>> 📋 views\tree_view\person_box.py (1 code lines)
 """Person box widget for the tree view."""
 
 from PySide6.QtWidgets import QGraphicsWidget
@@ -3149,7 +3203,7 @@ class PersonBox(QGraphicsWidget):
         pass
 
 
->> 📋 views/tree_view/relationship_line.py (7 code lines)
+>> 📋 views\tree_view\relationship_line.py (7 code lines)
 """Visual line connecting related people in the tree."""
 
 from PySide6.QtWidgets import QGraphicsWidget
@@ -3182,7 +3236,7 @@ class RelationshipLine(QGraphicsWidget):
         pass
 
 
->> 📋 views/tree_view/tree_canvas.py (1 code lines)
+>> 📋 views\tree_view\tree_canvas.py (1 code lines)
 """Main canvas for displaying the family tree."""
 
 from PySide6.QtWidgets import QGraphicsView
@@ -3206,10 +3260,10 @@ class TreeCanvas(QGraphicsView):
 WIDGETS
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 widgets/__init__.py (0 code lines)
+>> 📋 widgets\__init__.py (0 code lines)
 
 
->> 📋 widgets/date_picker.py (1 code lines)
+>> 📋 widgets\date_picker.py (1 code lines)
 """Custom date picker widget supporting flexible precision."""
 
 from PySide6.QtWidgets import QWidget
@@ -3230,7 +3284,7 @@ class DatePicker(QWidget):
         pass
 
 
->> 📋 widgets/extended_details_panel.py (2 code lines)
+>> 📋 widgets\extended_details_panel.py (2 code lines)
 """Panel widget for displaying detailed person information."""
 
 from PySide6.QtWidgets import QWidget
@@ -3260,7 +3314,7 @@ class ExtendedDetailsPanel(QWidget):
         pass
 
 
->> 📋 widgets/person_selector.py (1 code lines)
+>> 📋 widgets\person_selector.py (1 code lines)
 """Widget for selecting a person from the database."""
 
 from PySide6.QtWidgets import QWidget
@@ -3280,7 +3334,7 @@ class PersonSelector(QWidget):
         pass
 
 
->> 📋 widgets/portrait_gallery.py (1 code lines)
+>> 📋 widgets\portrait_gallery.py (1 code lines)
 """Widget for displaying and managing person portraits."""
 
 from PySide6.QtWidgets import QWidget
@@ -3302,7 +3356,7 @@ class PortraitGallery(QWidget):
         pass
 
 
->> 📋 widgets/search_bar.py (2 code lines)
+>> 📋 widgets\search_bar.py (2 code lines)
 """Search bar widget for finding people by name."""
 
 from PySide6.QtWidgets import QWidget
@@ -3335,11 +3389,11 @@ class SearchBar(QWidget):
 UTILS
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 utils/__init__.py (0 code lines)
+>> 📋 utils\__init__.py (0 code lines)
 """Utility modules for calculations and helpers."""
 
 
->> 📋 utils/color_manager.py (5 code lines)
+>> 📋 utils\color_manager.py (5 code lines)
 """Color utilities for UI elements."""
 
 from PySide6.QtGui import QColor
@@ -3381,7 +3435,7 @@ class ColorManager:
         pass
 
 
->> 📋 utils/csv_importer.py (4 code lines)
+>> 📋 utils\csv_importer.py (4 code lines)
 """CSV import utility for bulk data loading."""
 
 import csv
@@ -3422,7 +3476,7 @@ class CSVImporter:
         pass
 
 
->> 📋 utils/generation_calculator.py (2 code lines)
+>> 📋 utils\generation_calculator.py (2 code lines)
 """Calculate generation levels for all people."""
 
 
@@ -3442,7 +3496,7 @@ class GenerationCalculator:
         pass
 
 
->> 📋 utils/relationship_calculator.py (3 code lines)
+>> 📋 utils\relationship_calculator.py (3 code lines)
 """Calculate relationships between people using graph traversal."""
 
 
@@ -3467,7 +3521,7 @@ class RelationshipCalculator:
         pass
 
 
->> ✅ utils/settings_manager.py (81 code lines)
+>> ✅ utils\settings_manager.py (81 code lines)
 """User preferences and settings management."""
 
 from __future__ import annotations
@@ -3679,7 +3733,7 @@ class SettingsManager:
         for category in self.DEFAULTS.keys():
             self.reset_category_to_defaults(category)
 
->> 📋 utils/skin_manager.py (4 code lines)
+>> 📋 utils\skin_manager.py (4 code lines)
 """Skin/theme management for UI customization."""
 
 from PySide6.QtWidgets import QApplication
@@ -3717,7 +3771,7 @@ class SkinManager:
         pass
 
 
->> 📋 utils/validators.py (5 code lines)
+>> 📋 utils\validators.py (5 code lines)
 """Data validation tools for detecting inconsistencies."""
 
 
@@ -3757,7 +3811,7 @@ class ParentageValidator:
 SCRIPTS
 ──────────────────────────────────────────────────────────────────────
 
->> ✅ scripts/create_codebase_summary.py (119 code lines)
+>> ✅ scripts\create_codebase_summary.py (119 code lines)
 """
 Generate dynasty_codebase.txt - Complete codebase snapshot optimized for LLMs.
 
@@ -3804,24 +3858,26 @@ CONFIG_FILES = {"requirements.txt"}
 
 
 def should_ignore(path: Path) -> bool:
-    """Check if path should be ignored."""
+    """Check if path or any parent should be ignored."""
     path_str = str(path)
+    
+    # Check if any part of the path matches ignore patterns
+    for part in path.parts:
+        if part in IGNORE_PATTERNS:
+            return True
+    
+    # Check filename patterns
     name = path.name
-
-    if name in IGNORE_PATTERNS:
-        return True
-
     for pattern in IGNORE_PATTERNS:
         if "*" in pattern:
             ext = pattern.replace("*", "")
             if path_str.endswith(ext):
                 return True
-
+    
     if name == OUTPUT_FILE:
         return True
-
+    
     return False
-
 
 def count_code_lines(filepath: Path) -> int:
     """Count non-empty, non-comment lines."""
@@ -4032,7 +4088,7 @@ if __name__ == "__main__":
     generate_summary(project_root)
 
 
->> ✅ scripts/migrate_database.py (57 code lines)
+>> ✅ scripts\migrate_database.py (57 code lines)
 """
 Migration script to upgrade existing .dyn files to the new schema.
 
@@ -4275,5 +4331,5 @@ shiboken6==6.10.1
 
 
 ======================================================================
-END - 10/94 files, 1163 code lines
+END - 11/94 files, 1186 code lines
 ======================================================================
