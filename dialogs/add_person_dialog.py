@@ -1,19 +1,14 @@
-"""Dialog for adding a new person to the dynasty."""
-
-from __future__ import annotations
-from typing import TYPE_CHECKING
+"""Dialog for adding a new person to the database."""
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QSpinBox, QComboBox, QTextEdit,
-    QPushButton, QDialogButtonBox, QLabel, QMessageBox
+    QPushButton, QLabel, QDialogButtonBox, QCheckBox, QWidget
 )
 from PySide6.QtCore import Qt
 
 from models.person import Person
-
-if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
+from widgets.date_picker import DatePicker  # Import our new widget
 
 
 class AddPersonDialog(QDialog):
@@ -24,7 +19,7 @@ class AddPersonDialog(QDialog):
         super().__init__(parent)
         
         self.setWindowTitle("Add New Person")
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(500)  # Slightly wider for date pickers
         
         self._person: Person | None = None
         
@@ -37,22 +32,22 @@ class AddPersonDialog(QDialog):
     
     def _setup_ui(self) -> None:
         """Create and arrange all dialog widgets."""
-        layout = QVBoxLayout(self)
+        self.main_layout = QVBoxLayout(self)  # Store as instance variable
         
         # Special character toolbar
-        layout.addLayout(self._create_special_char_toolbar())
+        self.main_layout.addLayout(self._create_special_char_toolbar())
         
         # Add separator line
         separator = QLabel()
         separator.setFrameShape(QLabel.Shape.HLine)
         separator.setFrameShadow(QLabel.Shadow.Sunken)
-        layout.addWidget(separator)
+        self.main_layout.addWidget(separator)
         
         # Form fields
-        layout.addLayout(self._create_form_layout())
+        self.main_layout.addLayout(self._create_form_layout())
         
         # OK/Cancel buttons
-        layout.addWidget(self._create_button_box())
+        self.main_layout.addWidget(self._create_button_box())
     
     def _create_special_char_toolbar(self) -> QHBoxLayout:
         """Create toolbar with special character buttons."""
@@ -73,16 +68,12 @@ class AddPersonDialog(QDialog):
             btn.clicked.connect(lambda checked, c=char: self._insert_special_char(c))
             toolbar.addWidget(btn)
         
-        # Info label
-        info = QLabel("(Inserts into focused name field)")
-        info.setStyleSheet("color: gray; font-size: 10px;")
-        toolbar.addWidget(info)
-        
         toolbar.addStretch()
+        
         return toolbar
     
     def _create_form_layout(self) -> QFormLayout:
-        """Create form with input fields."""
+        """Create the main form with input fields."""
         form = QFormLayout()
         
         # First Name (required)
@@ -90,22 +81,36 @@ class AddPersonDialog(QDialog):
         self.first_name_input.setPlaceholderText("Required")
         form.addRow("First Name: *", self.first_name_input)
         
+        # Middle Name (optional)
+        self.middle_name_input = QLineEdit()
+        self.middle_name_input.setPlaceholderText("Optional")
+        form.addRow("Middle Name:", self.middle_name_input)
+        
         # Last Name (required)
         self.last_name_input = QLineEdit()
         self.last_name_input.setPlaceholderText("Required")
         form.addRow("Last Name: *", self.last_name_input)
         
-        # Birth Year (required)
-        self.birth_year_input = QSpinBox()
-        self.birth_year_input.setRange(1000, 2100)
-        self.birth_year_input.setValue(1700)
-        self.birth_year_input.setSpecialValueText("Unknown")
-        form.addRow("Birth Year: *", self.birth_year_input)
-        
         # Gender (optional)
         self.gender_input = QComboBox()
         self.gender_input.addItems(["Unknown", "Male", "Female", "Other"])
         form.addRow("Gender:", self.gender_input)
+        
+        # --- Date Section ---
+        
+        # Born in Town checkbox
+        self.born_in_town_check = QCheckBox("Born in Town")
+        self.born_in_town_check.setChecked(False)  # Default: arrived from elsewhere
+        form.addRow("", self.born_in_town_check)
+        
+        # Birth Date picker FIRST (stays visible always)
+        self.birth_date_picker = DatePicker()
+        form.addRow("Birth Date: *", self.birth_date_picker)
+        
+        # Arrival Date picker SECOND (disappears when born in town)
+        self.arrival_date_label = QLabel("Arrival Date:")
+        self.arrival_date_picker = DatePicker()
+        form.addRow(self.arrival_date_label, self.arrival_date_picker)
         
         # Notes (optional)
         self.notes_input = QTextEdit()
@@ -116,12 +121,14 @@ class AddPersonDialog(QDialog):
         return form
     
     def _create_button_box(self) -> QDialogButtonBox:
-        """Create OK/Cancel button box."""
+        """Create OK and Cancel buttons."""
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
+        
         button_box.accepted.connect(self._handle_accept)
         button_box.rejected.connect(self.reject)
+        
         return button_box
     
     # ------------------------------------------------------------------
@@ -130,30 +137,68 @@ class AddPersonDialog(QDialog):
     
     def _connect_signals(self) -> None:
         """Connect widget signals to handlers."""
-        # Enter key in line edits should not close dialog accidentally
-        self.first_name_input.returnPressed.connect(self.last_name_input.setFocus)
-        self.last_name_input.returnPressed.connect(self.birth_year_input.setFocus)
+        # When "Born in Town" changes, show/hide arrival date
+        self.born_in_town_check.stateChanged.connect(self._update_date_visibility)
+        
+        # Set initial visibility
+        self._update_date_visibility()
     
+    def _update_date_visibility(self) -> None:
+        """Show or hide arrival date based on 'Born in Town' checkbox."""
+        is_born_in_town = self.born_in_town_check.isChecked()
+        
+        # Hide/show arrival date row
+        self.arrival_date_label.setVisible(not is_born_in_town)
+        self.arrival_date_picker.setVisible(not is_born_in_town)
+        
+        # Adjust birth date precision hint
+        if is_born_in_town:
+            # Born in town: we know the precise month
+            self.birth_date_picker.unknown_check.setChecked(False)
+        else:
+            # Arrived: might only know birth year
+            self.birth_date_picker.unknown_check.setChecked(True)
+        
+        # Force layout to recalculate and resize dialog
+        self.main_layout.invalidate()  # Use stored reference
+        self.main_layout.activate()
+        
+        # Resize dialog to fit new content
+        self.resize(self.minimumSizeHint())
+
     def _insert_special_char(self, char: str) -> None:
-        """Insert special character into currently focused name field."""
+        """Insert a special character at the cursor position."""
         focused = self.focusWidget()
         
-        # Only insert into line edit fields (name fields)
         if isinstance(focused, QLineEdit):
             focused.insert(char)
+            focused.setFocus()
     
     def _handle_accept(self) -> None:
         """Validate inputs and create Person object before accepting."""
         if not self._validate_inputs():
             return
         
+        # Get dates from pickers
+        birth_year, birth_month = self.birth_date_picker.get_date()
+        
+        # Get arrival date if not born in town
+        arrival_year = None
+        arrival_month = None
+        if not self.born_in_town_check.isChecked():
+            arrival_year, arrival_month = self.arrival_date_picker.get_date()
+        
         # Create Person object from form data
         self._person = Person(
-            first_name=self.first_name_input.text().strip(),
-            last_name=self.last_name_input.text().strip(),
-            birth_year=self.birth_year_input.value(),
-            gender=self.gender_input.currentText(),
-            notes=self.notes_input.toPlainText().strip()
+            first_name = self.first_name_input.text().strip(),
+            middle_name = self.middle_name_input.text().strip(),
+            last_name = self.last_name_input.text().strip(),
+            birth_year = birth_year,
+            birth_month = birth_month,
+            arrival_year = arrival_year,
+            arrival_month = arrival_month,
+            gender = self.gender_input.currentText(),
+            notes = self.notes_input.toPlainText().strip()
         )
         
         self.accept()
@@ -163,35 +208,41 @@ class AddPersonDialog(QDialog):
     # ------------------------------------------------------------------
     
     def _validate_inputs(self) -> bool:
-        """Validate that required fields are filled."""
-        # Check first name
+        """Validate required fields and show error if invalid."""
+        # First name required
         if not self.first_name_input.text().strip():
             self._show_error("First name is required.")
             self.first_name_input.setFocus()
             return False
         
-        # Check last name
+        # Last name required
         if not self.last_name_input.text().strip():
             self._show_error("Last name is required.")
             self.last_name_input.setFocus()
             return False
         
-        # Check birth year (0 is the special "Unknown" value)
-        if self.birth_year_input.value() == 0:
-            self._show_error("Birth year is required.")
-            self.birth_year_input.setFocus()
+        # Birth year required (always has a value from DatePicker)
+        birth_year, _ = self.birth_date_picker.get_date()
+        if birth_year < 1500 or birth_year > 2000:
+            self._show_error("Birth year must be between 1500 and 2000.")
             return False
         
         return True
     
     def _show_error(self, message: str) -> None:
-        """Display validation error message."""
-        QMessageBox.warning(self, "Validation Error", message)
+        """Display an error message to the user."""
+        from PySide6.QtWidgets import QMessageBox
+        
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Validation Error")
+        msg.setText(message)
+        msg.exec()
     
     # ------------------------------------------------------------------
-    # Public Interface
+    # Public Methods
     # ------------------------------------------------------------------
     
     def get_person(self) -> Person | None:
-        """Return the created Person object, or None if dialog was cancelled."""
+        """Return the created Person object."""
         return self._person

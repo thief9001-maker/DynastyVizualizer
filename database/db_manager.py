@@ -209,6 +209,7 @@ class DatabaseManager:
             dissolution_day INTEGER,
             dissolution_reason TEXT,
             marriage_type TEXT DEFAULT 'spouse',
+            notes TEST,
             FOREIGN KEY(spouse1_id) REFERENCES Person(id)
                 ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY(spouse2_id) REFERENCES Person(id)
@@ -278,18 +279,35 @@ class DatabaseManager:
             
         cursor = self.conn.cursor()
 
+        # Person table migrations
         cursor.execute("PRAGMA table_info(Person)")
-        existing_columns = {row[1] for row in cursor.fetchall()}
+        existing_person_columns = {row[1] for row in cursor.fetchall()}
 
-        migrations = [
+        person_migrations = [
             # Dec/10/2025 - Person Model updates
             ("middle_name", "ALTER TABLE Person ADD COLUMN middle_name TEXT DEFAULT ''"),
             ("nickname", "ALTER TABLE Person ADD COLUMN nickname TEXT DEFAULT ''"),
             ("dynasty_id", "ALTER TABLE Person ADD COLUMN dynasty_id INTEGER DEFAULT 1"),
             ("is_founder", "ALTER TABLE Person ADD COLUMN is_founder INTEGER DEFAULT 0"),
             ("education", "ALTER TABLE Person ADD COLUMN education INTEGER DEFAULT 0"),
-            ]
-        for column_name, sql in migrations:
-            if column_name not in existing_columns:
+        ]
+        
+        for column_name, sql in person_migrations:
+            if column_name not in existing_person_columns:
                 cursor.execute(sql)
+        
+        # Marriage table migrations
+        cursor.execute("PRAGMA table_info(Marriage)")
+        existing_marriage_columns = {row[1] for row in cursor.fetchall()}
+        
+        marriage_migrations = [
+            # Dec/20/2025 - Marriage notes field
+            ("notes", "ALTER TABLE Marriage ADD COLUMN notes TEXT"),
+        ]
+        
+        for column_name, sql in marriage_migrations:
+            if column_name not in existing_marriage_columns:
+                cursor.execute(sql)
+        
+        self.conn.commit()
 
