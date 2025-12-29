@@ -160,7 +160,7 @@ class EditPersonDialog(QDialog):
         is_valid, error_msg = self.relationships_panel_widget.validate()
         if not is_valid:
             QMessageBox.warning(self, "Validation Error", error_msg)
-            self.panel_list.setCurrentRow(1)  # Switch to Relationships tab
+            self.panel_list.setCurrentRow(1)
             return False
         
         # Get data from panels
@@ -174,10 +174,17 @@ class EditPersonDialog(QDialog):
         from dataclasses import replace
         self.edited_person = replace(self.person, **person_data)
         
+        # Save person to database
+        from database.person_repository import PersonRepository
+        person_repo = PersonRepository(self.db_manager)
+        person_repo.update(self.edited_person)
+        
         # Save marriages
         self.relationships_panel_widget.save_marriages()
         
-        # TODO: Save person to database via command
+        # Update the person object with saved data
+        self.person = self.edited_person
+        
         return True
 
     def reject(self) -> None:

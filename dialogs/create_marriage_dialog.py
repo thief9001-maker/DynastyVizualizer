@@ -1,7 +1,7 @@
 """Dialog for creating a new marriage."""
 
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QLabel,
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox,
     QDialogButtonBox, QWidget, QMessageBox
 )
 
@@ -37,22 +37,43 @@ class CreateMarriageDialog(QDialog):
         """Create dialog widgets."""
         layout = QVBoxLayout(self)
         
-        form = QFormLayout()
-        
-        # Person 1 (current person - read-only display)
+        # Person 1
+        person1_layout = QHBoxLayout()
+        person1_layout.addWidget(QLabel("Person 1:"))
         person1_label = QLabel(f"<b>{self.person.display_name}</b>")
-        form.addRow("Person 1:", person1_label)
+        person1_layout.addWidget(person1_label)
+        person1_layout.addStretch()
+        layout.addLayout(person1_layout)
         
-        # Person 2 (spouse - searchable)
+        # Person 2
+        person2_layout = QHBoxLayout()
+        person2_layout.addWidget(QLabel("Person 2:"))
         self.spouse_selector = PersonSelector(self.db_manager)
-        form.addRow("Person 2:", self.spouse_selector)
+        person2_layout.addWidget(self.spouse_selector)
+        layout.addLayout(person2_layout)
+        
+        # Date Unknown checkbox
+        date_unknown_layout = QHBoxLayout()
+        date_unknown_layout.addSpacing(85)  # Align with fields above
+        self.date_unknown_check = QCheckBox("Date Unknown")
+        self.date_unknown_check.setChecked(True)
+        self.date_unknown_check.stateChanged.connect(self._on_date_unknown_toggled)
+        date_unknown_layout.addWidget(self.date_unknown_check)
+        date_unknown_layout.addStretch()
+        layout.addLayout(date_unknown_layout)
         
         # Marriage date
+        marriage_date_layout = QHBoxLayout()
+        self.marriage_date_label = QLabel("Marriage Date:")
+        marriage_date_layout.addWidget(self.marriage_date_label)
         self.marriage_date = DatePicker()
-        self.marriage_date.set_date(1721, None)
-        form.addRow("Marriage Date:", self.marriage_date)
+        self.marriage_date.set_date(1721, 1)
+        self.marriage_date.unknown_check.setVisible(False)
+        marriage_date_layout.addWidget(self.marriage_date)
+        marriage_date_layout.addStretch()
+        layout.addLayout(marriage_date_layout)
         
-        layout.addLayout(form)
+        layout.addStretch()
         
         # Buttons
         button_box = QDialogButtonBox(
@@ -62,6 +83,18 @@ class CreateMarriageDialog(QDialog):
         button_box.accepted.connect(self._handle_accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
+        
+        self._update_date_visibility()
+    
+    def _on_date_unknown_toggled(self) -> None:
+        """Handle date unknown checkbox toggle."""
+        self._update_date_visibility()
+    
+    def _update_date_visibility(self) -> None:
+        """Show/hide marriage date based on checkbox."""
+        date_known = not self.date_unknown_check.isChecked()
+        self.marriage_date_label.setVisible(date_known)
+        self.marriage_date.setVisible(date_known)
     
     def _handle_accept(self) -> None:
         """Validate and accept."""
@@ -75,11 +108,18 @@ class CreateMarriageDialog(QDialog):
             QMessageBox.warning(self, "Validation Error", "A person cannot marry themselves.")
             return
         
-        year, month = self.marriage_date.get_date()
-        
-        self.spouse_id = spouse_id
-        self.marriage_year = year
-        self.marriage_month = month
+        # Only get date if Date Unknown is NOT checked
+        if self.date_unknown_check.isChecked():
+            # Explicitly set to None - date is unknown
+            self.spouse_id = spouse_id
+            self.marriage_year = None
+            self.marriage_month = None
+        else:
+            # Get date from picker
+            year, month = self.marriage_date.get_date()
+            self.spouse_id = spouse_id
+            self.marriage_year = year
+            self.marriage_month = month
         
         self.accept()
     

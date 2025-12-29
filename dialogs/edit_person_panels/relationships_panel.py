@@ -1,8 +1,10 @@
 """Relationships panel for Edit Person dialog."""
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QFormLayout, QLabel, QScrollArea,
-    QGroupBox, QPushButton, QHBoxLayout, QFrame, QMessageBox, QComboBox
+    QWidget, QVBoxLayout, QFormLayout, 
+    QLabel, QScrollArea, QCheckBox,
+    QGroupBox, QPushButton, QHBoxLayout, 
+    QFrame, QMessageBox, QComboBox
 )
 from PySide6.QtCore import QSignalBlocker
 
@@ -133,7 +135,7 @@ class RelationshipsPanel(QWidget):
         frame = QFrame()
         frame.setFrameShape(QFrame.Shape.StyledPanel)
         frame.setFrameShadow(QFrame.Shadow.Raised)
-        layout = QVBoxLayout(frame)
+        main_layout = QVBoxLayout(frame)
         
         # Status header
         header_layout = QHBoxLayout()
@@ -143,13 +145,13 @@ class RelationshipsPanel(QWidget):
         )
         header_layout.addWidget(status_indicator)
         header_layout.addStretch()
-        layout.addLayout(header_layout)
+        main_layout.addLayout(header_layout)
         
-        form = QFormLayout()
+        # Spouse row
+        spouse_layout = QHBoxLayout()
+        spouse_layout.addWidget(QLabel("Spouse:"))
         
-        # Spouse selector
         spouse_selector = PersonSelector(self.db_manager)
-        
         with QSignalBlocker(spouse_selector):
             if self.current_person and self.current_person.id:
                 spouse_id = self.marriage_repo.get_spouse_id(marriage, self.current_person.id)
@@ -160,37 +162,78 @@ class RelationshipsPanel(QWidget):
                 spouse_selector.set_person(spouse_id)
         
         spouse_selector.personSelected.connect(self._on_field_changed)
-        
-        spouse_row = QHBoxLayout()
-        spouse_row.addWidget(spouse_selector)
+        spouse_layout.addWidget(spouse_selector)
         
         spouse_jump_btn = QPushButton("View Person")
         spouse_jump_btn.setEnabled(spouse_id is not None)
         spouse_jump_btn.clicked.connect(lambda: self._jump_to_person(spouse_selector.get_person_id()))
         spouse_selector.personSelected.connect(lambda: spouse_jump_btn.setEnabled(True))
         spouse_selector.selectionCleared.connect(lambda: spouse_jump_btn.setEnabled(False))
-        spouse_row.addWidget(spouse_jump_btn)
+        spouse_layout.addWidget(spouse_jump_btn)
         
-        form.addRow("Spouse:", spouse_row)
+        main_layout.addLayout(spouse_layout)
         
-        # Marriage date
+        # Date Unknown checkbox (stays in place)
+        date_unknown_layout = QHBoxLayout()
+        date_unknown_layout.addSpacing(60)  # Indent to align with fields above
+        
+        date_unknown_check = QCheckBox("Date Unknown")
+        date_unknown_check.setChecked(marriage.marriage_year is None)
+        date_unknown_layout.addWidget(date_unknown_check)
+        date_unknown_layout.addStretch()
+        
+        main_layout.addLayout(date_unknown_layout)
+        
+        # Marriage date row (appears/disappears below)
+        marriage_date_layout = QHBoxLayout()
+        marriage_date_label = QLabel("Married:")
+        marriage_date_layout.addWidget(marriage_date_label)
+        
         marriage_date = DatePicker()
         with QSignalBlocker(marriage_date):
             if marriage.marriage_year:
-                marriage_date.set_date(marriage.marriage_year, marriage.marriage_month)
+                marriage_date.set_date(marriage.marriage_year, marriage.marriage_month or 1)
+            else:
+                marriage_date.set_date(1721, 1)
         
+        marriage_date.unknown_check.setVisible(False)
         marriage_date.dateChanged.connect(self._on_field_changed)
-        form.addRow("Married:", marriage_date)
+        marriage_date_layout.addWidget(marriage_date)
+        marriage_date_layout.addStretch()
+        
+        main_layout.addLayout(marriage_date_layout)
+        
+        # Initially hide/show based on whether date is known
+        date_known = marriage.marriage_year is not None
+        marriage_date_label.setVisible(date_known)
+        marriage_date.setVisible(date_known)
+        
+        # Connect checkbox to toggle visibility
+        def toggle_date_visibility():
+            date_is_known = not date_unknown_check.isChecked()
+            marriage_date_label.setVisible(date_is_known)
+            marriage_date.setVisible(date_is_known)
+            self._on_field_changed()
+        
+        date_unknown_check.stateChanged.connect(toggle_date_visibility)
         
         # End date and reason (if ended)
         if not marriage.is_active:
+            end_date_layout = QHBoxLayout()
+            end_date_layout.addWidget(QLabel("Ended:"))
+            
             end_date = DatePicker()
             with QSignalBlocker(end_date):
                 if marriage.dissolution_year:
                     end_date.set_date(marriage.dissolution_year, marriage.dissolution_month)
             
             end_date.dateChanged.connect(self._on_field_changed)
-            form.addRow("Ended:", end_date)
+            end_date_layout.addWidget(end_date)
+            end_date_layout.addStretch()
+            main_layout.addLayout(end_date_layout)
+            
+            reason_layout = QHBoxLayout()
+            reason_layout.addWidget(QLabel("Reason:"))
             
             reason_combo = QComboBox()
             with QSignalBlocker(reason_combo):
@@ -201,9 +244,9 @@ class RelationshipsPanel(QWidget):
                         reason_combo.setCurrentIndex(index)
             
             reason_combo.currentIndexChanged.connect(self._on_field_changed)
-            form.addRow("Reason:", reason_combo)
-        
-        layout.addLayout(form)
+            reason_layout.addWidget(reason_combo)
+            reason_layout.addStretch()
+            main_layout.addLayout(reason_layout)
         
         # Action buttons
         button_layout = QHBoxLayout()
@@ -222,10 +265,11 @@ class RelationshipsPanel(QWidget):
         delete_btn.clicked.connect(lambda: self._delete_marriage(marriage))
         button_layout.addWidget(delete_btn)
         
-        layout.addLayout(button_layout)
+        main_layout.addLayout(button_layout)
         
-        # Store widget references for data collection
+        # Store widget references
         frame.spouse_selector = spouse_selector  # type: ignore[attr-defined]
+        frame.date_unknown_check = date_unknown_check  # type: ignore[attr-defined]
         frame.marriage_date = marriage_date  # type: ignore[attr-defined]
         if not marriage.is_active:
             frame.end_date = end_date  # type: ignore[attr-defined]
@@ -233,7 +277,7 @@ class RelationshipsPanel(QWidget):
         
         return frame
     
-    def _create_person_widget(self, person: Person) -> QFrame:
+    def _create_person_widget(self, person: Person, show_remove: bool = False) -> QFrame:
         """Create widget displaying a person with jump button."""
         frame = QFrame()
         frame.setFrameShape(QFrame.Shape.StyledPanel)
@@ -247,6 +291,11 @@ class RelationshipsPanel(QWidget):
         jump_btn = QPushButton("View Person")
         jump_btn.clicked.connect(lambda: self._jump_to_person(person.id))
         layout.addWidget(jump_btn)
+        
+        if show_remove:
+            remove_btn = QPushButton("Remove")
+            remove_btn.clicked.connect(lambda: self._remove_child(person))
+            layout.addWidget(remove_btn)
         
         return frame
     
@@ -450,9 +499,34 @@ class RelationshipsPanel(QWidget):
             self._on_field_changed()
     
     def _add_child(self) -> None:
-        """Open dialog to add a new child."""
-        QMessageBox.information(self, "Not Implemented", "Add Child coming soon!")
-    
+        """Open dialog to create a new child."""
+        if not self.current_person or not self.current_person.id:
+            return
+        
+        # Find oldest active marriage spouse
+        active_marriages = self.marriage_repo.get_active_marriages(self.current_person.id)
+        parent2_id = None
+        
+        if active_marriages:
+            # Sort by marriage date (oldest first)
+            active_marriages.sort(key=lambda m: (
+                (9999, 12) if m.marriage_year is None else (m.marriage_year, m.marriage_month or 0)
+            ))
+            
+            oldest_marriage = active_marriages[0]
+            parent2_id = self.marriage_repo.get_spouse_id(oldest_marriage, self.current_person.id)
+        
+        # Open create child dialog
+        from dialogs.create_child_dialog import CreateChildDialog
+        dialog = CreateChildDialog(self.db_manager, self.current_person, parent2_id, self)
+        
+        if dialog.exec():
+            created_person = dialog.get_created_person()
+            if created_person:
+                # Reload children to show new child
+                self._load_children()
+                self._on_field_changed()
+        
     def load_person(self, person: Person) -> None:
         """Load person relationship data."""
         self.current_person = person
@@ -574,13 +648,41 @@ class RelationshipsPanel(QWidget):
         
         if children:
             for child in children:
-                child_widget = self._create_person_widget(child)
+                child_widget = self._create_person_widget(child, show_remove=True)
                 self.children_container.addWidget(child_widget)
         else:
             placeholder = QLabel("No children recorded")
             placeholder.setStyleSheet("color: gray; font-style: italic; padding: 10px;")
             self.children_container.addWidget(placeholder)
-    
+
+    def _remove_child(self, child: Person) -> None:
+        """Remove parent-child relationship."""
+        if not self.current_person:
+            return
+        
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Remove Child")
+        msg.setText(f"Remove {child.display_name} as a child of {self.current_person.display_name}?")
+        msg.setInformativeText("This will clear the parent relationship but not delete the person.")
+        msg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if msg.exec() == QMessageBox.StandardButton.Yes:
+            # Determine which parent to clear
+            if child.father_id == self.current_person.id:
+                child.father_id = None
+            if child.mother_id == self.current_person.id:
+                child.mother_id = None
+            
+            # Update in database
+            self.person_repo.update(child)
+            
+            # Reload children
+            self._load_children()
+            self._on_field_changed()
+
     def get_relationship_data(self) -> dict:
         """Extract relationship data."""
         return {
@@ -590,9 +692,11 @@ class RelationshipsPanel(QWidget):
     
     def save_marriages(self) -> None:
         """Save all marriage changes to database."""
+        # Delete marriages
         for marriage_id in self.deleted_marriage_ids:
             self.marriage_repo.delete(marriage_id)
         
+        # Insert new marriages
         for marriage in self.new_marriages:
             for m, widget in self.marriage_widgets:
                 if m == marriage:
@@ -601,34 +705,50 @@ class RelationshipsPanel(QWidget):
                     if spouse_id:
                         marriage.spouse2_id = spouse_id
                     
-                    marriage_date_picker = widget.marriage_date  # type: ignore[attr-defined]
-                    year, month = marriage_date_picker.get_date()
-                    marriage.marriage_year = year
-                    marriage.marriage_month = month
+                    date_unknown_check = widget.date_unknown_check  # type: ignore[attr-defined]
+                    if date_unknown_check.isChecked():
+                        marriage.marriage_year = None
+                        marriage.marriage_month = None
+                    else:
+                        marriage_date_picker = widget.marriage_date  # type: ignore[attr-defined]
+                        year, month = marriage_date_picker.get_date()
+                        marriage.marriage_year = year
+                        marriage.marriage_month = month
+                    
                     break
             
             self.marriage_repo.insert(marriage)
         
-        for marriage_id, marriage in self.modified_marriages.items():
-            for m, widget in self.marriage_widgets:
-                if m.id == marriage_id:
-                    spouse_selector = widget.spouse_selector  # type: ignore[attr-defined]
-                    spouse_id = spouse_selector.get_person_id()
-                    
-                    if self.current_person and self.current_person.id:
-                        if marriage.spouse1_id == self.current_person.id:
-                            marriage.spouse2_id = spouse_id
-                        else:
-                            marriage.spouse1_id = spouse_id
-                    
+        # Update ALL existing marriages (not just ones in modified_marriages)
+        for marriage, widget in self.marriage_widgets:
+            # Skip new marriages (already inserted above)
+            if marriage in self.new_marriages:
+                continue
+            
+            # Update existing marriage
+            if marriage.id:
+                spouse_selector = widget.spouse_selector  # type: ignore[attr-defined]
+                spouse_id = spouse_selector.get_person_id()
+                
+                if self.current_person and self.current_person.id:
+                    if marriage.spouse1_id == self.current_person.id:
+                        marriage.spouse2_id = spouse_id
+                    else:
+                        marriage.spouse1_id = spouse_id
+                
+                date_unknown_check = widget.date_unknown_check  # type: ignore[attr-defined]
+                if date_unknown_check.isChecked():
+                    marriage.marriage_year = None
+                    marriage.marriage_month = None
+                else:
                     marriage_date_picker = widget.marriage_date  # type: ignore[attr-defined]
                     year, month = marriage_date_picker.get_date()
                     marriage.marriage_year = year
                     marriage.marriage_month = month
-                    break
-            
-            self.marriage_repo.update(marriage)
+                
+                self.marriage_repo.update(marriage)
         
+        # Clear tracking
         self.new_marriages.clear()
         self.deleted_marriage_ids.clear()
         self.modified_marriages.clear()

@@ -58,30 +58,46 @@ class GeneralPanel(QWidget):
         self.gender_input.currentIndexChanged.connect(self._on_field_changed)
         form.addRow("Gender:", self.gender_input)
         
-        # Date fields
+        # Birth Date
         self.birth_date_picker = DatePicker()
         self.birth_date_picker.dateChanged.connect(self._on_field_changed)
         form.addRow("Birth Date:", self.birth_date_picker)
         
+        # Death Date with checkbox BELOW
+        self.death_date_label = QLabel("Death Date:")
         self.death_date_picker = DatePicker()
         self.death_date_picker.dateChanged.connect(self._on_field_changed)
-        form.addRow("Death Date:", self.death_date_picker)
+        form.addRow(self.death_date_label, self.death_date_picker)
         
+        self.died_check = QCheckBox("Died?")
+        self.died_check.setChecked(False)
+        self.died_check.stateChanged.connect(self._on_died_toggled)
+        self.died_check.stateChanged.connect(self._on_field_changed)
+        form.addRow("", self.died_check)
+        
+        # Arrival Date with checkbox BELOW
+        self.arrival_date_label = QLabel("Arrival Date:")
         self.arrival_date_picker = DatePicker()
         self.arrival_date_picker.dateChanged.connect(self._on_field_changed)
-        form.addRow("Arrival Date:", self.arrival_date_picker)
+        form.addRow(self.arrival_date_label, self.arrival_date_picker)
         
-        # Moved out checkbox and date
+        self.immigrant_check = QCheckBox("Immigrant?")
+        self.immigrant_check.setChecked(False)
+        self.immigrant_check.stateChanged.connect(self._on_immigrant_toggled)
+        self.immigrant_check.stateChanged.connect(self._on_field_changed)
+        form.addRow("", self.immigrant_check)
+        
+        # Moved Out Date with checkbox BELOW
+        self.moved_out_date_label = QLabel("Moved Out Date:")
+        self.moved_out_date_picker = DatePicker()
+        self.moved_out_date_picker.dateChanged.connect(self._on_field_changed)
+        form.addRow(self.moved_out_date_label, self.moved_out_date_picker)
+        
         self.moved_out_check = QCheckBox("Moved Out?")
         self.moved_out_check.setChecked(False)
         self.moved_out_check.stateChanged.connect(self._on_moved_out_toggled)
         self.moved_out_check.stateChanged.connect(self._on_field_changed)
         form.addRow("", self.moved_out_check)
-        
-        self.moved_out_date_label = QLabel("Moved Out Date:")
-        self.moved_out_date_picker = DatePicker()
-        self.moved_out_date_picker.dateChanged.connect(self._on_field_changed)
-        form.addRow(self.moved_out_date_label, self.moved_out_date_picker)
         
         # Game-specific fields
         self.dynasty_id_input = QLineEdit()
@@ -114,8 +130,30 @@ class GeneralPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(scroll)
         
+        self._update_died_visibility()
+        self._update_immigrant_visibility()
         self._update_moved_out_visibility()
-    
+
+    def _on_immigrant_toggled(self) -> None:
+        """Handle immigrant checkbox toggle."""
+        self._update_immigrant_visibility()
+
+    def _update_immigrant_visibility(self) -> None:
+        """Show/hide arrival date based on checkbox."""
+        is_immigrant = self.immigrant_check.isChecked()
+        self.arrival_date_label.setVisible(is_immigrant)
+        self.arrival_date_picker.setVisible(is_immigrant)
+
+    def _on_died_toggled(self) -> None:
+        """Handle died checkbox toggle."""
+        self._update_died_visibility()
+
+    def _update_died_visibility(self) -> None:
+        """Show/hide death date based on checkbox."""
+        has_died = self.died_check.isChecked()
+        self.death_date_label.setVisible(has_died)
+        self.death_date_picker.setVisible(has_died)
+
     def _on_moved_out_toggled(self) -> None:
         """Handle moved out checkbox toggle."""
         self._update_moved_out_visibility()
@@ -152,7 +190,9 @@ class GeneralPanel(QWidget):
             QSignalBlocker(self.nickname_input),
             QSignalBlocker(self.gender_input),
             QSignalBlocker(self.birth_date_picker),
+            QSignalBlocker(self.died_check),
             QSignalBlocker(self.death_date_picker),
+            QSignalBlocker(self.immigrant_check),
             QSignalBlocker(self.arrival_date_picker),
             QSignalBlocker(self.moved_out_check),
             QSignalBlocker(self.moved_out_date_picker),
@@ -180,10 +220,16 @@ class GeneralPanel(QWidget):
             self.birth_date_picker.set_date(person.birth_year, person.birth_month)
         
         if person.death_year:
+            self.died_check.setChecked(True)
             self.death_date_picker.set_date(person.death_year, person.death_month)
+        else:
+            self.died_check.setChecked(False)
         
         if person.arrival_year:
+            self.immigrant_check.setChecked(True)
             self.arrival_date_picker.set_date(person.arrival_year, person.arrival_month)
+        else:
+            self.immigrant_check.setChecked(False)
         
         if person.moved_out_year:
             self.moved_out_check.setChecked(True)
@@ -191,6 +237,8 @@ class GeneralPanel(QWidget):
         else:
             self.moved_out_check.setChecked(False)
         
+        self._update_died_visibility()
+        self._update_immigrant_visibility()
         self._update_moved_out_visibility()
         
         # Game fields
@@ -204,8 +252,16 @@ class GeneralPanel(QWidget):
     def get_person_data(self) -> dict:
         """Extract form data as dictionary."""
         birth_year, birth_month = self.birth_date_picker.get_date()
-        death_year, death_month = self.death_date_picker.get_date()
-        arrival_year, arrival_month = self.arrival_date_picker.get_date()
+        
+        if self.died_check.isChecked():
+            death_year, death_month = self.death_date_picker.get_date()
+        else:
+            death_year, death_month = None, None
+        
+        if self.immigrant_check.isChecked():
+            arrival_year, arrival_month = self.arrival_date_picker.get_date()
+        else:
+            arrival_year, arrival_month = None, None
         
         if self.moved_out_check.isChecked():
             moved_out_year, moved_out_month = self.moved_out_date_picker.get_date()
@@ -235,7 +291,7 @@ class GeneralPanel(QWidget):
             'education': education_level,
             'notes': self.notes_input.toPlainText().strip()
         }
-    
+
     def validate(self) -> tuple[bool, str]:
         """Validate form data."""
         if not self.first_name_input.text().strip():
