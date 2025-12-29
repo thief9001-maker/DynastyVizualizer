@@ -1,8 +1,8 @@
 ======================================================================
 DynastyVizualizer - Complete Codebase
 ======================================================================
-Generated: 2025-12-14 15:16
-Files: 11/94 implemented | 1186 code lines
+Generated: 2025-12-29 01:29
+Files: 23/100 implemented | 2013 code lines
 Tech: PySide6, SQLite, Python 3.10+ | MVC + Command pattern
 Status: Phase 1 Complete, Phase 2 ~35% (Add Person done)
 ======================================================================
@@ -13,12 +13,12 @@ undo/redo, flexible dates, special char support, DB migration.
 Pattern: User Action → Dialog → Command → Repository → Database
 
 FILE INDEX:
-Core: main.py
-Database: database\__init__.py, database\db_manager.py, database\person_repository.py
+Core: main.py, test_edit_person_dialog.py
+Database: database\__init__.py, database\db_manager.py, database\marriage_repository.py, database\person_repository.py
 Models: models\__init__.py, models\event.py, models\family.py, models\major_event.py, models\marriage.py, ... (7 total)
 Actions: actions\__init__.py, actions\edit_actions.py, actions\file_actions.py, actions\help_actions.py, actions\settings_actions.py, ... (7 total)
-Commands: commands\___init__.py, commands\base_command.py, commands\genealogy_commands\__init__.py, commands\genealogy_commands\add_event.py, commands\genealogy_commands\add_marriage.py, ... (28 total)
-Dialogs: dialogs\__init__.py, dialogs\about_dialog.py, dialogs\add_event_dialog.py, dialogs\add_person_dialog.py, dialogs\create_child_dialog.py, ... (9 total)
+Commands: commands\__init__.py, commands\base_command.py, commands\genealogy_commands\__init__.py, commands\genealogy_commands\add_event.py, commands\genealogy_commands\add_marriage.py, ... (28 total)
+Dialogs: dialogs\__init__.py, dialogs\about_dialog.py, dialogs\add_person_dialog.py, dialogs\create_child_dialog.py, dialogs\create_marriage_dialog.py, ... (13 total)
 Views: views\__init__.py, views\data_table.py, views\dynasty_view.py, views\stats_view\charts.py, views\stats_view\comparison_widget.py, ... (23 total)
 Widgets: widgets\__init__.py, widgets\date_picker.py, widgets\extended_details_panel.py, widgets\person_selector.py, widgets\portrait_gallery.py, ... (6 total)
 Utils: utils\__init__.py, utils\color_manager.py, utils\csv_importer.py, utils\generation_calculator.py, utils\relationship_calculator.py, ... (8 total)
@@ -396,6 +396,39 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
+>> ✅ test_edit_person_dialog.py (21 code lines)
+import sys
+from PySide6.QtWidgets import QApplication
+
+from database.db_manager import DatabaseManager
+from database.person_repository import PersonRepository
+from dialogs.edit_person_dialog import EditPersonDialog
+
+app = QApplication(sys.argv)
+
+# Open database
+db = DatabaseManager(None)
+db.open_database("Struggberg Family Tree 1.dyn")  # Use your actual .dyn file
+
+# Get a person to edit
+repo = PersonRepository(db)
+people = repo.get_all()
+
+if people:
+    person = people[0]  # Edit the first person
+    
+    dialog = EditPersonDialog(db, person)
+    result = dialog.exec()
+    
+    if result:
+        print("User clicked Save")
+    else:
+        print("User clicked Cancel")
+else:
+    print("No people in database!")
+
+sys.exit(0)
+
 
 ──────────────────────────────────────────────────────────────────────
 DATABASE
@@ -407,7 +440,7 @@ from .person_repository import PersonRepository
 
 __all__ = ['DatabaseManager', 'PersonRepository']
 
->> ✅ database\db_manager.py (171 code lines)
+>> ✅ database\db_manager.py (181 code lines)
 import sqlite3
 import shutil
 import os
@@ -619,6 +652,7 @@ class DatabaseManager:
             dissolution_day INTEGER,
             dissolution_reason TEXT,
             marriage_type TEXT DEFAULT 'spouse',
+            notes TEST,
             FOREIGN KEY(spouse1_id) REFERENCES Person(id)
                 ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY(spouse2_id) REFERENCES Person(id)
@@ -688,22 +722,249 @@ class DatabaseManager:
             
         cursor = self.conn.cursor()
 
+        # Person table migrations
         cursor.execute("PRAGMA table_info(Person)")
-        existing_columns = {row[1] for row in cursor.fetchall()}
+        existing_person_columns = {row[1] for row in cursor.fetchall()}
 
-        migrations = [
+        person_migrations = [
             # Dec/10/2025 - Person Model updates
             ("middle_name", "ALTER TABLE Person ADD COLUMN middle_name TEXT DEFAULT ''"),
             ("nickname", "ALTER TABLE Person ADD COLUMN nickname TEXT DEFAULT ''"),
             ("dynasty_id", "ALTER TABLE Person ADD COLUMN dynasty_id INTEGER DEFAULT 1"),
             ("is_founder", "ALTER TABLE Person ADD COLUMN is_founder INTEGER DEFAULT 0"),
             ("education", "ALTER TABLE Person ADD COLUMN education INTEGER DEFAULT 0"),
-            ]
-        for column_name, sql in migrations:
-            if column_name not in existing_columns:
+        ]
+        
+        for column_name, sql in person_migrations:
+            if column_name not in existing_person_columns:
                 cursor.execute(sql)
+        
+        # Marriage table migrations
+        cursor.execute("PRAGMA table_info(Marriage)")
+        existing_marriage_columns = {row[1] for row in cursor.fetchall()}
+        
+        marriage_migrations = [
+            # Dec/20/2025 - Marriage notes field
+            ("notes", "ALTER TABLE Marriage ADD COLUMN notes TEXT"),
+        ]
+        
+        for column_name, sql in marriage_migrations:
+            if column_name not in existing_marriage_columns:
+                cursor.execute(sql)
+        
+        self.conn.commit()
 
 
+
+>> ✅ database\marriage_repository.py (85 code lines)
+"""Repository for Marriage database operations."""
+
+from database.db_manager import DatabaseManager
+from models.marriage import Marriage
+
+
+class MarriageRepository:
+    """Handle database operations for marriages."""
+    
+    def __init__(self, db_manager: DatabaseManager) -> None:
+        """Initialize the marriage repository."""
+        self.db = db_manager
+    
+    def insert(self, marriage: Marriage) -> int:
+        """Insert a new marriage into the database.
+        
+        Returns the new marriage ID, or -1 if database not open.
+        """
+        if not self.db.conn:
+            return -1
+        
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO Marriage (
+                spouse1_id, spouse2_id,
+                marriage_year, marriage_month, marriage_day,
+                dissolution_year, dissolution_month, dissolution_day,
+                dissolution_reason, marriage_type, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            marriage.spouse1_id, marriage.spouse2_id,
+            marriage.marriage_year, marriage.marriage_month, marriage.marriage_day,
+            marriage.dissolution_year, marriage.dissolution_month, marriage.dissolution_day,
+            marriage.dissolution_reason, marriage.marriage_type, marriage.notes
+        ))
+        
+        self.db.conn.commit()
+        return cursor.lastrowid or -1
+    
+    def insert_with_id(self, marriage: Marriage) -> None:
+        """Insert marriage with explicit ID (for undo/redo)."""
+        if not self.db.conn:
+            return
+        
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO Marriage (
+                id, spouse1_id, spouse2_id,
+                marriage_year, marriage_month, marriage_day,
+                dissolution_year, dissolution_month, dissolution_day,
+                dissolution_reason, marriage_type, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            marriage.id, marriage.spouse1_id, marriage.spouse2_id,
+            marriage.marriage_year, marriage.marriage_month, marriage.marriage_day,
+            marriage.dissolution_year, marriage.dissolution_month, marriage.dissolution_day,
+            marriage.dissolution_reason, marriage.marriage_type, marriage.notes
+        ))
+        
+        self.db.conn.commit()
+    
+    def get_by_id(self, marriage_id: int) -> Marriage | None:
+        """Get a marriage by ID."""
+        if not self.db.conn:
+            return None
+        
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, spouse1_id, spouse2_id,
+                   marriage_year, marriage_month, marriage_day,
+                   dissolution_year, dissolution_month, dissolution_day,
+                   dissolution_reason, marriage_type, notes
+            FROM Marriage
+            WHERE id = ?
+        """, (marriage_id,))
+        
+        row = cursor.fetchone()
+        if row:
+            return self._row_to_marriage(row)
+        return None
+    
+    def get_by_person(self, person_id: int) -> list[Marriage]:
+        """Get all marriages for a person (as either spouse)."""
+        if not self.db.conn:
+            return []
+        
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, spouse1_id, spouse2_id,
+                   marriage_year, marriage_month, marriage_day,
+                   dissolution_year, dissolution_month, dissolution_day,
+                   dissolution_reason, marriage_type, notes
+            FROM Marriage
+            WHERE spouse1_id = ? OR spouse2_id = ?
+            ORDER BY marriage_year, marriage_month
+        """, (person_id, person_id))
+        
+        return [self._row_to_marriage(row) for row in cursor.fetchall()]
+    
+    def get_active_marriages(self, person_id: int) -> list[Marriage]:
+        """Get all active (not ended) marriages for a person."""
+        if not self.db.conn:
+            return []
+        
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, spouse1_id, spouse2_id,
+                   marriage_year, marriage_month, marriage_day,
+                   dissolution_year, dissolution_month, dissolution_day,
+                   dissolution_reason, marriage_type, notes
+            FROM Marriage
+            WHERE (spouse1_id = ? OR spouse2_id = ?)
+              AND dissolution_year IS NULL
+            ORDER BY marriage_year, marriage_month
+        """, (person_id, person_id))
+        
+        return [self._row_to_marriage(row) for row in cursor.fetchall()]
+    
+    def get_spouse_id(self, marriage: Marriage, person_id: int) -> int | None:
+        """Get the spouse ID for a given person in a marriage."""
+        if marriage.spouse1_id == person_id:
+            return marriage.spouse2_id
+        elif marriage.spouse2_id == person_id:
+            return marriage.spouse1_id
+        return None
+    
+    def update(self, marriage: Marriage) -> None:
+        """Update an existing marriage."""
+        if not self.db.conn:
+            return
+        
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute("""
+            UPDATE Marriage SET
+                spouse1_id = ?,
+                spouse2_id = ?,
+                marriage_year = ?,
+                marriage_month = ?,
+                marriage_day = ?,
+                dissolution_year = ?,
+                dissolution_month = ?,
+                dissolution_day = ?,
+                dissolution_reason = ?,
+                marriage_type = ?,
+                notes = ?
+            WHERE id = ?
+        """, (
+            marriage.spouse1_id, marriage.spouse2_id,
+            marriage.marriage_year, marriage.marriage_month, marriage.marriage_day,
+            marriage.dissolution_year, marriage.dissolution_month, marriage.dissolution_day,
+            marriage.dissolution_reason, marriage.marriage_type, marriage.notes,
+            marriage.id
+        ))
+        
+        self.db.conn.commit()
+    
+    def delete(self, marriage_id: int) -> None:
+        """Delete a marriage by ID."""
+        if not self.db.conn:
+            return
+        
+        cursor = self.db.conn.cursor()
+        cursor.execute("DELETE FROM Marriage WHERE id = ?", (marriage_id,))
+        self.db.conn.commit()
+    
+    def end_marriage(self, marriage_id: int, dissolution_year: int, 
+                     dissolution_month: int | None = None, 
+                     dissolution_day: int | None = None, 
+                     reason: str = "") -> None:
+        """End a marriage by setting dissolution date and reason."""
+        if not self.db.conn:
+            return
+        
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute("""
+            UPDATE Marriage SET
+                dissolution_year = ?,
+                dissolution_month = ?,
+                dissolution_day = ?,
+                dissolution_reason = ?
+            WHERE id = ?
+        """, (dissolution_year, dissolution_month, dissolution_day, reason, marriage_id))
+        
+        self.db.conn.commit()
+    
+    def _row_to_marriage(self, row: tuple) -> Marriage:
+        """Convert database row to Marriage object."""
+        return Marriage(
+            id=row[0],
+            spouse1_id=row[1],
+            spouse2_id=row[2],
+            marriage_year=row[3],
+            marriage_month=row[4],
+            marriage_day=row[5],
+            dissolution_year=row[6],
+            dissolution_month=row[7],
+            dissolution_day=row[8],
+            dissolution_reason=row[9] or "",
+            marriage_type=row[10] or "spouse",
+            notes=row[11] or ""
+        )
 
 >> ✅ database\person_repository.py (104 code lines)
 """Database repository for Person entity operations."""
@@ -988,86 +1249,160 @@ MODELS
 >> 📋 models\__init__.py (0 code lines)
 
 
->> 📋 models\event.py (15 code lines)
+>> ✅ models\event.py (32 code lines)
 """Data model for Event entities."""
 
+from dataclasses import dataclass
 
+
+@dataclass
 class Event:
     """Represents a life event for a person."""
-
-    def __init__(
-        self,
-        event_id: int,
-        person_id: int,
-        event_type: str,
-        event_title: str,
-        start_year: int | None = None,
-        start_month: int | None = None,
-        start_day: int | None = None,
-        end_year: int | None = None,
-        end_month: int | None = None,
-        end_day: int | None = None,
-        notes: str | None = None,
-    ) -> None:
-        """Initialize an event."""
-        self.id = event_id
-        self.person_id = person_id
-        self.event_type = event_type
-        self.event_title = event_title
-        self.start_year = start_year
-        self.start_month = start_month
-        self.start_day = start_day
-        self.end_year = end_year
-        self.end_month = end_month
-        self.end_day = end_day
-        self.notes = notes
-
+    
+    # Database identity
+    id: int | None = None
+    
+    # Associated person
+    person_id: int | None = None
+    
+    # Event details
+    event_type: str = ""  # "Birth", "Marriage", "Death", "Job", "Move", etc.
+    event_title: str = ""  # "Became Blacksmith", "Moved to Town", etc.
+    
+    # Start date (flexible precision)
+    start_year: int | None = None
+    start_month: int | None = None
+    start_day: int | None = None
+    
+    # End date (for ongoing events like jobs)
+    end_year: int | None = None
+    end_month: int | None = None
+    end_day: int | None = None
+    
+    # Notes
+    notes: str = ""
+    
     @property
     def is_ongoing(self) -> bool:
-        """Check if the event is ongoing."""
+        """Check if the event is currently ongoing (no end date)."""
         return self.end_year is None
-
-    # TODO: Add duration property
-    # TODO: Add start_date_string property
-    # TODO: Add end_date_string property
-
+    
+    @property
+    def start_date_string(self) -> str:
+        """Format start date as readable string."""
+        if not self.start_year:
+            return "Unknown"
+        
+        month_names = ["", "January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"]
+        
+        if self.start_month and self.start_day:
+            # Full date
+            return f"{month_names[self.start_month]} {self.start_day}, {self.start_year}"
+        elif self.start_month:
+            # Year and month
+            return f"{month_names[self.start_month]} {self.start_year}"
+        else:
+            # Year only
+            return str(self.start_year)
+    
+    @property
+    def end_date_string(self) -> str:
+        """Format end date as readable string."""
+        if not self.end_year:
+            return "Ongoing" if self.start_year else ""
+        
+        month_names = ["", "January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"]
+        
+        if self.end_month and self.end_day:
+            # Full date
+            return f"{month_names[self.end_month]} {self.end_day}, {self.end_year}"
+        elif self.end_month:
+            # Year and month
+            return f"{month_names[self.end_month]} {self.end_year}"
+        else:
+            # Year only
+            return str(self.end_year)
+    
+    @property
+    def duration_years(self) -> int | None:
+        """Calculate event duration in years (None if ongoing or no dates)."""
+        if not self.start_year:
+            return None
+        
+        if self.end_year:
+            return self.end_year - self.start_year
+        
+        return None  # Ongoing, no duration yet
+    
+    @property
+    def date_range_string(self) -> str:
+        """Get formatted date range for display."""
+        if self.is_ongoing:
+            return f"{self.start_date_string} - Present"
+        elif self.end_year:
+            return f"{self.start_date_string} - {self.end_date_string}"
+        else:
+            return self.start_date_string
 
 >> 📋 models\family.py (12 code lines)
 """Data model for Family dynasties."""
 
+from dataclasses import dataclass
 
+
+@dataclass
 class Family:
     """Represents a family dynasty grouping."""
-
-    def __init__(
-        self,
-        family_id: int,
-        surname: str,
-        move_in_year: int | None = None,
-        move_in_month: int | None = None,
-        move_in_day: int | None = None,
-        coat_of_arms_path: str | None = None,
-        family_color: str | None = None,
-        is_extinct: bool = False,
-        notes: str | None = None,
-    ) -> None:
-        """Initialize a family dynasty."""
-        self.id = family_id
-        self.surname = surname
-        self.move_in_year = move_in_year
-        self.move_in_month = move_in_month
-        self.move_in_day = move_in_day
-        self.coat_of_arms_path = coat_of_arms_path
-        self.family_color = family_color
-        self.is_extinct = is_extinct
-        self.notes = notes
-
-    # TODO: Add move_in_date_string property
-    # TODO: Add member_count property (requires database query)
-    # TODO: Add founding_date property
-    # TODO: Add end_date property
-    # TODO: Add longest_lived_member property
-
+    
+    # Database identity
+    id: int | None = None
+    
+    # Family identification
+    surname: str = ""
+    
+    # Move-in date (when family arrived in settlement)
+    move_in_year: int | None = None
+    move_in_month: int | None = None
+    move_in_day: int | None = None
+    
+    # Visual representation
+    coat_of_arms_path: str = ""  # Path to coat of arms image
+    family_color: str = ""  # Hex color for UI display
+    
+    # Status
+    is_extinct: bool = False  # True if no living members
+    
+    # Notes
+    notes: str = ""
+    
+    @property
+    def move_in_date_string(self) -> str:
+        """Format move-in date as readable string."""
+        if not self.move_in_year:
+            return "Unknown"
+        
+        month_names = ["", "January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"]
+        
+        if self.move_in_month and self.move_in_day:
+            # Full date
+            return f"{month_names[self.move_in_month]} {self.move_in_day}, {self.move_in_year}"
+        elif self.move_in_month:
+            # Year and month
+            return f"{month_names[self.move_in_month]} {self.move_in_year}"
+        else:
+            # Year only
+            return str(self.move_in_year)
+    
+    @property
+    def display_name(self) -> str:
+        """Get family display name."""
+        return f"{self.surname} Family" if self.surname else "Unknown Family"
+    
+    # Note: member_count, founding_date, end_date, longest_lived_member
+    # require database queries, so they'll be methods in FamilyRepository
 
 >> 📋 models\major_event.py (15 code lines)
 """Data model for MajorEvent entities."""
@@ -1113,49 +1448,153 @@ class MajorEvent:
     # TODO: Add end_date_string property
 
 
->> 📋 models\marriage.py (15 code lines)
+>> ✅ models\marriage.py (62 code lines)
 """Data model for Marriage relationships."""
 
+from dataclasses import dataclass
 
+
+@dataclass
 class Marriage:
     """Represents a marriage relationship between two people."""
-
-    def __init__(
-        self,
-        marriage_id: int,
-        spouse1_id: int,
-        spouse2_id: int,
-        marriage_year: int | None = None,
-        marriage_month: int | None = None,
-        marriage_day: int | None = None,
-        dissolution_year: int | None = None,
-        dissolution_month: int | None = None,
-        dissolution_day: int | None = None,
-        dissolution_reason: str | None = None,
-        marriage_type: str = "spouse",
-    ) -> None:
-        """Initialize a marriage relationship."""
-        self.id = marriage_id
-        self.spouse1_id = spouse1_id
-        self.spouse2_id = spouse2_id
-        self.marriage_year = marriage_year
-        self.marriage_month = marriage_month
-        self.marriage_day = marriage_day
-        self.dissolution_year = dissolution_year
-        self.dissolution_month = dissolution_month
-        self.dissolution_day = dissolution_day
-        self.dissolution_reason = dissolution_reason
-        self.marriage_type = marriage_type
-
+    
+    # Database identity
+    id: int | None = None
+    
+    # Spouses (person IDs)
+    spouse1_id: int | None = None
+    spouse2_id: int | None = None
+    
+    # Marriage date (flexible precision)
+    marriage_year: int | None = None
+    marriage_month: int | None = None
+    marriage_day: int | None = None
+    
+    # Dissolution/End date (flexible precision)
+    dissolution_year: int | None = None
+    dissolution_month: int | None = None
+    dissolution_day: int | None = None
+    
+    # Dissolution details
+    dissolution_reason: str = ""  # "Death", "Divorce", "Annulment", etc.
+    
+    # Marriage type (for different cultures/eras)
+    marriage_type: str = "spouse"  # "spouse", "partner", "common-law", etc.
+    
+    # Notes
+    notes: str = ""
+    
     @property
     def is_active(self) -> bool:
-        """Check if the marriage is currently active."""
+        """Check if the marriage is currently active (not dissolved)."""
         return self.dissolution_year is None
+    
+    @property
+    def marriage_date_string(self) -> str:
+        """Format marriage date as readable string."""
+        if not self.marriage_year:
+            return "Unknown"
+        
+        month_names = ["", "January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"]
+        
+        if self.marriage_month and self.marriage_day:
+            # Full date: "January 15, 1675"
+            return f"{month_names[self.marriage_month]} {self.marriage_day}, {self.marriage_year}"
+        elif self.marriage_month:
+            # Year and month: "January 1675"
+            return f"{month_names[self.marriage_month]} {self.marriage_year}"
+        else:
+            # Year only
+            return str(self.marriage_year)
+    
+    @property
+    def dissolution_date_string(self) -> str:
+        """Format dissolution date as readable string."""
+        if not self.dissolution_year:
+            return ""
+        
+        month_names = ["", "January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"]
+        
+        if self.dissolution_month and self.dissolution_day:
+            # Full date
+            return f"{month_names[self.dissolution_month]} {self.dissolution_day}, {self.dissolution_year}"
+        elif self.dissolution_month:
+            # Year and month
+            return f"{month_names[self.dissolution_month]} {self.dissolution_year}"
+        else:
+            # Year only
+            return str(self.dissolution_year)
+    
+    @property
+    def duration_string(self) -> str:
+        """Calculate marriage duration as readable string with years, months, days."""
+        if not self.marriage_year:
+            return "Unknown duration"
+        
+        # If still active (no dissolution date), can't calculate
+        if self.is_active or not self.dissolution_year:
+            return "Ongoing"
+        
+        # Calculate duration
+        start_year = self.marriage_year
+        start_month = self.marriage_month or 1  # Default to January if unknown
+        start_day = self.marriage_day or 1  # Default to 1st if unknown
+        
+        end_year = self.dissolution_year  # Now guaranteed to be int, not None
+        end_month = self.dissolution_month or 1
+        end_day = self.dissolution_day or 1
+        
+        # Calculate differences
+        years = end_year - start_year
+        months = end_month - start_month
+        days = end_day - start_day
+        
+        # Adjust for negative days
+        if days < 0:
+            months -= 1
+            # Days in previous month (approximate as 30)
+            days += 30
+        
+        # Adjust for negative months
+        if months < 0:
+            years -= 1
+            months += 12
+        
+        # Build string
+        parts = []
+        if years > 0:
+            parts.append(f"{years} year{'s' if years != 1 else ''}")
+        if months > 0:
+            parts.append(f"{months} month{'s' if months != 1 else ''}")
+        if days > 0 and self.marriage_day and self.dissolution_day:
+            # Only show days if both dates have day precision
+            parts.append(f"{days} day{'s' if days != 1 else ''}")
+        
+        if not parts:
+            return "Less than 1 month"
+        
+        return ", ".join(parts)
 
-    # TODO: Add duration property
-    # TODO: Add marriage_date_string property
-    # TODO: Add dissolution_date_string property
-
+    @property
+    def duration_years(self) -> int | None:
+        """Calculate marriage duration in years only (for sorting/filtering)."""
+        if not self.marriage_year or self.is_active or not self.dissolution_year:
+            return None
+        
+        return self.dissolution_year - self.marriage_year
+    
+    @property
+    def status_string(self) -> str:
+        """Get marriage status as readable string."""
+        if self.is_active:
+            return "Active"
+        
+        if self.dissolution_reason:
+            return f"Ended ({self.dissolution_reason})"
+        
+        return "Ended"
 
 >> ✅ models\person.py (50 code lines)
 """Data model for Person entities."""
@@ -1709,7 +2148,7 @@ class ViewActions:
 COMMANDS
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 commands\___init__.py (0 code lines)
+>> 📋 commands\__init__.py (0 code lines)
 
 
 >> 📋 commands\base_command.py (9 code lines)
@@ -2418,8 +2857,11 @@ DIALOGS
 """Dialog implementations for user interactions."""
 
 from .add_person_dialog import AddPersonDialog
+from .end_marriage_dialog import EndMarriageDialog
+from .create_marriage_dialog import CreateMarriageDialog
+from .create_child_dialog import CreateChildDialog
 
-__all__ = ['AddPersonDialog']
+__all__ = ['AddPersonDialog', 'EndMarriageDialog', 'CreateMarriageDialog', 'CreateChildDialog']
 
 >> 📋 dialogs\about_dialog.py (1 code lines)
 """About dialog showing application information."""
@@ -2440,46 +2882,18 @@ class AboutDialog(QDialog):
         pass
 
 
->> 📋 dialogs\add_event_dialog.py (1 code lines)
-"""Dialog for adding a new event to a person."""
-
-from PySide6.QtWidgets import QDialog
-
-
-class AddEventDialog(QDialog):
-    """Dialog for creating a new event entry."""
-
-    def __init__(self, parent: 'MainWindow', person_id: int | None = None) -> None:  # type: ignore
-        """Initialize the add event dialog."""
-        super().__init__(parent)
-        self.person_id = person_id
-        # TODO: Implement dialog UI
-        # TODO: Add PersonSelector widget (pre-filled if person_id provided)
-        # TODO: Add event type dropdown
-        # TODO: Add DatePicker for event date
-        # TODO: Add description text field
-        # TODO: Add validation logic
-        # TODO: Connect to AddEventCommand
-        pass
-
-
->> ✅ dialogs\add_person_dialog.py (47 code lines)
-"""Dialog for adding a new person to the dynasty."""
-
-from __future__ import annotations
-from typing import TYPE_CHECKING
+>> ✅ dialogs\add_person_dialog.py (60 code lines)
+"""Dialog for adding a new person to the database."""
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
     QLineEdit, QSpinBox, QComboBox, QTextEdit,
-    QPushButton, QDialogButtonBox, QLabel, QMessageBox
+    QPushButton, QLabel, QDialogButtonBox, QCheckBox, QWidget
 )
 from PySide6.QtCore import Qt
 
 from models.person import Person
-
-if TYPE_CHECKING:
-    from PySide6.QtWidgets import QWidget
+from widgets.date_picker import DatePicker  # Import our new widget
 
 
 class AddPersonDialog(QDialog):
@@ -2490,7 +2904,7 @@ class AddPersonDialog(QDialog):
         super().__init__(parent)
         
         self.setWindowTitle("Add New Person")
-        self.setMinimumWidth(400)
+        self.setMinimumWidth(500)  # Slightly wider for date pickers
         
         self._person: Person | None = None
         
@@ -2503,22 +2917,22 @@ class AddPersonDialog(QDialog):
     
     def _setup_ui(self) -> None:
         """Create and arrange all dialog widgets."""
-        layout = QVBoxLayout(self)
+        self.main_layout = QVBoxLayout(self)  # Store as instance variable
         
         # Special character toolbar
-        layout.addLayout(self._create_special_char_toolbar())
+        self.main_layout.addLayout(self._create_special_char_toolbar())
         
         # Add separator line
         separator = QLabel()
         separator.setFrameShape(QLabel.Shape.HLine)
         separator.setFrameShadow(QLabel.Shadow.Sunken)
-        layout.addWidget(separator)
+        self.main_layout.addWidget(separator)
         
         # Form fields
-        layout.addLayout(self._create_form_layout())
+        self.main_layout.addLayout(self._create_form_layout())
         
         # OK/Cancel buttons
-        layout.addWidget(self._create_button_box())
+        self.main_layout.addWidget(self._create_button_box())
     
     def _create_special_char_toolbar(self) -> QHBoxLayout:
         """Create toolbar with special character buttons."""
@@ -2539,16 +2953,12 @@ class AddPersonDialog(QDialog):
             btn.clicked.connect(lambda checked, c=char: self._insert_special_char(c))
             toolbar.addWidget(btn)
         
-        # Info label
-        info = QLabel("(Inserts into focused name field)")
-        info.setStyleSheet("color: gray; font-size: 10px;")
-        toolbar.addWidget(info)
-        
         toolbar.addStretch()
+        
         return toolbar
     
     def _create_form_layout(self) -> QFormLayout:
-        """Create form with input fields."""
+        """Create the main form with input fields."""
         form = QFormLayout()
         
         # First Name (required)
@@ -2556,22 +2966,36 @@ class AddPersonDialog(QDialog):
         self.first_name_input.setPlaceholderText("Required")
         form.addRow("First Name: *", self.first_name_input)
         
+        # Middle Name (optional)
+        self.middle_name_input = QLineEdit()
+        self.middle_name_input.setPlaceholderText("Optional")
+        form.addRow("Middle Name:", self.middle_name_input)
+        
         # Last Name (required)
         self.last_name_input = QLineEdit()
         self.last_name_input.setPlaceholderText("Required")
         form.addRow("Last Name: *", self.last_name_input)
         
-        # Birth Year (required)
-        self.birth_year_input = QSpinBox()
-        self.birth_year_input.setRange(1000, 2100)
-        self.birth_year_input.setValue(1700)
-        self.birth_year_input.setSpecialValueText("Unknown")
-        form.addRow("Birth Year: *", self.birth_year_input)
-        
         # Gender (optional)
         self.gender_input = QComboBox()
         self.gender_input.addItems(["Unknown", "Male", "Female", "Other"])
         form.addRow("Gender:", self.gender_input)
+        
+        # --- Date Section ---
+        
+        # Born in Town checkbox
+        self.born_in_town_check = QCheckBox("Born in Town")
+        self.born_in_town_check.setChecked(False)  # Default: arrived from elsewhere
+        form.addRow("", self.born_in_town_check)
+        
+        # Birth Date picker FIRST (stays visible always)
+        self.birth_date_picker = DatePicker()
+        form.addRow("Birth Date: *", self.birth_date_picker)
+        
+        # Arrival Date picker SECOND (disappears when born in town)
+        self.arrival_date_label = QLabel("Arrival Date:")
+        self.arrival_date_picker = DatePicker()
+        form.addRow(self.arrival_date_label, self.arrival_date_picker)
         
         # Notes (optional)
         self.notes_input = QTextEdit()
@@ -2582,12 +3006,14 @@ class AddPersonDialog(QDialog):
         return form
     
     def _create_button_box(self) -> QDialogButtonBox:
-        """Create OK/Cancel button box."""
+        """Create OK and Cancel buttons."""
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
+        
         button_box.accepted.connect(self._handle_accept)
         button_box.rejected.connect(self.reject)
+        
         return button_box
     
     # ------------------------------------------------------------------
@@ -2596,30 +3022,68 @@ class AddPersonDialog(QDialog):
     
     def _connect_signals(self) -> None:
         """Connect widget signals to handlers."""
-        # Enter key in line edits should not close dialog accidentally
-        self.first_name_input.returnPressed.connect(self.last_name_input.setFocus)
-        self.last_name_input.returnPressed.connect(self.birth_year_input.setFocus)
+        # When "Born in Town" changes, show/hide arrival date
+        self.born_in_town_check.stateChanged.connect(self._update_date_visibility)
+        
+        # Set initial visibility
+        self._update_date_visibility()
     
+    def _update_date_visibility(self) -> None:
+        """Show or hide arrival date based on 'Born in Town' checkbox."""
+        is_born_in_town = self.born_in_town_check.isChecked()
+        
+        # Hide/show arrival date row
+        self.arrival_date_label.setVisible(not is_born_in_town)
+        self.arrival_date_picker.setVisible(not is_born_in_town)
+        
+        # Adjust birth date precision hint
+        if is_born_in_town:
+            # Born in town: we know the precise month
+            self.birth_date_picker.unknown_check.setChecked(False)
+        else:
+            # Arrived: might only know birth year
+            self.birth_date_picker.unknown_check.setChecked(True)
+        
+        # Force layout to recalculate and resize dialog
+        self.main_layout.invalidate()  # Use stored reference
+        self.main_layout.activate()
+        
+        # Resize dialog to fit new content
+        self.resize(self.minimumSizeHint())
+
     def _insert_special_char(self, char: str) -> None:
-        """Insert special character into currently focused name field."""
+        """Insert a special character at the cursor position."""
         focused = self.focusWidget()
         
-        # Only insert into line edit fields (name fields)
         if isinstance(focused, QLineEdit):
             focused.insert(char)
+            focused.setFocus()
     
     def _handle_accept(self) -> None:
         """Validate inputs and create Person object before accepting."""
         if not self._validate_inputs():
             return
         
+        # Get dates from pickers
+        birth_year, birth_month = self.birth_date_picker.get_date()
+        
+        # Get arrival date if not born in town
+        arrival_year = None
+        arrival_month = None
+        if not self.born_in_town_check.isChecked():
+            arrival_year, arrival_month = self.arrival_date_picker.get_date()
+        
         # Create Person object from form data
         self._person = Person(
-            first_name=self.first_name_input.text().strip(),
-            last_name=self.last_name_input.text().strip(),
-            birth_year=self.birth_year_input.value(),
-            gender=self.gender_input.currentText(),
-            notes=self.notes_input.toPlainText().strip()
+            first_name = self.first_name_input.text().strip(),
+            middle_name = self.middle_name_input.text().strip(),
+            last_name = self.last_name_input.text().strip(),
+            birth_year = birth_year,
+            birth_month = birth_month,
+            arrival_year = arrival_year,
+            arrival_month = arrival_month,
+            gender = self.gender_input.currentText(),
+            notes = self.notes_input.toPlainText().strip()
         )
         
         self.accept()
@@ -2629,101 +3093,1845 @@ class AddPersonDialog(QDialog):
     # ------------------------------------------------------------------
     
     def _validate_inputs(self) -> bool:
-        """Validate that required fields are filled."""
-        # Check first name
+        """Validate required fields and show error if invalid."""
+        # First name required
         if not self.first_name_input.text().strip():
             self._show_error("First name is required.")
             self.first_name_input.setFocus()
             return False
         
-        # Check last name
+        # Last name required
         if not self.last_name_input.text().strip():
             self._show_error("Last name is required.")
             self.last_name_input.setFocus()
             return False
         
-        # Check birth year (0 is the special "Unknown" value)
-        if self.birth_year_input.value() == 0:
-            self._show_error("Birth year is required.")
-            self.birth_year_input.setFocus()
+        # Birth year required (always has a value from DatePicker)
+        birth_year, _ = self.birth_date_picker.get_date()
+        if birth_year < 1500 or birth_year > 2000:
+            self._show_error("Birth year must be between 1500 and 2000.")
             return False
         
         return True
     
     def _show_error(self, message: str) -> None:
-        """Display validation error message."""
-        QMessageBox.warning(self, "Validation Error", message)
+        """Display an error message to the user."""
+        from PySide6.QtWidgets import QMessageBox
+        
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Validation Error")
+        msg.setText(message)
+        msg.exec()
     
     # ------------------------------------------------------------------
-    # Public Interface
+    # Public Methods
     # ------------------------------------------------------------------
     
     def get_person(self) -> Person | None:
-        """Return the created Person object, or None if dialog was cancelled."""
+        """Return the created Person object."""
         return self._person
 
->> 📋 dialogs\create_child_dialog.py (1 code lines)
-"""Dialog for creating a new child with parent selection."""
+>> ✅ dialogs\create_child_dialog.py (66 code lines)
+"""Dialog for creating a new child."""
 
-from PySide6.QtWidgets import QDialog
+from PySide6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLineEdit,
+    QComboBox, QLabel, QDialogButtonBox, QWidget, QMessageBox, 
+    QCheckBox, QFrame
+)
+from PySide6.QtCore import QSignalBlocker, Qt
+
+from database.db_manager import DatabaseManager
+from database.person_repository import PersonRepository
+from models.person import Person
+from widgets.person_selector import PersonSelector
+from widgets.date_picker import DatePicker
 
 
 class CreateChildDialog(QDialog):
-    """Dialog for creating a child of selected parents."""
+    """Dialog for creating a new child with pre-filled parents."""
+    
+    def __init__(
+        self,
+        db_manager: DatabaseManager,
+        parent1: Person,
+        parent2_id: int | None = None,
+        parent_widget: QWidget | None = None
+    ) -> None:
+        super().__init__(parent_widget)
+        
+        self.db_manager = db_manager
+        self.person_repo = PersonRepository(db_manager)
+        self.parent1 = parent1
+        self.parent2_id = parent2_id
+        
+        self.created_person: Person | None = None
+        
+        self.setWindowTitle("Create Child")
+        self.setMinimumWidth(550)
+        
+        self._setup_ui()
+    
+    def _setup_ui(self) -> None:
+        """Create dialog widgets."""
+        layout = QVBoxLayout(self)
+        
+        LABEL_WIDTH = 85  # Consistent label width for alignment
+        
+        # Parents header
+        parents_header = QLabel("<b>Parents:</b>")
+        layout.addWidget(parents_header)
+        
+        # Parent 1 (indented)
+        parent1_layout = QHBoxLayout()
+        parent1_layout.addSpacing(20)
+        parent1_label_text = QLabel("Parent 1:")
+        parent1_label_text.setMinimumWidth(LABEL_WIDTH)
+        parent1_layout.addWidget(parent1_label_text)
+        parent1_name = QLabel(f"<b>{self.parent1.display_name}</b>")
+        parent1_layout.addWidget(parent1_name)
+        parent1_layout.addStretch()
+        layout.addLayout(parent1_layout)
+        
+        # Parent 2 (indented)
+        parent2_layout = QHBoxLayout()
+        parent2_layout.addSpacing(20)
+        parent2_label_text = QLabel("Parent 2:")
+        parent2_label_text.setMinimumWidth(LABEL_WIDTH)
+        parent2_layout.addWidget(parent2_label_text)
+        self.parent2_selector = PersonSelector(self.db_manager)
+        if self.parent2_id:
+            with QSignalBlocker(self.parent2_selector):
+                self.parent2_selector.set_person(self.parent2_id)
+        parent2_layout.addWidget(self.parent2_selector)
+        layout.addLayout(parent2_layout)
+        
+        # Divider line
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setFrameShadow(QFrame.Shadow.Sunken)
+        layout.addWidget(line)
+        
+        # Child Information header
+        child_header = QLabel("<b>Child Information:</b>")
+        layout.addWidget(child_header)
+        
+        # First Name (indented)
+        first_name_layout = QHBoxLayout()
+        first_name_layout.addSpacing(20)
+        first_name_label = QLabel("First Name: *")
+        first_name_label.setMinimumWidth(LABEL_WIDTH)
+        first_name_layout.addWidget(first_name_label)
+        self.first_name_input = QLineEdit()
+        self.first_name_input.setPlaceholderText("Required")
+        first_name_layout.addWidget(self.first_name_input)
+        layout.addLayout(first_name_layout)
+        
+        # Last Name (indented)
+        last_name_layout = QHBoxLayout()
+        last_name_layout.addSpacing(20)
+        last_name_label = QLabel("Last Name: *")
+        last_name_label.setMinimumWidth(LABEL_WIDTH)
+        last_name_layout.addWidget(last_name_label)
+        self.last_name_input = QLineEdit()
+        self.last_name_input.setPlaceholderText("Required")
+        self.last_name_input.setText(self.parent1.last_name)
+        last_name_layout.addWidget(self.last_name_input)
+        layout.addLayout(last_name_layout)
+        
+        # Gender (indented)
+        gender_layout = QHBoxLayout()
+        gender_layout.addSpacing(20)
+        gender_label = QLabel("Gender:")
+        gender_label.setMinimumWidth(LABEL_WIDTH)
+        gender_layout.addWidget(gender_label)
+        self.gender_input = QComboBox()
+        self.gender_input.addItems(["Unknown", "Male", "Female", "Other"])
+        self.gender_input.setMinimumWidth(120)
+        gender_layout.addWidget(self.gender_input)
+        gender_layout.addStretch()
+        layout.addLayout(gender_layout)
+        
+        # Birth Date (indented)
+        birth_date_layout = QHBoxLayout()
+        birth_date_layout.addSpacing(20)
+        birth_date_label = QLabel("Birth Date:")
+        birth_date_label.setMinimumWidth(LABEL_WIDTH)
+        birth_date_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        birth_date_layout.addWidget(birth_date_label)
+        self.birth_date_picker = DatePicker()
+        self.birth_date_picker.set_date(1721, 1)
+        birth_date_layout.addWidget(self.birth_date_picker)
+        birth_date_layout.addStretch()
+        layout.addLayout(birth_date_layout)
+        
+        # Immigrant checkbox (indented to align with field labels)
+        immigrant_layout = QHBoxLayout()
+        immigrant_layout.addSpacing(20)
+        self.immigrant_check = QCheckBox("Immigrant")
+        self.immigrant_check.setChecked(False)
+        self.immigrant_check.stateChanged.connect(self._on_immigrant_toggled)
+        immigrant_layout.addWidget(self.immigrant_check)
+        immigrant_layout.addStretch()
+        layout.addLayout(immigrant_layout)
+        
+        # Arrival Date (indented)
+        arrival_date_layout = QHBoxLayout()
+        arrival_date_layout.addSpacing(20)
+        self.arrival_date_label = QLabel("Arrival Date:")
+        self.arrival_date_label.setMinimumWidth(LABEL_WIDTH)
+        self.arrival_date_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        arrival_date_layout.addWidget(self.arrival_date_label)
+        self.arrival_date_picker = DatePicker()
+        self.arrival_date_picker.set_date(1721, 1)
+        arrival_date_layout.addWidget(self.arrival_date_picker)
+        arrival_date_layout.addStretch()
+        layout.addLayout(arrival_date_layout)
+        
+        layout.addStretch()
+        
+        # Buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self._handle_accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+        self._update_immigrant_state()
+    
+    def _on_immigrant_toggled(self) -> None:
+        """Handle immigrant checkbox toggle."""
+        self._update_immigrant_state()
+    
+    def _update_immigrant_state(self) -> None:
+        """Update visibility based on immigrant status."""
+        is_immigrant = self.immigrant_check.isChecked()
+        
+        self.birth_date_picker.unknown_check.setVisible(False)
+        self.birth_date_picker.month_spin.setEnabled(not is_immigrant)
+        
+        if is_immigrant:
+            self.birth_date_picker.unknown_check.setChecked(True)
+        else:
+            self.birth_date_picker.unknown_check.setChecked(False)
+        
+        self.arrival_date_label.setVisible(is_immigrant)
+        self.arrival_date_picker.setVisible(is_immigrant)
+        self.arrival_date_picker.unknown_check.setVisible(False)
+    
+    def _handle_accept(self) -> None:
+        """Validate and create child."""
+        first_name = self.first_name_input.text().strip()
+        last_name = self.last_name_input.text().strip()
+        
+        if not first_name:
+            QMessageBox.warning(self, "Validation Error", "First name is required.")
+            return
+        
+        if not last_name:
+            QMessageBox.warning(self, "Validation Error", "Last name is required.")
+            return
+        
+        gender = self.gender_input.currentText()
+        
+        if self.immigrant_check.isChecked():
+            birth_year, _ = self.birth_date_picker.get_date()
+            birth_month = None
+            arrival_year, arrival_month = self.arrival_date_picker.get_date()
+        else:
+            birth_year, birth_month = self.birth_date_picker.get_date()
+            arrival_year, arrival_month = None, None
+        
+        father_id = None
+        mother_id = None
+        parent2_id = self.parent2_selector.get_person_id()
+        
+        if self.parent1.gender == "Male":
+            father_id = self.parent1.id
+            if parent2_id:
+                mother_id = parent2_id
+        elif self.parent1.gender == "Female":
+            mother_id = self.parent1.id
+            if parent2_id:
+                father_id = parent2_id
+        else:
+            father_id = self.parent1.id
+            mother_id = parent2_id
+        
+        new_person = Person(
+            first_name=first_name,
+            last_name=last_name,
+            gender=gender,
+            birth_year=birth_year,
+            birth_month=birth_month,
+            arrival_year=arrival_year,
+            arrival_month=arrival_month,
+            father_id=father_id,
+            mother_id=mother_id,
+            dynasty_id=self.parent1.dynasty_id
+        )
+        
+        person_id = self.person_repo.insert(new_person)
+        new_person.id = person_id
+        
+        self.created_person = new_person
+        
+        self.accept()
+    
+    def get_created_person(self) -> Person | None:
+        """Returns the created child Person."""
+        return self.created_person
 
-    def __init__(self, parent: 'MainWindow') -> None:  # type: ignore
-        """Initialize the create child dialog."""
-        super().__init__(parent)
-        # TODO: Implement dialog UI
-        # TODO: Add name input fields
-        # TODO: Add PersonSelector widgets for father/mother
-        # TODO: Add DatePicker for birth date
-        # TODO: Add gender selection
-        # TODO: Add validation logic
-        # TODO: Connect to CreateChildCommand
-        pass
+>> ✅ dialogs\create_marriage_dialog.py (36 code lines)
+"""Dialog for creating a new marriage."""
 
+from PySide6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox,
+    QDialogButtonBox, QWidget, QMessageBox
+)
 
->> 📋 dialogs\create_marriage_dialog.py (1 code lines)
-"""Dialog for creating a new marriage between two people."""
-
-from PySide6.QtWidgets import QDialog
+from database.db_manager import DatabaseManager
+from models.person import Person
+from widgets.person_selector import PersonSelector
+from widgets.date_picker import DatePicker
 
 
 class CreateMarriageDialog(QDialog):
-    """Dialog for creating a marriage relationship."""
-
-    def __init__(self, parent: 'MainWindow') -> None:  # type: ignore
-        """Initialize the create marriage dialog."""
+    """Dialog for creating a new marriage relationship."""
+    
+    def __init__(
+        self,
+        db_manager: DatabaseManager,
+        person: Person,
+        parent: QWidget | None = None
+    ) -> None:
         super().__init__(parent)
-        # TODO: Implement dialog UI
-        # TODO: Add PersonSelector widgets for husband/wife
-        # TODO: Add DatePicker for marriage date
-        # TODO: Add marriage_type dropdown (optional)
-        # TODO: Add validation logic
-        # TODO: Connect to CreateMarriageCommand
-        pass
+        
+        self.db_manager = db_manager
+        self.person = person
+        self.spouse_id: int | None = None
+        self.marriage_year: int | None = None
+        self.marriage_month: int | None = None
+        
+        self.setWindowTitle("Create Marriage")
+        self.setMinimumWidth(450)
+        
+        self._setup_ui()
+    
+    def _setup_ui(self) -> None:
+        """Create dialog widgets."""
+        layout = QVBoxLayout(self)
+        
+        # Person 1
+        person1_layout = QHBoxLayout()
+        person1_layout.addWidget(QLabel("Person 1:"))
+        person1_label = QLabel(f"<b>{self.person.display_name}</b>")
+        person1_layout.addWidget(person1_label)
+        person1_layout.addStretch()
+        layout.addLayout(person1_layout)
+        
+        # Person 2
+        person2_layout = QHBoxLayout()
+        person2_layout.addWidget(QLabel("Person 2:"))
+        self.spouse_selector = PersonSelector(self.db_manager)
+        person2_layout.addWidget(self.spouse_selector)
+        layout.addLayout(person2_layout)
+        
+        # Date Unknown checkbox
+        date_unknown_layout = QHBoxLayout()
+        date_unknown_layout.addSpacing(85)  # Align with fields above
+        self.date_unknown_check = QCheckBox("Date Unknown")
+        self.date_unknown_check.setChecked(True)
+        self.date_unknown_check.stateChanged.connect(self._on_date_unknown_toggled)
+        date_unknown_layout.addWidget(self.date_unknown_check)
+        date_unknown_layout.addStretch()
+        layout.addLayout(date_unknown_layout)
+        
+        # Marriage date
+        marriage_date_layout = QHBoxLayout()
+        self.marriage_date_label = QLabel("Marriage Date:")
+        marriage_date_layout.addWidget(self.marriage_date_label)
+        self.marriage_date = DatePicker()
+        self.marriage_date.set_date(1721, 1)
+        self.marriage_date.unknown_check.setVisible(False)
+        marriage_date_layout.addWidget(self.marriage_date)
+        marriage_date_layout.addStretch()
+        layout.addLayout(marriage_date_layout)
+        
+        layout.addStretch()
+        
+        # Buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok |
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self._handle_accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+        self._update_date_visibility()
+    
+    def _on_date_unknown_toggled(self) -> None:
+        """Handle date unknown checkbox toggle."""
+        self._update_date_visibility()
+    
+    def _update_date_visibility(self) -> None:
+        """Show/hide marriage date based on checkbox."""
+        date_known = not self.date_unknown_check.isChecked()
+        self.marriage_date_label.setVisible(date_known)
+        self.marriage_date.setVisible(date_known)
+    
+    def _handle_accept(self) -> None:
+        """Validate and accept."""
+        spouse_id = self.spouse_selector.get_person_id()
+        
+        if not spouse_id:
+            QMessageBox.warning(self, "Validation Error", "Please select a spouse.")
+            return
+        
+        if spouse_id == self.person.id:
+            QMessageBox.warning(self, "Validation Error", "A person cannot marry themselves.")
+            return
+        
+        # Only get date if Date Unknown is NOT checked
+        if self.date_unknown_check.isChecked():
+            # Explicitly set to None - date is unknown
+            self.spouse_id = spouse_id
+            self.marriage_year = None
+            self.marriage_month = None
+        else:
+            # Get date from picker
+            year, month = self.marriage_date.get_date()
+            self.spouse_id = spouse_id
+            self.marriage_year = year
+            self.marriage_month = month
+        
+        self.accept()
+    
+    def get_marriage_data(self) -> tuple[int | None, int | None, int | None]:
+        """Returns (spouse_id, year, month)."""
+        return (self.spouse_id, self.marriage_year, self.marriage_month)
 
+>> ✅ dialogs\edit_person_dialog.py (73 code lines)
+"""Dialog for editing a person with tabbed sections."""
 
->> 📋 dialogs\edit_person_dialog.py (1 code lines)
-"""Dialog for editing an existing person."""
+from PySide6.QtWidgets import (
+    QDialog, QHBoxLayout, QVBoxLayout, QListWidget,
+    QStackedWidget, QDialogButtonBox, QWidget, QLabel,
+    QMessageBox
+)
+from PySide6.QtCore import Qt
 
-from PySide6.QtWidgets import QDialog
-
+from database.db_manager import DatabaseManager
+from models.person import Person
+from dialogs.edit_person_panels.general_panel import GeneralPanel
 
 class EditPersonDialog(QDialog):
-    """Dialog for editing an existing person's data."""
-
-    def __init__(self, parent: 'MainWindow', person_id: int) -> None:  # type: ignore
+    """Tabbed dialog for comprehensive person editing."""
+    
+    def __init__(
+        self,
+        db_manager: DatabaseManager,
+        person: Person,
+        parent: QWidget | None = None
+    ) -> None:
         """Initialize the edit person dialog."""
         super().__init__(parent)
-        self.person_id = person_id
-        # TODO: Implement dialog UI
-        # TODO: Load existing person data
-        # TODO: Add form fields
-        # TODO: Add validation logic
-        pass
+        
+        self.db_manager = db_manager
+        self.person = person
+        
+        # Track if user has made changes
+        self.has_unsaved_changes = False
+        
+        # Edited person data (will be filled by panels)
+        self.edited_person: Person | None = None
+        
+        self.setWindowTitle(f"Edit Person: {person.display_name}")
+        self.setMinimumSize(700, 500)
+        
+        self._setup_ui()
+        self._load_data()
+    
+    def _setup_ui(self) -> None:
+        """Create the main dialog layout with sidebar and panels."""
+        main_layout = QVBoxLayout(self)
+        
+        # Horizontal split: sidebar | content
+        content_layout = QHBoxLayout()
+        
+        # Left sidebar - panel selector
+        self.panel_list = QListWidget()
+        self.panel_list.setMaximumWidth(150)
+        self.panel_list.addItem("General")
+        self.panel_list.addItem("Relationships")
+        self.panel_list.addItem("Events")
+        self.panel_list.currentRowChanged.connect(self._on_panel_changed)
+        
+        # Right side - stacked panels
+        self.panel_stack = QStackedWidget()
+        
+        # Create placeholder panels (we'll build these next)
+        self.general_panel = self._create_general_panel()
+        self.relationships_panel = self._create_relationships_panel()
+        self.events_panel = self._create_events_panel()
+        
+        self.panel_stack.addWidget(self.general_panel)
+        self.panel_stack.addWidget(self.relationships_panel)
+        self.panel_stack.addWidget(self.events_panel)
+        
+        # Add to content layout
+        content_layout.addWidget(self.panel_list)
+        content_layout.addWidget(self.panel_stack, stretch=1)
+        
+        main_layout.addLayout(content_layout)
+        
+        # Bottom buttons - three button layout
+        button_box = QDialogButtonBox()
+        
+        # Apply button - saves without closing
+        self.apply_button = button_box.addButton(
+            "Apply",
+            QDialogButtonBox.ButtonRole.ApplyRole
+        )
+        self.apply_button.clicked.connect(self._handle_apply)
+        
+        # OK button - saves and closes
+        self.ok_button = button_box.addButton(
+            QDialogButtonBox.StandardButton.Ok
+        )
+        self.ok_button.clicked.connect(self._handle_ok)
+        
+        # Cancel button - closes without saving
+        self.cancel_button = button_box.addButton(
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        self.cancel_button.clicked.connect(self.reject)
+        
+        main_layout.addWidget(button_box)
+        
+        # Select first panel
+        self.panel_list.setCurrentRow(0)
+    
+    def _create_general_panel(self) -> QWidget:
+        """Create the General information panel."""
+        self.general_panel_widget = GeneralPanel(self)
+        return self.general_panel_widget
+    
+    def _create_relationships_panel(self) -> QWidget:
+        """Create the Relationships panel (parents, marriages, children)."""
+        from dialogs.edit_person_panels.relationships_panel import RelationshipsPanel
+        self.relationships_panel_widget = RelationshipsPanel(self.db_manager, self)
+        return self.relationships_panel_widget
+        
+    def _create_events_panel(self) -> QWidget:
+        """Create the Events panel (timeline of life events)."""
+        # Placeholder
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        
+        placeholder = QLabel("Events Panel - Coming Soon")
+        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(placeholder)
+        
+        return panel
+    
+    def _on_panel_changed(self, index: int) -> None:
+        """Handle panel selection change."""
+        self.panel_stack.setCurrentIndex(index)
+    
+    def _load_data(self) -> None:
+        """Load person data into all panels."""
+        self.general_panel_widget.load_person(self.person)
+        self.relationships_panel_widget.load_person(self.person)  # This line must be here!
+            
+    def _handle_apply(self) -> None:
+        """Save changes but keep dialog open (Apply button)."""
+        if self._save_changes():
+            self.has_unsaved_changes = False
+    
+    def _handle_ok(self) -> None:
+        """Save changes and close dialog with confirmation (OK button)."""
+        if self._save_changes():
+            self.has_unsaved_changes = False
+            
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Information)
+            msg.setWindowTitle("Changes Saved")
+            msg.setText("Your edits have been saved successfully.")
+            msg.exec()
+            
+            self.accept()
+    
+    def _save_changes(self) -> bool:
+        """Collect and validate data from all panels, then save."""
+        # Validate General panel
+        is_valid, error_msg = self.general_panel_widget.validate()
+        if not is_valid:
+            QMessageBox.warning(self, "Validation Error", error_msg)
+            return False
+        
+        # Validate Relationships panel
+        is_valid, error_msg = self.relationships_panel_widget.validate()
+        if not is_valid:
+            QMessageBox.warning(self, "Validation Error", error_msg)
+            self.panel_list.setCurrentRow(1)
+            return False
+        
+        # Get data from panels
+        person_data = self.general_panel_widget.get_person_data()
+        relationship_data = self.relationships_panel_widget.get_relationship_data()
+        
+        # Merge relationship data into person data
+        person_data.update(relationship_data)
+        
+        # Create edited person
+        from dataclasses import replace
+        self.edited_person = replace(self.person, **person_data)
+        
+        # Save person to database
+        from database.person_repository import PersonRepository
+        person_repo = PersonRepository(self.db_manager)
+        person_repo.update(self.edited_person)
+        
+        # Save marriages
+        self.relationships_panel_widget.save_marriages()
+        
+        # Update the person object with saved data
+        self.person = self.edited_person
+        
+        return True
 
+    def reject(self) -> None:
+        """Handle Cancel button - warn if unsaved changes."""
+        if self.has_unsaved_changes:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("Unsaved Changes")
+            msg.setText("You have unsaved changes. Discard them?")
+            msg.setStandardButtons(
+                QMessageBox.StandardButton.Discard |
+                QMessageBox.StandardButton.Cancel
+            )
+            
+            result = msg.exec()
+            if result == QMessageBox.StandardButton.Discard:
+                super().reject()  # Close without saving
+            # Otherwise, do nothing (stay open)
+        else:
+            super().reject()  # No changes, just close
+    
+    def mark_dirty(self) -> None:
+        """Mark the dialog as having unsaved changes.
+        
+        Call this from panels when user edits anything.
+        """
+        self.has_unsaved_changes = True
+    
+    def get_edited_person(self) -> Person | None:
+        """Get the edited person data after dialog is accepted."""
+        return self.edited_person
+
+>> 📋 dialogs\edit_person_panels\__init__.py (2 code lines)
+from .general_panel import GeneralPanel
+
+__all__ = ['GeneralPanel', ]
+
+>> 📋 dialogs\edit_person_panels\event_panel.py (0 code lines)
+
+
+>> ✅ dialogs\edit_person_panels\general_panel.py (78 code lines)
+"""General information panel for Edit Person dialog."""
+
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QFormLayout, QLineEdit,
+    QComboBox, QTextEdit, QLabel, QScrollArea, QCheckBox
+)
+from PySide6.QtCore import QSignalBlocker
+
+from models.person import Person
+from widgets.date_picker import DatePicker
+
+
+class GeneralPanel(QWidget):
+    """Panel for editing general person information."""
+    
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self._setup_ui()
+    
+    def _setup_ui(self) -> None:
+        """Create all form fields."""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        
+        container = QWidget()
+        form = QFormLayout(container)
+        
+        # Name fields
+        self.first_name_input = QLineEdit()
+        self.first_name_input.setPlaceholderText("Required")
+        self.first_name_input.textChanged.connect(self._on_field_changed)
+        form.addRow("First Name: *", self.first_name_input)
+        
+        self.middle_name_input = QLineEdit()
+        self.middle_name_input.setPlaceholderText("Optional")
+        self.middle_name_input.textChanged.connect(self._on_field_changed)
+        form.addRow("Middle Name:", self.middle_name_input)
+        
+        self.last_name_input = QLineEdit()
+        self.last_name_input.setPlaceholderText("Required")
+        self.last_name_input.textChanged.connect(self._on_field_changed)
+        form.addRow("Last Name: *", self.last_name_input)
+        
+        self.maiden_name_input = QLineEdit()
+        self.maiden_name_input.setPlaceholderText("Optional")
+        self.maiden_name_input.textChanged.connect(self._on_field_changed)
+        form.addRow("Maiden Name:", self.maiden_name_input)
+        
+        self.nickname_input = QLineEdit()
+        self.nickname_input.setPlaceholderText("Optional")
+        self.nickname_input.textChanged.connect(self._on_field_changed)
+        form.addRow("Nickname:", self.nickname_input)
+        
+        # Gender
+        self.gender_input = QComboBox()
+        self.gender_input.addItems(["Unknown", "Male", "Female", "Other"])
+        self.gender_input.currentIndexChanged.connect(self._on_field_changed)
+        form.addRow("Gender:", self.gender_input)
+        
+        # Birth Date
+        self.birth_date_picker = DatePicker()
+        self.birth_date_picker.dateChanged.connect(self._on_field_changed)
+        form.addRow("Birth Date:", self.birth_date_picker)
+        
+        # Death Date with checkbox BELOW
+        self.death_date_label = QLabel("Death Date:")
+        self.death_date_picker = DatePicker()
+        self.death_date_picker.dateChanged.connect(self._on_field_changed)
+        form.addRow(self.death_date_label, self.death_date_picker)
+        
+        self.died_check = QCheckBox("Died?")
+        self.died_check.setChecked(False)
+        self.died_check.stateChanged.connect(self._on_died_toggled)
+        self.died_check.stateChanged.connect(self._on_field_changed)
+        form.addRow("", self.died_check)
+        
+        # Arrival Date with checkbox BELOW
+        self.arrival_date_label = QLabel("Arrival Date:")
+        self.arrival_date_picker = DatePicker()
+        self.arrival_date_picker.dateChanged.connect(self._on_field_changed)
+        form.addRow(self.arrival_date_label, self.arrival_date_picker)
+        
+        self.immigrant_check = QCheckBox("Immigrant?")
+        self.immigrant_check.setChecked(False)
+        self.immigrant_check.stateChanged.connect(self._on_immigrant_toggled)
+        self.immigrant_check.stateChanged.connect(self._on_field_changed)
+        form.addRow("", self.immigrant_check)
+        
+        # Moved Out Date with checkbox BELOW
+        self.moved_out_date_label = QLabel("Moved Out Date:")
+        self.moved_out_date_picker = DatePicker()
+        self.moved_out_date_picker.dateChanged.connect(self._on_field_changed)
+        form.addRow(self.moved_out_date_label, self.moved_out_date_picker)
+        
+        self.moved_out_check = QCheckBox("Moved Out?")
+        self.moved_out_check.setChecked(False)
+        self.moved_out_check.stateChanged.connect(self._on_moved_out_toggled)
+        self.moved_out_check.stateChanged.connect(self._on_field_changed)
+        form.addRow("", self.moved_out_check)
+        
+        # Game-specific fields
+        self.dynasty_id_input = QLineEdit()
+        self.dynasty_id_input.setText("1")
+        self.dynasty_id_input.textChanged.connect(self._on_field_changed)
+        form.addRow("Dynasty ID:", self.dynasty_id_input)
+        
+        self.is_founder_check = QCheckBox("Is Dynasty Founder")
+        self.is_founder_check.stateChanged.connect(self._on_field_changed)
+        form.addRow("", self.is_founder_check)
+        
+        self.education_input = QComboBox()
+        self.education_input.addItems([
+            "0 - Uneducated", "1 - Basic", "2 - Elementary",
+            "3 - Advanced", "4 - Expert", "5 - Master"
+        ])
+        self.education_input.currentIndexChanged.connect(self._on_field_changed)
+        form.addRow("Education:", self.education_input)
+        
+        # Notes
+        self.notes_input = QTextEdit()
+        self.notes_input.setPlaceholderText("Optional notes about this person...")
+        self.notes_input.setMaximumHeight(120)
+        self.notes_input.textChanged.connect(self._on_field_changed)
+        form.addRow("Notes:", self.notes_input)
+        
+        scroll.setWidget(container)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll)
+        
+        self._update_died_visibility()
+        self._update_immigrant_visibility()
+        self._update_moved_out_visibility()
+
+    def _on_immigrant_toggled(self) -> None:
+        """Handle immigrant checkbox toggle."""
+        self._update_immigrant_visibility()
+
+    def _update_immigrant_visibility(self) -> None:
+        """Show/hide arrival date based on checkbox."""
+        is_immigrant = self.immigrant_check.isChecked()
+        self.arrival_date_label.setVisible(is_immigrant)
+        self.arrival_date_picker.setVisible(is_immigrant)
+
+    def _on_died_toggled(self) -> None:
+        """Handle died checkbox toggle."""
+        self._update_died_visibility()
+
+    def _update_died_visibility(self) -> None:
+        """Show/hide death date based on checkbox."""
+        has_died = self.died_check.isChecked()
+        self.death_date_label.setVisible(has_died)
+        self.death_date_picker.setVisible(has_died)
+
+    def _on_moved_out_toggled(self) -> None:
+        """Handle moved out checkbox toggle."""
+        self._update_moved_out_visibility()
+    
+    def _update_moved_out_visibility(self) -> None:
+        """Show/hide moved out date based on checkbox."""
+        is_moved_out = self.moved_out_check.isChecked()
+        self.moved_out_date_label.setVisible(is_moved_out)
+        self.moved_out_date_picker.setVisible(is_moved_out)
+    
+    def _on_field_changed(self) -> None:
+        """Mark dialog as dirty when any field changes."""
+        dialog = self._find_parent_dialog()
+        if dialog:
+            dialog.mark_dirty()
+    
+    def _find_parent_dialog(self):
+        """Find the parent EditPersonDialog."""
+        parent = self.parent()
+        while parent:
+            from dialogs.edit_person_dialog import EditPersonDialog
+            if isinstance(parent, EditPersonDialog):
+                return parent
+            parent = parent.parent()
+        return None
+    
+    def load_person(self, person: Person) -> None:
+        """Load person data into form fields."""
+        blockers = [
+            QSignalBlocker(self.first_name_input),
+            QSignalBlocker(self.middle_name_input),
+            QSignalBlocker(self.last_name_input),
+            QSignalBlocker(self.maiden_name_input),
+            QSignalBlocker(self.nickname_input),
+            QSignalBlocker(self.gender_input),
+            QSignalBlocker(self.birth_date_picker),
+            QSignalBlocker(self.died_check),
+            QSignalBlocker(self.death_date_picker),
+            QSignalBlocker(self.immigrant_check),
+            QSignalBlocker(self.arrival_date_picker),
+            QSignalBlocker(self.moved_out_check),
+            QSignalBlocker(self.moved_out_date_picker),
+            QSignalBlocker(self.dynasty_id_input),
+            QSignalBlocker(self.is_founder_check),
+            QSignalBlocker(self.education_input),
+            QSignalBlocker(self.notes_input),
+        ]
+        
+        # Names
+        self.first_name_input.setText(person.first_name or "")
+        self.middle_name_input.setText(person.middle_name or "")
+        self.last_name_input.setText(person.last_name or "")
+        self.maiden_name_input.setText(person.maiden_name or "")
+        self.nickname_input.setText(person.nickname or "")
+        
+        # Gender
+        if person.gender:
+            index = self.gender_input.findText(person.gender)
+            if index >= 0:
+                self.gender_input.setCurrentIndex(index)
+        
+        # Dates
+        if person.birth_year:
+            self.birth_date_picker.set_date(person.birth_year, person.birth_month)
+        
+        if person.death_year:
+            self.died_check.setChecked(True)
+            self.death_date_picker.set_date(person.death_year, person.death_month)
+        else:
+            self.died_check.setChecked(False)
+        
+        if person.arrival_year:
+            self.immigrant_check.setChecked(True)
+            self.arrival_date_picker.set_date(person.arrival_year, person.arrival_month)
+        else:
+            self.immigrant_check.setChecked(False)
+        
+        if person.moved_out_year:
+            self.moved_out_check.setChecked(True)
+            self.moved_out_date_picker.set_date(person.moved_out_year, person.moved_out_month)
+        else:
+            self.moved_out_check.setChecked(False)
+        
+        self._update_died_visibility()
+        self._update_immigrant_visibility()
+        self._update_moved_out_visibility()
+        
+        # Game fields
+        self.dynasty_id_input.setText(str(person.dynasty_id))
+        self.is_founder_check.setChecked(person.is_founder)
+        self.education_input.setCurrentIndex(person.education)
+        
+        # Notes
+        self.notes_input.setPlainText(person.notes or "")
+    
+    def get_person_data(self) -> dict:
+        """Extract form data as dictionary."""
+        birth_year, birth_month = self.birth_date_picker.get_date()
+        
+        if self.died_check.isChecked():
+            death_year, death_month = self.death_date_picker.get_date()
+        else:
+            death_year, death_month = None, None
+        
+        if self.immigrant_check.isChecked():
+            arrival_year, arrival_month = self.arrival_date_picker.get_date()
+        else:
+            arrival_year, arrival_month = None, None
+        
+        if self.moved_out_check.isChecked():
+            moved_out_year, moved_out_month = self.moved_out_date_picker.get_date()
+        else:
+            moved_out_year, moved_out_month = None, None
+        
+        education_text = self.education_input.currentText()
+        education_level = int(education_text.split(" ")[0])
+        
+        return {
+            'first_name': self.first_name_input.text().strip(),
+            'middle_name': self.middle_name_input.text().strip(),
+            'last_name': self.last_name_input.text().strip(),
+            'maiden_name': self.maiden_name_input.text().strip(),
+            'nickname': self.nickname_input.text().strip(),
+            'gender': self.gender_input.currentText(),
+            'birth_year': birth_year,
+            'birth_month': birth_month,
+            'death_year': death_year,
+            'death_month': death_month,
+            'arrival_year': arrival_year,
+            'arrival_month': arrival_month,
+            'moved_out_year': moved_out_year,
+            'moved_out_month': moved_out_month,
+            'dynasty_id': int(self.dynasty_id_input.text() or "1"),
+            'is_founder': self.is_founder_check.isChecked(),
+            'education': education_level,
+            'notes': self.notes_input.toPlainText().strip()
+        }
+
+    def validate(self) -> tuple[bool, str]:
+        """Validate form data."""
+        if not self.first_name_input.text().strip():
+            return (False, "First name is required.")
+        
+        if not self.last_name_input.text().strip():
+            return (False, "Last name is required.")
+        
+        try:
+            dynasty_id = int(self.dynasty_id_input.text())
+            if dynasty_id < 1:
+                return (False, "Dynasty ID must be a positive number.")
+        except ValueError:
+            return (False, "Dynasty ID must be a valid number.")
+        
+        return (True, "")
+
+>> ✅ dialogs\edit_person_panels\relationships_panel.py (239 code lines)
+"""Relationships panel for Edit Person dialog."""
+
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QFormLayout, 
+    QLabel, QScrollArea, QCheckBox,
+    QGroupBox, QPushButton, QHBoxLayout, 
+    QFrame, QMessageBox, QComboBox
+)
+from PySide6.QtCore import QSignalBlocker
+
+from database.db_manager import DatabaseManager
+from database.person_repository import PersonRepository
+from database.marriage_repository import MarriageRepository
+from models.person import Person
+from models.marriage import Marriage
+from widgets.person_selector import PersonSelector
+from widgets.date_picker import DatePicker
+from dialogs.end_marriage_dialog import EndMarriageDialog
+
+
+class RelationshipsPanel(QWidget):
+    """Panel for editing person relationships."""
+    
+    def __init__(self, db_manager: DatabaseManager, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        
+        self.db_manager = db_manager
+        self.person_repo = PersonRepository(db_manager)
+        self.marriage_repo = MarriageRepository(db_manager)
+        self.current_person: Person | None = None
+        
+        self.marriage_widgets: list[tuple[Marriage, QFrame]] = []
+        self.new_marriages: list[Marriage] = []
+        self.deleted_marriage_ids: list[int] = []
+        self.modified_marriages: dict[int, Marriage] = {}
+        
+        self._setup_ui()
+    
+    def _setup_ui(self) -> None:
+        """Create all relationship sections."""
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        
+        layout.addWidget(self._create_parents_section())
+        layout.addWidget(self._create_marriages_section())
+        layout.addWidget(self._create_children_section())
+        layout.addStretch()
+        
+        scroll.setWidget(container)
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(scroll)
+    
+    def _create_parents_section(self) -> QGroupBox:
+        """Create parents section with father/mother selectors."""
+        group = QGroupBox("Parents")
+        layout = QVBoxLayout(group)
+        form = QFormLayout()
+        
+        # Father selector
+        self.father_selector = PersonSelector(self.db_manager)
+        self.father_selector.set_filter(gender="Male")
+        self.father_selector.personSelected.connect(self._on_field_changed)
+        self.father_selector.selectionCleared.connect(self._on_field_changed)
+        self.father_selector.personSelected.connect(lambda: self._load_siblings())
+        
+        father_row = QHBoxLayout()
+        father_row.addWidget(self.father_selector)
+        self.father_jump_btn = QPushButton("View Person")
+        self.father_jump_btn.clicked.connect(
+            lambda: self._jump_to_person(self.father_selector.get_person_id())
+        )
+        father_row.addWidget(self.father_jump_btn)
+        form.addRow("Father:", father_row)
+        
+        # Mother selector
+        self.mother_selector = PersonSelector(self.db_manager)
+        self.mother_selector.set_filter(gender="Female")
+        self.mother_selector.personSelected.connect(self._on_field_changed)
+        self.mother_selector.selectionCleared.connect(self._on_field_changed)
+        self.mother_selector.personSelected.connect(lambda: self._load_siblings())
+        
+        mother_row = QHBoxLayout()
+        mother_row.addWidget(self.mother_selector)
+        self.mother_jump_btn = QPushButton("View Person")
+        self.mother_jump_btn.clicked.connect(
+            lambda: self._jump_to_person(self.mother_selector.get_person_id())
+        )
+        mother_row.addWidget(self.mother_jump_btn)
+        form.addRow("Mother:", mother_row)
+        
+        layout.addLayout(form)
+        
+        layout.addWidget(QLabel("<b>Siblings:</b>"))
+        self.siblings_container = QVBoxLayout()
+        layout.addLayout(self.siblings_container)
+        
+        return group
+    
+    def _create_marriages_section(self) -> QGroupBox:
+        """Create marriages section with inline editing."""
+        group = QGroupBox("Marriages")
+        layout = QVBoxLayout(group)
+        
+        self.marriages_container = QVBoxLayout()
+        layout.addLayout(self.marriages_container)
+        
+        add_btn = QPushButton("+ Add New Marriage")
+        add_btn.clicked.connect(self._add_marriage)
+        layout.addWidget(add_btn)
+        
+        return group
+    
+    def _create_children_section(self) -> QGroupBox:
+        """Create children section."""
+        group = QGroupBox("Children")
+        layout = QVBoxLayout(group)
+        
+        self.children_container = QVBoxLayout()
+        layout.addLayout(self.children_container)
+        
+        add_btn = QPushButton("+ Add Child")
+        add_btn.clicked.connect(self._add_child)
+        layout.addWidget(add_btn)
+        
+        return group
+    
+    def _create_marriage_widget(self, marriage: Marriage) -> QFrame:
+        """Create inline editable widget for a marriage."""
+        frame = QFrame()
+        frame.setFrameShape(QFrame.Shape.StyledPanel)
+        frame.setFrameShadow(QFrame.Shadow.Raised)
+        main_layout = QVBoxLayout(frame)
+        
+        # Status header
+        header_layout = QHBoxLayout()
+        status_indicator = QLabel("✓ Active" if marriage.is_active else "○ Ended")
+        status_indicator.setStyleSheet(
+            f"font-weight: bold; color: {'green' if marriage.is_active else 'gray'}"
+        )
+        header_layout.addWidget(status_indicator)
+        header_layout.addStretch()
+        main_layout.addLayout(header_layout)
+        
+        # Spouse row
+        spouse_layout = QHBoxLayout()
+        spouse_layout.addWidget(QLabel("Spouse:"))
+        
+        spouse_selector = PersonSelector(self.db_manager)
+        with QSignalBlocker(spouse_selector):
+            if self.current_person and self.current_person.id:
+                spouse_id = self.marriage_repo.get_spouse_id(marriage, self.current_person.id)
+            else:
+                spouse_id = None
+            
+            if spouse_id:
+                spouse_selector.set_person(spouse_id)
+        
+        spouse_selector.personSelected.connect(self._on_field_changed)
+        spouse_layout.addWidget(spouse_selector)
+        
+        spouse_jump_btn = QPushButton("View Person")
+        spouse_jump_btn.setEnabled(spouse_id is not None)
+        spouse_jump_btn.clicked.connect(lambda: self._jump_to_person(spouse_selector.get_person_id()))
+        spouse_selector.personSelected.connect(lambda: spouse_jump_btn.setEnabled(True))
+        spouse_selector.selectionCleared.connect(lambda: spouse_jump_btn.setEnabled(False))
+        spouse_layout.addWidget(spouse_jump_btn)
+        
+        main_layout.addLayout(spouse_layout)
+        
+        # Date Unknown checkbox (stays in place)
+        date_unknown_layout = QHBoxLayout()
+        date_unknown_layout.addSpacing(60)  # Indent to align with fields above
+        
+        date_unknown_check = QCheckBox("Date Unknown")
+        date_unknown_check.setChecked(marriage.marriage_year is None)
+        date_unknown_layout.addWidget(date_unknown_check)
+        date_unknown_layout.addStretch()
+        
+        main_layout.addLayout(date_unknown_layout)
+        
+        # Marriage date row (appears/disappears below)
+        marriage_date_layout = QHBoxLayout()
+        marriage_date_label = QLabel("Married:")
+        marriage_date_layout.addWidget(marriage_date_label)
+        
+        marriage_date = DatePicker()
+        with QSignalBlocker(marriage_date):
+            if marriage.marriage_year:
+                marriage_date.set_date(marriage.marriage_year, marriage.marriage_month or 1)
+            else:
+                marriage_date.set_date(1721, 1)
+        
+        marriage_date.unknown_check.setVisible(False)
+        marriage_date.dateChanged.connect(self._on_field_changed)
+        marriage_date_layout.addWidget(marriage_date)
+        marriage_date_layout.addStretch()
+        
+        main_layout.addLayout(marriage_date_layout)
+        
+        # Initially hide/show based on whether date is known
+        date_known = marriage.marriage_year is not None
+        marriage_date_label.setVisible(date_known)
+        marriage_date.setVisible(date_known)
+        
+        # Connect checkbox to toggle visibility
+        def toggle_date_visibility():
+            date_is_known = not date_unknown_check.isChecked()
+            marriage_date_label.setVisible(date_is_known)
+            marriage_date.setVisible(date_is_known)
+            self._on_field_changed()
+        
+        date_unknown_check.stateChanged.connect(toggle_date_visibility)
+        
+        # End date and reason (if ended)
+        if not marriage.is_active:
+            end_date_layout = QHBoxLayout()
+            end_date_layout.addWidget(QLabel("Ended:"))
+            
+            end_date = DatePicker()
+            with QSignalBlocker(end_date):
+                if marriage.dissolution_year:
+                    end_date.set_date(marriage.dissolution_year, marriage.dissolution_month)
+            
+            end_date.dateChanged.connect(self._on_field_changed)
+            end_date_layout.addWidget(end_date)
+            end_date_layout.addStretch()
+            main_layout.addLayout(end_date_layout)
+            
+            reason_layout = QHBoxLayout()
+            reason_layout.addWidget(QLabel("Reason:"))
+            
+            reason_combo = QComboBox()
+            with QSignalBlocker(reason_combo):
+                reason_combo.addItems(["Death", "Divorce", "Annulment", "Other", "Unknown"])
+                if marriage.dissolution_reason:
+                    index = reason_combo.findText(marriage.dissolution_reason)
+                    if index >= 0:
+                        reason_combo.setCurrentIndex(index)
+            
+            reason_combo.currentIndexChanged.connect(self._on_field_changed)
+            reason_layout.addWidget(reason_combo)
+            reason_layout.addStretch()
+            main_layout.addLayout(reason_layout)
+        
+        # Action buttons
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        
+        if marriage.is_active:
+            end_btn = QPushButton("End Marriage")
+            end_btn.clicked.connect(lambda: self._end_marriage(marriage))
+            button_layout.addWidget(end_btn)
+        else:
+            reactivate_btn = QPushButton("Reactivate")
+            reactivate_btn.clicked.connect(lambda: self._reactivate_marriage(marriage))
+            button_layout.addWidget(reactivate_btn)
+        
+        delete_btn = QPushButton("Delete")
+        delete_btn.clicked.connect(lambda: self._delete_marriage(marriage))
+        button_layout.addWidget(delete_btn)
+        
+        main_layout.addLayout(button_layout)
+        
+        # Store widget references
+        frame.spouse_selector = spouse_selector  # type: ignore[attr-defined]
+        frame.date_unknown_check = date_unknown_check  # type: ignore[attr-defined]
+        frame.marriage_date = marriage_date  # type: ignore[attr-defined]
+        if not marriage.is_active:
+            frame.end_date = end_date  # type: ignore[attr-defined]
+            frame.reason_combo = reason_combo  # type: ignore[attr-defined]
+        
+        return frame
+    
+    def _create_person_widget(self, person: Person, show_remove: bool = False) -> QFrame:
+        """Create widget displaying a person with jump button."""
+        frame = QFrame()
+        frame.setFrameShape(QFrame.Shape.StyledPanel)
+        layout = QHBoxLayout(frame)
+        
+        birth_info = f"b. {person.birth_year}" if person.birth_year else "birth unknown"
+        info_label = QLabel(f"{person.display_name} ({birth_info})")
+        layout.addWidget(info_label)
+        layout.addStretch()
+        
+        jump_btn = QPushButton("View Person")
+        jump_btn.clicked.connect(lambda: self._jump_to_person(person.id))
+        layout.addWidget(jump_btn)
+        
+        if show_remove:
+            remove_btn = QPushButton("Remove")
+            remove_btn.clicked.connect(lambda: self._remove_child(person))
+            layout.addWidget(remove_btn)
+        
+        return frame
+    
+    def _on_field_changed(self) -> None:
+        """Mark dialog as dirty when any field changes."""
+        dialog = self._find_parent_dialog()
+        if dialog:
+            dialog.mark_dirty()
+    
+    def _find_parent_dialog(self):
+        """Find the parent EditPersonDialog."""
+        parent = self.parent()
+        while parent:
+            from dialogs.edit_person_dialog import EditPersonDialog
+            if isinstance(parent, EditPersonDialog):
+                return parent
+            parent = parent.parent()
+        return None
+    
+    def _jump_to_person(self, person_id: int | None) -> None:
+        """Jump to editing a different person."""
+        if person_id is None:
+            return
+        
+        dialog = self._find_parent_dialog()
+        if not dialog:
+            return
+        
+        person = self.person_repo.get_by_id(person_id)
+        if not person:
+            return
+        
+        if dialog.has_unsaved_changes:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Question)
+            msg.setWindowTitle("Save Changes?")
+            msg.setText("Save changes before jumping to another person?")
+            msg.setStandardButtons(
+                QMessageBox.StandardButton.Save |
+                QMessageBox.StandardButton.Discard |
+                QMessageBox.StandardButton.Cancel
+            )
+            
+            result = msg.exec()
+            if result == QMessageBox.StandardButton.Cancel:
+                return
+            elif result == QMessageBox.StandardButton.Save:
+                if not dialog._save_changes():
+                    return
+        
+        dialog.person = person
+        dialog.setWindowTitle(f"Edit Person: {person.display_name}")
+        dialog._load_data()
+        dialog.has_unsaved_changes = False
+        dialog.panel_list.setCurrentRow(1)
+    
+    def _add_marriage(self) -> None:
+        """Add a new marriage using dialog."""
+        if not self.current_person or not self.current_person.id:
+            return
+        
+        active_marriages = [m for m, _ in self.marriage_widgets if m.is_active]
+        
+        # Validate active marriages have spouses
+        for marriage, widget in self.marriage_widgets:
+            if marriage.is_active:
+                spouse_selector = widget.spouse_selector  # type: ignore[attr-defined]
+                if not spouse_selector.get_person_id():
+                    QMessageBox.warning(
+                        self,
+                        "Incomplete Marriage",
+                        "Please select a spouse for the current marriage before adding a new one."
+                    )
+                    return
+        
+        if active_marriages:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Question)
+            msg.setWindowTitle("End Current Marriage?")
+            msg.setText("This person has an active marriage. End it before creating a new one?")
+            msg.setStandardButtons(
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            
+            if msg.exec() == QMessageBox.StandardButton.Yes:
+                marriage = active_marriages[0]
+                from dialogs.end_marriage_dialog import EndMarriageDialog
+                end_dialog = EndMarriageDialog(marriage, self)
+                
+                if end_dialog.exec():
+                    year, month, reason = end_dialog.get_dissolution_data()
+                    marriage.dissolution_year = year
+                    marriage.dissolution_month = month
+                    marriage.dissolution_reason = reason
+                    
+                    if marriage.id:
+                        self.modified_marriages[marriage.id] = marriage
+                    
+                    self._on_field_changed()
+                else:
+                    return
+        
+        # Open create marriage dialog
+        from dialogs.create_marriage_dialog import CreateMarriageDialog
+        dialog = CreateMarriageDialog(self.db_manager, self.current_person, self)
+        
+        if dialog.exec():
+            spouse_id, year, month = dialog.get_marriage_data()
+            
+            # Create new marriage with data from dialog
+            new_marriage = Marriage(
+                spouse1_id=self.current_person.id,
+                spouse2_id=spouse_id,
+                marriage_year=year,
+                marriage_month=month
+            )
+            
+            self.new_marriages.append(new_marriage)
+            self._load_marriages()
+            self._on_field_changed()
+
+    def _end_marriage(self, marriage: Marriage) -> None:
+        """End a marriage with dialog."""
+        dialog = EndMarriageDialog(marriage, self)
+        
+        if dialog.exec():
+            year, month, reason = dialog.get_dissolution_data()
+            
+            # Validate end date after marriage date
+            if marriage.marriage_year:
+                if year and year < marriage.marriage_year:
+                    QMessageBox.warning(self, "Invalid Date", "Marriage cannot end before it started.")
+                    return
+                elif year == marriage.marriage_year and marriage.marriage_month and month:
+                    if month < marriage.marriage_month:
+                        QMessageBox.warning(self, "Invalid Date", "Marriage cannot end before it started.")
+                        return
+            
+            marriage.dissolution_year = year
+            marriage.dissolution_month = month
+            marriage.dissolution_reason = reason
+            
+            if marriage.id:
+                self.modified_marriages[marriage.id] = marriage
+            
+            self._load_marriages()
+            self._on_field_changed()
+    
+    def _reactivate_marriage(self, marriage: Marriage) -> None:
+        """Reactivate an ended marriage."""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Question)
+        msg.setWindowTitle("Reactivate Marriage?")
+        msg.setText("Remove the end date and reactivate this marriage? This will remove any empty active marriages.")
+        msg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if msg.exec() == QMessageBox.StandardButton.Yes:
+            # Delete empty active marriages
+            for m, widget in list(self.marriage_widgets):
+                if m != marriage and m.is_active:
+                    spouse_selector = widget.spouse_selector  # type: ignore[attr-defined]
+                    spouse_id = spouse_selector.get_person_id()
+                    
+                    if not spouse_id:
+                        if m.id:
+                            self.deleted_marriage_ids.append(m.id)
+                        if m in self.new_marriages:
+                            self.new_marriages.remove(m)
+            
+            marriage.dissolution_year = None
+            marriage.dissolution_month = None
+            marriage.dissolution_day = None
+            marriage.dissolution_reason = ""
+            
+            if marriage.id:
+                self.modified_marriages[marriage.id] = marriage
+            
+            self._load_marriages()
+            self._on_field_changed()
+    
+    def _delete_marriage(self, marriage: Marriage) -> None:
+        """Delete a marriage after confirmation."""
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Delete Marriage")
+        msg.setText("Are you sure you want to delete this marriage?")
+        msg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if msg.exec() == QMessageBox.StandardButton.Yes:
+            if marriage.id:
+                self.deleted_marriage_ids.append(marriage.id)
+            if marriage in self.new_marriages:
+                self.new_marriages.remove(marriage)
+            
+            self.marriage_widgets = [(m, w) for m, w in self.marriage_widgets if m != marriage]
+            self._load_marriages()
+            self._on_field_changed()
+    
+    def _add_child(self) -> None:
+        """Open dialog to create a new child."""
+        if not self.current_person or not self.current_person.id:
+            return
+        
+        # Find oldest active marriage spouse
+        active_marriages = self.marriage_repo.get_active_marriages(self.current_person.id)
+        parent2_id = None
+        
+        if active_marriages:
+            # Sort by marriage date (oldest first)
+            active_marriages.sort(key=lambda m: (
+                (9999, 12) if m.marriage_year is None else (m.marriage_year, m.marriage_month or 0)
+            ))
+            
+            oldest_marriage = active_marriages[0]
+            parent2_id = self.marriage_repo.get_spouse_id(oldest_marriage, self.current_person.id)
+        
+        # Open create child dialog
+        from dialogs.create_child_dialog import CreateChildDialog
+        dialog = CreateChildDialog(self.db_manager, self.current_person, parent2_id, self)
+        
+        if dialog.exec():
+            created_person = dialog.get_created_person()
+            if created_person:
+                # Reload children to show new child
+                self._load_children()
+                self._on_field_changed()
+        
+    def load_person(self, person: Person) -> None:
+        """Load person relationship data."""
+        self.current_person = person
+        
+        self.new_marriages.clear()
+        self.deleted_marriage_ids.clear()
+        self.modified_marriages.clear()
+        
+        blockers = [
+            QSignalBlocker(self.father_selector),
+            QSignalBlocker(self.mother_selector),
+        ]
+        
+        if person.father_id:
+            self.father_selector.set_person(person.father_id)
+            self.father_jump_btn.setEnabled(True)
+        else:
+            self.father_selector.clear()
+            self.father_jump_btn.setEnabled(False)
+        
+        if person.mother_id:
+            self.mother_selector.set_person(person.mother_id)
+            self.mother_jump_btn.setEnabled(True)
+        else:
+            self.mother_selector.clear()
+            self.mother_jump_btn.setEnabled(False)
+        
+        self._load_siblings()
+        self._load_marriages()
+        self._load_children()
+    
+    def _load_siblings(self) -> None:
+        """Load and display siblings."""
+        while self.siblings_container.count():
+            item = self.siblings_container.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        
+        if not self.current_person:
+            return
+        
+        siblings = []
+        
+        father_id = self.father_selector.get_person_id()
+        if father_id:
+            father_children = self.person_repo.get_children(father_id)
+            siblings.extend([p for p in father_children if p.id != self.current_person.id])
+        
+        mother_id = self.mother_selector.get_person_id()
+        if mother_id:
+            mother_children = self.person_repo.get_children(mother_id)
+            for child in mother_children:
+                if child.id != self.current_person.id and child not in siblings:
+                    siblings.append(child)
+        
+        if siblings:
+            for sibling in siblings:
+                sibling_widget = self._create_person_widget(sibling)
+                self.siblings_container.addWidget(sibling_widget)
+        else:
+            placeholder = QLabel("No siblings found")
+            placeholder.setStyleSheet("color: gray; font-style: italic;")
+            self.siblings_container.addWidget(placeholder)
+    
+    def _load_marriages(self) -> None:
+        """Load and display marriages."""
+        while self.marriages_container.count():
+            item = self.marriages_container.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        
+        self.marriage_widgets.clear()
+        
+        if not self.current_person or not self.current_person.id:
+            placeholder = QLabel("No marriages recorded")
+            placeholder.setStyleSheet("color: gray; font-style: italic; padding: 10px;")
+            self.marriages_container.addWidget(placeholder)
+            return
+        
+        marriages = self.marriage_repo.get_by_person(self.current_person.id)
+        marriages = [m for m in marriages if m.id not in self.deleted_marriage_ids]
+        
+        # Apply modifications
+        for i, m in enumerate(marriages):
+            if m.id and m.id in self.modified_marriages:
+                marriages[i] = self.modified_marriages[m.id]
+        
+        all_marriages = marriages + self.new_marriages
+        
+        # Sort by date (oldest first)
+        all_marriages.sort(key=lambda m: (
+            (9999, 12) if m.marriage_year is None else (m.marriage_year, m.marriage_month or 0)
+        ))
+        
+        if all_marriages:
+            for marriage in all_marriages:
+                widget = self._create_marriage_widget(marriage)
+                self.marriages_container.addWidget(widget)
+                self.marriage_widgets.append((marriage, widget))
+        else:
+            placeholder = QLabel("No marriages recorded")
+            placeholder.setStyleSheet("color: gray; font-style: italic; padding: 10px;")
+            self.marriages_container.addWidget(placeholder)
+    
+    def _load_children(self) -> None:
+        """Load and display children."""
+        while self.children_container.count():
+            item = self.children_container.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+        
+        if not self.current_person or not self.current_person.id:
+            return
+        
+        children = self.person_repo.get_children(self.current_person.id)
+        
+        if children:
+            for child in children:
+                child_widget = self._create_person_widget(child, show_remove=True)
+                self.children_container.addWidget(child_widget)
+        else:
+            placeholder = QLabel("No children recorded")
+            placeholder.setStyleSheet("color: gray; font-style: italic; padding: 10px;")
+            self.children_container.addWidget(placeholder)
+
+    def _remove_child(self, child: Person) -> None:
+        """Remove parent-child relationship."""
+        if not self.current_person:
+            return
+        
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Remove Child")
+        msg.setText(f"Remove {child.display_name} as a child of {self.current_person.display_name}?")
+        msg.setInformativeText("This will clear the parent relationship but not delete the person.")
+        msg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if msg.exec() == QMessageBox.StandardButton.Yes:
+            # Determine which parent to clear
+            if child.father_id == self.current_person.id:
+                child.father_id = None
+            if child.mother_id == self.current_person.id:
+                child.mother_id = None
+            
+            # Update in database
+            self.person_repo.update(child)
+            
+            # Reload children
+            self._load_children()
+            self._on_field_changed()
+
+    def get_relationship_data(self) -> dict:
+        """Extract relationship data."""
+        return {
+            'father_id': self.father_selector.get_person_id(),
+            'mother_id': self.mother_selector.get_person_id(),
+        }
+    
+    def save_marriages(self) -> None:
+        """Save all marriage changes to database."""
+        # Delete marriages
+        for marriage_id in self.deleted_marriage_ids:
+            self.marriage_repo.delete(marriage_id)
+        
+        # Insert new marriages
+        for marriage in self.new_marriages:
+            for m, widget in self.marriage_widgets:
+                if m == marriage:
+                    spouse_selector = widget.spouse_selector  # type: ignore[attr-defined]
+                    spouse_id = spouse_selector.get_person_id()
+                    if spouse_id:
+                        marriage.spouse2_id = spouse_id
+                    
+                    date_unknown_check = widget.date_unknown_check  # type: ignore[attr-defined]
+                    if date_unknown_check.isChecked():
+                        marriage.marriage_year = None
+                        marriage.marriage_month = None
+                    else:
+                        marriage_date_picker = widget.marriage_date  # type: ignore[attr-defined]
+                        year, month = marriage_date_picker.get_date()
+                        marriage.marriage_year = year
+                        marriage.marriage_month = month
+                    
+                    break
+            
+            self.marriage_repo.insert(marriage)
+        
+        # Update ALL existing marriages (not just ones in modified_marriages)
+        for marriage, widget in self.marriage_widgets:
+            # Skip new marriages (already inserted above)
+            if marriage in self.new_marriages:
+                continue
+            
+            # Update existing marriage
+            if marriage.id:
+                spouse_selector = widget.spouse_selector  # type: ignore[attr-defined]
+                spouse_id = spouse_selector.get_person_id()
+                
+                if self.current_person and self.current_person.id:
+                    if marriage.spouse1_id == self.current_person.id:
+                        marriage.spouse2_id = spouse_id
+                    else:
+                        marriage.spouse1_id = spouse_id
+                
+                date_unknown_check = widget.date_unknown_check  # type: ignore[attr-defined]
+                if date_unknown_check.isChecked():
+                    marriage.marriage_year = None
+                    marriage.marriage_month = None
+                else:
+                    marriage_date_picker = widget.marriage_date  # type: ignore[attr-defined]
+                    year, month = marriage_date_picker.get_date()
+                    marriage.marriage_year = year
+                    marriage.marriage_month = month
+                
+                self.marriage_repo.update(marriage)
+        
+        # Clear tracking
+        self.new_marriages.clear()
+        self.deleted_marriage_ids.clear()
+        self.modified_marriages.clear()
+    
+    def validate(self) -> tuple[bool, str]:
+        """Validate relationship data."""
+        if not self.current_person:
+            return (True, "")
+        
+        if self.father_selector.get_person_id() == self.current_person.id:
+            return (False, "A person cannot be their own father.")
+        if self.mother_selector.get_person_id() == self.current_person.id:
+            return (False, "A person cannot be their own mother.")
+        
+        for marriage, widget in self.marriage_widgets:
+            marriage_date_picker = widget.marriage_date  # type: ignore[attr-defined]
+            marriage_year, marriage_month = marriage_date_picker.get_date()
+            
+            if not marriage.is_active:
+                if marriage.dissolution_year and marriage_year:
+                    if marriage.dissolution_year < marriage_year:
+                        return (False, "Marriage end date cannot be before start date.")
+                    elif marriage.dissolution_year == marriage_year and marriage.dissolution_month and marriage_month:
+                        if marriage.dissolution_month < marriage_month:
+                            return (False, "Marriage end date cannot be before start date.")
+        
+        return (True, "")
+
+>> ✅ dialogs\end_marriage_dialog.py (35 code lines)
+"""Dialog for ending a marriage."""
+
+from PySide6.QtWidgets import (
+    QDialog, QVBoxLayout, QFormLayout, QComboBox,
+    QDialogButtonBox, QWidget, QMessageBox
+)
+
+from widgets.date_picker import DatePicker
+from models.marriage import Marriage
+
+
+class EndMarriageDialog(QDialog):
+    """Dialog for ending a marriage with date and reason."""
+    
+    def __init__(self, marriage: Marriage, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        
+        self.marriage = marriage
+        self.dissolution_year: int | None = None
+        self.dissolution_month: int | None = None
+        self.dissolution_reason: str = ""
+        
+        self.setWindowTitle("End Marriage")
+        self.setMinimumWidth(400)
+        
+        self._setup_ui()
+    
+    def _setup_ui(self) -> None:
+        """Create dialog widgets."""
+        layout = QVBoxLayout(self)
+        
+        form = QFormLayout()
+        
+        # End date
+        self.end_date = DatePicker()
+        
+        # Set minimum date to marriage start date
+        if self.marriage.marriage_year:
+            self.end_date.set_min_date(self.marriage.marriage_year, self.marriage.marriage_month)
+            self.end_date.set_date(self.marriage.marriage_year, self.marriage.marriage_month)
+        else:
+            self.end_date.set_date(1721, None)
+        
+        form.addRow("End Date:", self.end_date)
+        
+        # Reason
+        self.reason_combo = QComboBox()
+        self.reason_combo.addItems(["Death", "Divorce", "Annulment", "Other", "Unknown"])
+        form.addRow("Reason:", self.reason_combo)
+        
+        layout.addLayout(form)
+        
+        # Buttons
+        button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | 
+            QDialogButtonBox.StandardButton.Cancel
+        )
+        button_box.accepted.connect(self._handle_accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+    
+    def _handle_accept(self) -> None:
+        """Validate and accept."""
+        year, month = self.end_date.get_date()
+        
+        if not year:
+            QMessageBox.warning(self, "Validation Error", "End date year is required.")
+            return
+        
+        # Validate against marriage start date
+        if self.marriage.marriage_year:
+            if year < self.marriage.marriage_year:
+                QMessageBox.warning(
+                    self,
+                    "Invalid Date",
+                    "Marriage cannot end before it started."
+                )
+                return
+            elif year == self.marriage.marriage_year and self.marriage.marriage_month and month:
+                if month < self.marriage.marriage_month:
+                    QMessageBox.warning(
+                        self,
+                        "Invalid Date",
+                        "Marriage cannot end before it started."
+                    )
+                    return
+        
+        self.dissolution_year = year
+        self.dissolution_month = month
+        self.dissolution_reason = self.reason_combo.currentText()
+        
+        self.accept()
+    
+    def get_dissolution_data(self) -> tuple[int | None, int | None, str]:
+        """Returns (year, month, reason)."""
+        return (self.dissolution_year, self.dissolution_month, self.dissolution_reason)
 
 >> 📋 dialogs\import_csv_dialog.py (1 code lines)
 """Dialog for importing genealogy data from CSV files."""
@@ -3263,26 +5471,191 @@ WIDGETS
 >> 📋 widgets\__init__.py (0 code lines)
 
 
->> 📋 widgets\date_picker.py (1 code lines)
+>> ✅ widgets\date_picker.py (72 code lines)
 """Custom date picker widget supporting flexible precision."""
 
-from PySide6.QtWidgets import QWidget
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, 
+    QSpinBox, QLabel, QCheckBox
+)
+from PySide6.QtCore import Signal
+
+
+class MonthSpinBox(QSpinBox):
+    """Custom spinbox that displays month names instead of just numbers."""
+    
+    yearAdjustNeeded = Signal(int)
+    
+    MONTH_NAMES = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ]
+    
+    def __init__(self, parent=None):
+        """Initialize month spinbox."""
+        super().__init__(parent)
+        self.setWrapping(True)
+    
+    def textFromValue(self, value: int) -> str:
+        """Convert internal value (1-12) to display text."""
+        if 1 <= value <= 12:
+            return f"{self.MONTH_NAMES[value - 1]} ({value})"
+        return str(value)
+    
+    def valueFromText(self, text: str) -> int:
+        """Convert display text back to internal value (1-12)."""
+        if "(" in text and ")" in text:
+            try:
+                return int(text.split("(")[1].split(")")[0])
+            except (ValueError, IndexError):
+                pass
+        
+        text_lower = text.lower().strip()
+        for i, month in enumerate(self.MONTH_NAMES, start=1):
+            if month.lower().startswith(text_lower):
+                return i
+        
+        try:
+            return int(text)
+        except ValueError:
+            return 1
+    
+    def stepBy(self, steps: int) -> None:
+        """Override step behavior to handle year adjustment on wrap."""
+        old_value = self.value()
+        super().stepBy(steps)
+        new_value = self.value()
+        
+        if steps > 0 and old_value == 12 and new_value == 1:
+            self.yearAdjustNeeded.emit(1)
+        elif steps < 0 and old_value == 1 and new_value == 12:
+            self.yearAdjustNeeded.emit(-1)
 
 
 class DatePicker(QWidget):
-    """Widget for entering dates with flexible precision."""
-
+    """Widget for entering dates with flexible precision (Year + Month)."""
+    
+    dateChanged = Signal()
+    
     def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the date picker widget."""
         super().__init__(parent)
-        # TODO: Add year spinbox
-        # TODO: Add month combobox (with None option)
-        # TODO: Add day spinbox (with None option)
-        # TODO: Implement date validation logic
-        # TODO: Add get_date() method
-        # TODO: Add set_date() method
-        pass
+        
+        self.min_year: int | None = None
+        self.min_month: int | None = None
+        
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Year Section
+        year_layout = QVBoxLayout()
+        year_label = QLabel("Year", self)
+        self.year_spin = QSpinBox(self)
+        self.year_spin.setRange(1500, 2000)
+        self.year_spin.setValue(1721)
+        self.year_spin.valueChanged.connect(self._on_date_changed)
+        
+        year_layout.addWidget(year_label)
+        year_layout.addWidget(self.year_spin)
+        
+        # Month Section
+        month_layout = QVBoxLayout()
+        month_label = QLabel("Month", self)
+        
+        month_controls = QHBoxLayout()
+        self.month_spin = MonthSpinBox(self)
+        self.month_spin.setRange(1, 12)
+        self.month_spin.setValue(1)
+        self.month_spin.valueChanged.connect(self._on_date_changed)
+        self.month_spin.yearAdjustNeeded.connect(self._on_year_adjust)
+        
+        self.unknown_check = QCheckBox("Unknown", self)
+        self.unknown_check.setChecked(False)
+        self.unknown_check.stateChanged.connect(self._on_unknown_toggled)
+        
+        month_controls.addWidget(self.month_spin)
+        month_controls.addWidget(self.unknown_check)
+        
+        month_layout.addWidget(month_label)
+        month_layout.addLayout(month_controls)
+        
+        main_layout.addLayout(year_layout)
+        main_layout.addLayout(month_layout)
+        main_layout.addStretch()
+        
+        self._update_month_state()
+    
+    def set_min_date(self, min_year: int, min_month: int | None = None) -> None:
+        """Set minimum allowable date."""
+        self.min_year = min_year
+        self.min_month = min_month if min_month else 1
+        
+        if self.min_year:
+            self.year_spin.setMinimum(self.min_year)
+    
+    def _on_year_adjust(self, direction: int) -> None:
+        """Adjust year when month wraps around."""
+        current_year = self.year_spin.value()
+        new_year = current_year + direction
+        
+        if self.year_spin.minimum() <= new_year <= self.year_spin.maximum():
+            self.year_spin.setValue(new_year)
+    
+    def _on_unknown_toggled(self) -> None:
+        """Handle unknown checkbox state change."""
+        self._update_month_state()
+        self._on_date_changed()
+    
+    def _update_month_state(self) -> None:
+        """Enable or disable month spinbox based on unknown checkbox."""
+        is_unknown = self.unknown_check.isChecked()
+        self.month_spin.setEnabled(not is_unknown)
+    
+    def _on_date_changed(self) -> None:
+        """Internal handler when date changes - emits signal."""
+        self.dateChanged.emit()
+    
+    def get_date(self) -> tuple[int, int | None]:
+        """Get the selected date as (year, month) tuple."""
+        year = self.year_spin.value()
+        
+        if self.unknown_check.isChecked():
+            return (year, None)
+        else:
+            return (year, self.month_spin.value())
+    
+    def set_date(self, year: int, month: int | str | None = None) -> None:
+        """Set the date to specific values."""
+        self.year_spin.setValue(year)
+        
+        if month is None or month == "":
+            self.unknown_check.setChecked(True)
+        else:
+            self.unknown_check.setChecked(False)
+            
+            if isinstance(month, str):
+                month_num = self._month_name_to_number(month)
+                if month_num is not None:
+                    self.month_spin.setValue(month_num)
+                else:
+                    self.unknown_check.setChecked(True)
+            else:
+                self.month_spin.setValue(int(month))
+        
+        self._update_month_state()
 
+    def _month_name_to_number(self, month_name: str) -> int | None:
+        """Convert month name to number (1-12)."""
+        month_map = {
+            'january': 1, 'february': 2, 'march': 3, 'april': 4,
+            'may': 5, 'june': 6, 'july': 7, 'august': 8,
+            'september': 9, 'october': 10, 'november': 11, 'december': 12
+        }
+        return month_map.get(month_name.lower())
+    
+    def clear(self) -> None:
+        """Reset to default values (1721, Unknown)."""
+        self.set_date(1721, None)
 
 >> 📋 widgets\extended_details_panel.py (2 code lines)
 """Panel widget for displaying detailed person information."""
@@ -3314,25 +5687,170 @@ class ExtendedDetailsPanel(QWidget):
         pass
 
 
->> 📋 widgets\person_selector.py (1 code lines)
-"""Widget for selecting a person from the database."""
+>> ✅ widgets\person_selector.py (39 code lines)
+"""Widget for selecting a person from the database with autocomplete."""
 
-from PySide6.QtWidgets import QWidget
+import unicodedata
+from PySide6.QtWidgets import QWidget, QLineEdit, QVBoxLayout, QCompleter
+from PySide6.QtCore import Signal, Qt, QStringListModel
+
+from database.db_manager import DatabaseManager
+from database.person_repository import PersonRepository
 
 
 class PersonSelector(QWidget):
-    """Searchable dropdown widget for selecting a person."""
-
-    def __init__(self, parent: QWidget | None = None) -> None:
+    """Autocomplete text field for selecting a person from the database."""
+    
+    # Signal emitted when a person is selected (emits person_id)
+    personSelected = Signal(int)
+    # Signal emitted when selection is cleared
+    selectionCleared = Signal()
+    
+    def __init__(self, db_manager: DatabaseManager, parent: QWidget | None = None) -> None:
         """Initialize the person selector widget."""
         super().__init__(parent)
-        # TODO: Add search field
-        # TODO: Add dropdown list
-        # TODO: Implement real-time filtering
-        # TODO: Load people from database
-        # TODO: Add get_selected_person() method
-        pass
+        
+        self.db_manager = db_manager
+        self.person_repo = PersonRepository(db_manager)
 
+        self.gender_filter: str | None = None
+
+        self._name_to_id: dict[str, int] = {}
+
+        self._selected_person_id: int | None = None
+        
+        self._setup_ui()
+        self._load_people()
+    
+    def _setup_ui(self) -> None:
+        """Create the autocomplete text field."""
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Create text field
+        self.text_field = QLineEdit(self)
+        self.text_field.setPlaceholderText("Type to search for a person...")
+        self.text_field.setClearButtonEnabled(True)
+        
+        # Create completer
+        self.completer = QCompleter(self)
+        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.completer.setMaxVisibleItems(10)
+        
+        # Attach completer to text field
+        self.text_field.setCompleter(self.completer)
+        
+        # Connect signals
+        self.completer.activated.connect(self._on_person_selected)
+        self.text_field.textChanged.connect(self._on_text_changed)
+        
+        layout.addWidget(self.text_field)
+    
+    def _load_people(self) -> None:
+        """Load all people from database and populate completer."""
+        if not self.db_manager.is_open:
+            return
+
+        all_people = self.person_repo.get_all()
+
+        if hasattr(self, 'gender_filter') and self.gender_filter:
+            all_people = [p for p in all_people if p.gender in (self.gender_filter, "Unknown")]
+
+        self._name_to_id.clear()
+
+        display_names = []
+        
+        for person in all_people:
+            if person.id is None:
+                continue
+            
+            display_name = self._format_person_display(person)
+            display_names.append(display_name)
+            self._name_to_id[display_name] = person.id
+
+        display_names.sort()
+
+        from PySide6.QtCore import QStringListModel
+        model = QStringListModel(display_names)
+        self.completer.setModel(model)
+    
+    def _format_person_display(self, person) -> str:
+        """Format a person's info for display in the dropdown."""
+        name = person.display_name
+
+        if person.death_year:
+            date_str = f"{person.birth_year or '?'}-{person.death_year}"
+        elif person.birth_year:
+            date_str = f"b. {person.birth_year}"
+        else:
+            date_str = "dates unknown"
+        
+        return f"{name} ({date_str})"
+    
+    def _normalize_text(self, text: str) -> str:
+        """Normalize text for searching (handle special characters)."""
+        text = text.lower()
+        
+        # Unicode normalization: á → a, ý → y, etc.
+        normalized = unicodedata.normalize('NFD', text)
+        ascii_text = ''.join(
+            char for char in normalized 
+            if unicodedata.category(char) != 'Mn'
+        )
+        
+        return ascii_text
+    
+    def _on_person_selected(self, display_name: str) -> None:
+        """Handle person selection from dropdown."""
+        person_id = self._name_to_id.get(display_name)
+        
+        if person_id is not None:
+            self._selected_person_id = person_id
+            self.personSelected.emit(person_id)
+    
+    def _on_text_changed(self, text: str) -> None:
+        """Handle text field changes."""
+        if not text.strip():
+            self._selected_person_id = None
+            self.selectionCleared.emit()
+    
+    def get_person_id(self) -> int | None:
+        """Get the currently selected person's ID."""
+        return self._selected_person_id
+    
+    def set_person(self, person_id: int | None) -> None:
+        """Set the selected person by ID."""
+        if person_id is None:
+            self.clear()
+            return
+
+        for display_name, pid in self._name_to_id.items():
+            if pid == person_id:
+                self.text_field.setText(display_name)
+                self._selected_person_id = person_id
+                return
+
+        self.clear()
+    
+    def clear(self) -> None:
+        """Clear the selection."""
+        self.text_field.clear()
+        self._selected_person_id = None
+        self.selectionCleared.emit()
+    
+    def refresh(self) -> None:
+        """Reload people from database (call after adding/editing people)."""
+        current_id = self._selected_person_id
+        self._load_people()
+
+        if current_id is not None:
+            self.set_person(current_id)
+    
+    def set_filter(self, gender: str | None = None) -> None:
+        """Filter the displayed people by gender."""
+        self.gender_filter = gender
+        self._load_people()
 
 >> 📋 widgets\portrait_gallery.py (1 code lines)
 """Widget for displaying and managing person portraits."""
@@ -4331,5 +6849,5 @@ shiboken6==6.10.1
 
 
 ======================================================================
-END - 11/94 files, 1186 code lines
+END - 23/100 files, 2013 code lines
 ======================================================================

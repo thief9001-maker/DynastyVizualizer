@@ -1,3 +1,5 @@
+"""Manages SQLite-based .dyn dynasty database files."""
+
 import sqlite3
 import shutil
 import os
@@ -7,7 +9,6 @@ class DatabaseManager:
     """Manages SQLite-based .dyn dynasty database files."""
 
     def __init__(self, parent: 'MainWindow') -> None:  # type: ignore
-        """Initialize the database manager."""
         self.parent = parent
         self.conn: sqlite3.Connection | None = None
         self.file_path: str | None = None
@@ -30,16 +31,12 @@ class DatabaseManager:
     @property
     def database_name(self) -> str | None:
         """Get the filename of the current database without path."""
-        if self.file_path is None:
-            return None
-        return os.path.basename(self.file_path)
+        return os.path.basename(self.file_path) if self.file_path else None
 
     @property
     def database_directory(self) -> str | None:
         """Get the directory path of the current database."""
-        if self.file_path is None:
-            return None
-        return os.path.dirname(self.file_path)
+        return os.path.dirname(self.file_path) if self.file_path else None
 
     @property
     def has_file_path(self) -> bool:
@@ -81,33 +78,25 @@ class DatabaseManager:
             raise RuntimeError(f"Failed to open database: {e}")
 
     def save_database(self, path: str | None = None) -> bool:
-        """
-        Save the database, optionally to a new path.
-        
-        If path is provided, saves a copy to that location and switches to it.
-        If path is None, commits changes to the current file.
-        """
+        """Save database, optionally to a new path."""
         if self.conn is None:
             return False
         
-        # If no path provided, just commit current database
         if path is None:
             self.conn.commit()
             self._unsaved_changes = False
             return True
         
-        # Save to new path (save_as behavior)
         if self.file_path is None:
             return False
         
         self.conn.commit()
         self.conn.close()
         
-        # Copy database file to new location
         shutil.copy2(self.file_path, path)
         
-        # Reopen connection at new path
         self.conn = sqlite3.connect(path)
+        self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON;")
         self.file_path = path
         self._unsaved_changes = False
@@ -135,7 +124,7 @@ class DatabaseManager:
         self._unsaved_changes = False
 
     # ------------------------------------------------------------------
-    # Private Methods
+    # Private Methods - Schema Management
     # ------------------------------------------------------------------
 
     def _initialize_schema(self) -> None:
@@ -146,8 +135,6 @@ class DatabaseManager:
         cursor = self.conn.cursor()
 
         schema_sql = """
-        -- Person table: Core genealogical data
-        -- Dates support flexible precision (year, year/month, or year/month/day)
         CREATE TABLE IF NOT EXISTS Person (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             first_name TEXT NOT NULL,
@@ -180,7 +167,6 @@ class DatabaseManager:
             FOREIGN KEY(family_id) REFERENCES Family(id) ON DELETE SET NULL
         );
 
-        -- Event table: Life events (jobs, illnesses, moves, etc.)
         CREATE TABLE IF NOT EXISTS Event (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             person_id INTEGER NOT NULL,
@@ -196,7 +182,6 @@ class DatabaseManager:
             FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
         );
 
-        -- Marriage table: Relationships between people
         CREATE TABLE IF NOT EXISTS Marriage (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             spouse1_id INTEGER,
@@ -209,14 +194,13 @@ class DatabaseManager:
             dissolution_day INTEGER,
             dissolution_reason TEXT,
             marriage_type TEXT DEFAULT 'spouse',
-            notes TEST,
+            notes TEXT,
             FOREIGN KEY(spouse1_id) REFERENCES Person(id)
                 ON UPDATE CASCADE ON DELETE SET NULL,
             FOREIGN KEY(spouse2_id) REFERENCES Person(id)
                 ON UPDATE CASCADE ON DELETE SET NULL
         );
 
-        -- Portrait table: Multiple images per person with date ranges
         CREATE TABLE IF NOT EXISTS Portrait (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             person_id INTEGER NOT NULL,
@@ -232,7 +216,6 @@ class DatabaseManager:
             FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
         );
 
-        -- Family table: Dynasty/family groupings
         CREATE TABLE IF NOT EXISTS Family (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             surname TEXT NOT NULL,
@@ -245,7 +228,6 @@ class DatabaseManager:
             notes TEXT
         );
 
-        -- MajorEvent table: Historical events affecting multiple families
         CREATE TABLE IF NOT EXISTS MajorEvent (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             event_name TEXT NOT NULL,
@@ -260,7 +242,6 @@ class DatabaseManager:
             color TEXT
         );
 
-        -- PersonPosition table: Custom positions for draggable UI
         CREATE TABLE IF NOT EXISTS PersonPosition (
             person_id INTEGER PRIMARY KEY,
             view_type TEXT NOT NULL,
@@ -276,15 +257,20 @@ class DatabaseManager:
         """Migrate existing database schema to latest version."""
         if self.conn is None:
             raise RuntimeError("Database connection is not established.")
-            
+        
         cursor = self.conn.cursor()
-
-        # Person table migrations
-        cursor.execute("PRAGMA table_info(Person)")
-        existing_person_columns = {row[1] for row in cursor.fetchall()}
-
-        person_migrations = [
-            # Dec/10/2025 - Person Model updates
+        
+        self._migrate_person_table(cursor)
+        self._migrate_marriage_table(cursor)
+        self._migrate_event_table_data(cursor)
+        
+        self.conn.commit()
+    
+    def _migrate_person_table(self, cursor: sqlite3.Cursor) -> None:
+        """Apply Person table schema migrations."""
+        existing_columns = self._get_table_columns(cursor, "Person")
+        
+        migrations = [
             ("middle_name", "ALTER TABLE Person ADD COLUMN middle_name TEXT DEFAULT ''"),
             ("nickname", "ALTER TABLE Person ADD COLUMN nickname TEXT DEFAULT ''"),
             ("dynasty_id", "ALTER TABLE Person ADD COLUMN dynasty_id INTEGER DEFAULT 1"),
@@ -292,22 +278,74 @@ class DatabaseManager:
             ("education", "ALTER TABLE Person ADD COLUMN education INTEGER DEFAULT 0"),
         ]
         
-        for column_name, sql in person_migrations:
-            if column_name not in existing_person_columns:
-                cursor.execute(sql)
+        self._apply_column_migrations(cursor, existing_columns, migrations)
+    
+    def _migrate_marriage_table(self, cursor: sqlite3.Cursor) -> None:
+        """Apply Marriage table schema migrations."""
+        existing_columns = self._get_table_columns(cursor, "Marriage")
         
-        # Marriage table migrations
-        cursor.execute("PRAGMA table_info(Marriage)")
-        existing_marriage_columns = {row[1] for row in cursor.fetchall()}
-        
-        marriage_migrations = [
-            # Dec/20/2025 - Marriage notes field
+        migrations = [
             ("notes", "ALTER TABLE Marriage ADD COLUMN notes TEXT"),
         ]
         
-        for column_name, sql in marriage_migrations:
-            if column_name not in existing_marriage_columns:
-                cursor.execute(sql)
+        self._apply_column_migrations(cursor, existing_columns, migrations)
+    
+    def _migrate_event_table_data(self, cursor: sqlite3.Cursor) -> None:
+        """Convert Event table month names from text to integers."""
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Event'")
+        if not cursor.fetchone():
+            return
         
-        self.conn.commit()
-
+        cursor.execute("SELECT id, start_month FROM Event WHERE start_month IS NOT NULL LIMIT 1")
+        row = cursor.fetchone()
+        
+        if not row or not row[1]:
+            return
+        
+        if isinstance(row[1], str) and not row[1].isdigit():
+            self._convert_event_months_to_integers(cursor)
+    
+    def _convert_event_months_to_integers(self, cursor: sqlite3.Cursor) -> None:
+        """Convert text month names to integer values in Event table."""
+        month_map = {
+            "January": 1, "February": 2, "March": 3, "April": 4,
+            "May": 5, "June": 6, "July": 7, "August": 8,
+            "September": 9, "October": 10, "November": 11, "December": 12
+        }
+        
+        cursor.execute("""
+            SELECT id, start_month, end_month 
+            FROM Event 
+            WHERE start_month IS NOT NULL OR end_month IS NOT NULL
+        """)
+        
+        for event_id, start_month, end_month in cursor.fetchall():
+            new_start = month_map.get(start_month) if start_month else None
+            new_end = month_map.get(end_month) if end_month else None
+            
+            cursor.execute("""
+                UPDATE Event 
+                SET start_month = ?, end_month = ? 
+                WHERE id = ?
+            """, (new_start, new_end, event_id))
+    
+    # ------------------------------------------------------------------
+    # Private Methods - Utilities
+    # ------------------------------------------------------------------
+    
+    @staticmethod
+    def _get_table_columns(cursor: sqlite3.Cursor, table_name: str) -> set[str]:
+        """Get set of column names for a table."""
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        return {row[1] for row in cursor.fetchall()}
+    
+    @staticmethod
+    def _apply_column_migrations(
+        cursor: sqlite3.Cursor,
+        existing_columns: set[str],
+        migrations: list[tuple[str, str]]
+    ) -> None:
+        """Apply column addition migrations if columns don't exist."""
+        for column_name, sql in migrations:
+            if column_name not in existing_columns:
+                cursor.execute(sql)
