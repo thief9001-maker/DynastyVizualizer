@@ -17,11 +17,11 @@ A beautiful, feature-rich genealogy application that combines the depth of profe
 
 ## Codebase Statistics
 
-- **Total Python Files**: 104 (16 implemented, 88 scaffolded)
-- **Lines of Code**: ~1,900 (excluding comments and blank lines)
-- **Total Lines**: ~3,800 (including docstrings and comments)
-- **Implementation Status**: ~15% complete (Phase 1 complete, Phase 2 in progress)
-- **Estimated Final Size**: 10,000-15,000 lines of code
+- **Total Python Files**: 95+ files implemented
+- **Lines of Code**: ~7,700 (excluding comments and blank lines)
+- **Total Lines**: ~12,000+ (including docstrings and comments)
+- **Implementation Status**: ~25-30% complete (Phase 1 ✅ complete, Phase 2 ~90% complete)
+- **Estimated Final Size**: 15,000-20,000 lines of code
 
 ---
 
@@ -911,9 +911,9 @@ Core infrastructure for database management, undo/redo, settings, and applicatio
 
 ---
 
-### 🚧 **Phase 2: Data Models & Basic CRUD** (CURRENT - Weeks 2-5)
-**Status**: In Progress (~35% complete)
-**Estimated Lines**: +1,200
+### ✅ **Phase 2: Data Models & Basic CRUD** (Weeks 2-5)
+**Status**: Nearly Complete (~90%)
+**Actual Lines**: +5,900
 
 Build data models and basic create/read/update/delete operations with dialogs.
 
@@ -926,36 +926,50 @@ Build data models and basic create/read/update/delete operations with dialogs.
   - Computed properties: full_name, display_name, is_deceased
   - Utility methods: get_age(), is_alive_in_year(), get_age_at_death()
   - Date formatting: get_birth_date_string(), get_death_date_string(), get_lifespan_string()
-- [x] **PersonRepository** - Full CRUD implementation:
+- [x] **PersonRepository** - Full CRUD implementation (272 lines):
   - Create: insert(), insert_with_id() (for redo with ID preservation)
   - Read: get_by_id(), get_all(), get_by_name(), get_children(), get_alive_in_year()
   - Update: update()
   - Delete: delete()
-- [x] **AddPersonCommand** - Undoable command:
-  - run() method inserts person or restores with specific ID
-  - undo() method deletes person
-  - Preserves person ID across undo/redo cycles
-- [x] **AddPersonDialog** - Professional UI:
-  - Special character toolbar (á, ý, ó, é, í) for non-English names
-  - Required fields: first name, last name, birth year
-  - Optional fields: gender, notes
-  - Input validation with error messages
-  - Focus management and keyboard navigation
+- [x] **AddPersonCommand** - Undoable command with ID preservation
+- [x] **AddPersonDialog** (252 lines) - Professional UI with special characters
+- [x] **EditPersonCommand** - Modify existing person with full undo/redo
+- [x] **EditPersonDialog** (166 lines) - Comprehensive 3-panel dialog:
+  - **General Panel** (310 lines): Names, dates, gender, education, notes
+  - **Relationships Panel** (777 lines - LARGEST FILE): Parents, marriages, children management
+  - **Events Panel** (252 lines): Personal event history timeline
+- [x] **DeletePersonCommand** and RemovePersonDialog with confirmation
+- [x] **Marriage model** - Complete with lifecycle properties
+- [x] **MarriageRepository** (207 lines) - Full CRUD + get_by_spouse methods
+- [x] **CreateMarriageCommand** and CreateMarriageDialog
+- [x] **EndMarriageCommand** and EndMarriageDialog
+- [x] **EditMarriageCommand** for modifying existing marriages
+- [x] **Event model** - Complete with flexible date ranges
+- [x] **EventRepository** - Full CRUD operations
+- [x] **CreateEventCommand/Dialog** and **EditEventCommand/Dialog**
+- [x] **CreateChildCommand** and **CreateChildDialog** (250 lines)
+- [x] **AssignParentCommand** and **UnassignParentCommand**
+- [x] **DatePicker widget** (183 lines) - Flexible year/month/day precision
+- [x] **PersonSelector widget** (162 lines) - Searchable dropdown
+- [x] **Data Table View** (237 lines) - Sortable, filterable, searchable table
+- [x] **Recent Files Management** - Quick access menu with validation
 
-**In Progress:**
-- [ ] EditPersonCommand and EditPersonDialog
-- [ ] DeletePersonCommand and RemovePersonDialog with confirmation
-- [ ] Marriage model and commands
-- [ ] CreateMarriageDialog
-- [ ] Event model
-- [ ] DatePicker widget (flexible year/month/day)
-- [ ] PersonSelector widget (searchable dropdown)
+**Remaining:**
+- [ ] Portrait management UI (model exists, needs gallery widget)
+- [ ] Settings dialog completion (structure exists, needs all tabs)
+- [ ] About dialog (Help menu)
 
-**Deliverable**: Can add, edit, and delete people and marriages through functional dialogs
+**Deliverable**: ✅ Complete person, marriage, and event management with undo/redo
 
-**Key Files**: `models/person.py` ✅, `database/person_repository.py` ✅, `commands/genealogy_commands/add_person.py` ✅, `dialogs/add_person_dialog.py` ✅
+**Key Files**:
+- Models: `person.py` ✅, `marriage.py` ✅, `event.py` ✅
+- Repositories: `person_repository.py` ✅, `marriage_repository.py` ✅, `event_repository.py` ✅
+- Commands: 14 genealogy commands ✅, 8 GUI commands ✅
+- Dialogs: `add_person_dialog.py` ✅, `edit_person_dialog.py` ✅ (3 panels), `create_marriage_dialog.py` ✅, `create_child_dialog.py` ✅, `create_event_dialog.py` ✅, `edit_event_dialog.py` ✅, `end_marriage_dialog.py` ✅
+- Widgets: `date_picker.py` ✅, `person_selector.py` ✅
+- Views: `data_table_view.py` ✅
 
-**Next Steps**: EditPersonDialog, RemovePersonDialog with confirmation, Marriage creation
+**Next Steps**: Complete Settings dialog, Portrait gallery UI, begin Phase 3 (Family Tree visualization)
 
 ---
 
@@ -1370,6 +1384,6 @@ Share examples from each category:
 
 ---
 
-**Last Updated**: 2025-12-13
-**Codebase Version**: 0.1.0-dev (Phase 1 Complete, Phase 2: ~35% Complete)
-**Next Milestone**: EditPersonDialog, RemovePersonDialog, Marriage creation (Phase 2 continuation)
+**Last Updated**: 2025-12-30
+**Codebase Version**: 0.2.0-dev (Phase 1 ✅ Complete, Phase 2: ~90% Complete)
+**Next Milestone**: Settings dialog, Portrait gallery UI, Family Tree visualization (Phase 3)
