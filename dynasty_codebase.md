@@ -2,7 +2,7 @@
 
 **Quick Reference**: Family tree/genealogy app for gaming. PySide6 + SQLite. MVC + Command pattern.
 
-**Status**: Phase 1 ✅ Complete, Phase 2 🚧 35% (Add Person feature complete)
+**Status**: Phase 1 ✅ Complete, Phase 2 ✅ ~90% Complete (Nearly all CRUD operations complete)
 
 ---
 
@@ -29,30 +29,49 @@ User Action → Dialog → Command → Repository → Database
 - Settings: QSettings persistence, keyboard shortcuts
 - Migration: Automatic schema upgrades
 
-### Phase 2: Add Person ✅
-- **Person Model** (25 fields)
-  - Names: first, middle, last, maiden, nickname
-  - Dates: birth/death/arrival/moved_out (year/month/day)
-  - Relations: father_id, mother_id, family_id
-  - Game: dynasty_id, is_founder, education
-  - Computed: full_name, display_name, is_deceased, age calcs
+### Phase 2: Data Management ✅ ~90%
 
-- **PersonRepository** (CRUD + search)
-  - insert(), insert_with_id() - preserves ID on redo
-  - get_by_id(), get_all(), get_by_name(), get_children(), get_alive_in_year()
-  - update(), delete()
+**Person Management:**
+- **Person Model** (25 fields with computed properties)
+- **PersonRepository** (272 lines) - Full CRUD + search
+- **AddPersonDialog** (252 lines) - Special characters, validation
+- **EditPersonDialog** (166 lines + 3 panels):
+  - General Panel (310 lines): Names, dates, gender, education
+  - Relationships Panel (777 lines): Parents, marriages, children
+  - Events Panel (252 lines): Personal event timeline
+- **DeletePersonCommand** - With confirmation dialog
 
-- **AddPersonCommand** (undoable)
-  - run(): inserts person, stores ID for redo
-  - undo(): deletes person
-  - ID preserved across undo/redo cycles
+**Marriage Management:**
+- **Marriage Model** - Full lifecycle (dates, types, dissolution)
+- **MarriageRepository** (207 lines) - CRUD + get_by_spouse
+- **CreateMarriageDialog** - Marry two people with validation
+- **EndMarriageDialog** - Divorce/dissolution with reasons
+- **EditMarriageCommand** - Modify existing marriages
 
-- **AddPersonDialog** (197 lines)
-  - Special chars: á ý ó é í (toolbar for non-English names)
-  - Required: first name, last name, birth year
-  - Optional: gender, notes
-  - Validation with error messages
-  - Qt close warning built-in
+**Event System:**
+- **Event Model** - Flexible date ranges
+- **EventRepository** - Full CRUD operations
+- **CreateEventDialog** / **EditEventDialog** (183/219 lines)
+- **Event Types**: Birth, Marriage, Death, Job, Move, Illness, etc.
+- Timeline display in Edit Person dialog
+
+**Child Creation:**
+- **CreateChildDialog** (250 lines) - Automatic parent assignment
+- **AssignParentCommand** / **UnassignParentCommand**
+- Parent validation
+
+**Reusable Widgets:**
+- **DatePicker** (183 lines) - Flexible year/month/day
+- **PersonSelector** (162 lines) - Searchable dropdown
+- **Search Bar** - Real-time filtering
+
+**Data Views:**
+- **Data Table View** (237 lines) - Sortable, filterable, searchable
+- Double-click to edit, right-click context menus
+
+**Commands:**
+- 14 Genealogy Commands (all ✅)
+- 8 GUI Commands (all ✅)
 
 ---
 
@@ -217,32 +236,39 @@ python scripts/migrate_database.py "MyDynasty.dyn"
 
 ---
 
-## Next Steps (Phase 2)
+## Next Steps (Phase 2 → Phase 3)
 
-- [ ] EditPersonDialog and EditPersonCommand
-- [ ] RemovePersonDialog with confirmation
-- [ ] Marriage model and CreateMarriageCommand
-- [ ] DatePicker widget (flexible precision)
-- [ ] PersonSelector widget (searchable)
+- [ ] Settings dialog completion (all tabs)
+- [ ] About dialog (Help menu)
+- [ ] Portrait gallery UI (model exists)
+- [ ] Family Tree visualization (Phase 3)
+- [ ] Timeline view integration (Phase 5)
 
 ---
 
 ## Quick Stats
 
-- **Files**: 16/104 implemented (15%)
-- **Lines**: ~1,900 / ~10,000 estimated
+- **Files**: 95+ files implemented
+- **Lines**: ~7,700 / ~15,000-20,000 estimated
 - **Phase 1**: ✅ 100% complete
-- **Phase 2**: 🚧 35% complete
-- **Updated**: 2025-12-13
+- **Phase 2**: ✅ ~90% complete
+- **Overall Progress**: ~25-30%
+- **Updated**: 2025-12-30
 
 ---
 
 ## Key Achievements
 
 ✅ Complete database foundation with migration
-✅ Full undo/redo infrastructure
+✅ Full undo/redo infrastructure (22 commands)
 ✅ Keyboard shortcuts system
-✅ **Add Person feature** with special character support
+✅ **Complete Person Management** (Add, Edit with 3 panels, Delete)
+✅ **Complete Marriage Management** (Create, Edit, End)
+✅ **Complete Event System** (Create, Edit, Delete, Timeline display)
+✅ **Child Creation** with automatic parent assignment
+✅ **Data Table View** with sorting, filtering, search
+✅ **Recent Files** management
+✅ DatePicker and PersonSelector reusable widgets
 ✅ ID preservation across undo/redo
 ✅ Professional validation and error handling
 
