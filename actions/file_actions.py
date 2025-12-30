@@ -54,25 +54,42 @@ class FileActions:
     def _show_error(self, title: str, message: str) -> None:
         """Display an error message dialog."""
         QMessageBox.critical(self.parent, title, message)
+
+    def _refresh_all_views(self) -> None:
+        """Refresh all active views with new database data."""
+        if self.parent.data_table_view:
+            self.parent.data_table_view.refresh_data()    
     
     # ------------------------------------------------------------------
     # File Operations
     # ------------------------------------------------------------------
     
     def new_dynasty(self) -> None:
-        """Prompt user to create a new dynasty database file."""
-        path = self._get_save_path("Create New Dynasty File")
-        if not path:
-            return
-        
-        try:
-            self.parent.db.new_database(path)
-            self.parent.refresh_ui()
-        except Exception as e:
-            self._show_error(
-                "Error Creating Database",
-                f"Failed to create dynasty file:\n{str(e)}"
+        """Create a new untitled dynasty database."""
+        if self.parent.db.is_dirty:
+            reply = QMessageBox.question(
+                self.parent,
+                "Unsaved Changes",
+                "You have unsaved changes. Do you want to save before creating a new dynasty?",
+                QMessageBox.StandardButton.Save | 
+                QMessageBox.StandardButton.Discard | 
+                QMessageBox.StandardButton.Cancel
             )
+            
+            if reply == QMessageBox.StandardButton.Save:
+                if not self.save():
+                    return
+            elif reply == QMessageBox.StandardButton.Cancel:
+                return
+
+        self.parent.db.close()
+
+        self.parent._create_untitled_database()
+
+        self.parent.refresh_ui()
+        self._refresh_all_views()
+        
+        self.parent._show_family_trees()
     
     def open_dynasty(self) -> None:
         """Prompt user to open an existing dynasty database file."""
@@ -83,6 +100,9 @@ class FileActions:
         try:
             self.parent.db.open_database(path)
             self.parent.refresh_ui()
+            self._refresh_all_views()
+            self.parent.settings_manager.add_recent_file(path)
+            self.parent._update_recent_files_menu()
         except FileNotFoundError:
             self._show_error(
                 "File Not Found",
@@ -93,7 +113,7 @@ class FileActions:
                 "Error Opening Database",
                 f"Failed to open dynasty file:\n{str(e)}"
             )
-    
+        
     def save(self) -> bool:
         """Save current database, falling back to save_as if no path set."""
         if not self._ensure_db():
@@ -106,6 +126,10 @@ class FileActions:
             result = self.parent.db.save_database()
             if result:
                 self.parent.refresh_ui()
+                # Add to recent files after successful save
+                if self.parent.db.file_path:
+                    self.parent.settings_manager.add_recent_file(self.parent.db.file_path)
+                    self.parent._update_recent_files_menu()
             return result
         except Exception as e:
             self._show_error(
@@ -113,13 +137,12 @@ class FileActions:
                 f"Failed to save dynasty file:\n{str(e)}"
             )
             return False
-    
+
     def save_as(self) -> bool:
         """Prompt user to save database to a new file."""
         if not self._ensure_db():
             return False
         
-        # Suggest current filename if it exists
         default_name = self.parent.db.database_name or ""
         path = self._get_save_path("Save Dynasty File As", default_name)
         if not path:
@@ -127,6 +150,9 @@ class FileActions:
         
         try:
             self.parent.db.save_database(path)
+            self.parent.refresh_ui()
+            self.parent.settings_manager.add_recent_file(path)
+            self.parent._update_recent_files_menu()
             return True
         except Exception as e:
             self._show_error(

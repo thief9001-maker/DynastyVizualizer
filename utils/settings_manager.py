@@ -208,3 +208,48 @@ class SettingsManager:
         """Reset all categories to defaults and save to disk."""
         for category in self.DEFAULTS.keys():
             self.reset_category_to_defaults(category)
+
+    # ------------------------------------------------------------------
+    # Recent Files Operations
+    # ------------------------------------------------------------------
+
+    def get_recent_files(self) -> list[str]:
+        """Get list of recent file paths."""
+        self.qsettings.beginGroup("recent_files")
+        size = self.qsettings.beginReadArray("files")
+        recent = []
+        for i in range(size):
+            self.qsettings.setArrayIndex(i)
+            path = self.qsettings.value("path")
+            if path:
+                recent.append(path)
+        self.qsettings.endArray()
+        self.qsettings.endGroup()
+        return recent
+
+    def add_recent_file(self, file_path: str) -> None:
+        """Add file to recent files list (most recent first)."""
+        recent = self.get_recent_files()
+
+        if file_path in recent:
+            recent.remove(file_path)
+        
+        recent.insert(0, file_path)
+
+        recent = recent[:10]
+
+        self.qsettings.beginGroup("recent_files")
+        self.qsettings.beginWriteArray("files")
+        for i, path in enumerate(recent):
+            self.qsettings.setArrayIndex(i)
+            self.qsettings.setValue("path", path)
+        self.qsettings.endArray()
+        self.qsettings.endGroup()
+        self.qsettings.sync()
+
+    def clear_recent_files(self) -> None:
+        """Clear all recent files."""
+        self.qsettings.beginGroup("recent_files")
+        self.qsettings.remove("")
+        self.qsettings.endGroup()
+        self.qsettings.sync()

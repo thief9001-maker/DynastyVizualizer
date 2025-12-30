@@ -12,6 +12,7 @@ class DatabaseManager:
         self.parent = parent
         self.conn: sqlite3.Connection | None = None
         self.file_path: str | None = None
+        self._temp_file_path: str | None = None
         self._unsaved_changes: bool = False
 
     # ------------------------------------------------------------------
@@ -87,21 +88,25 @@ class DatabaseManager:
             self._unsaved_changes = False
             return True
         
-        if self.file_path is None:
-            return False
-        
         self.conn.commit()
+        
+        current_path = self.file_path or getattr(self, '_temp_file_path', None)
+        
         self.conn.close()
         
-        shutil.copy2(self.file_path, path)
+        if current_path and os.path.exists(current_path):
+            shutil.copy2(current_path, path)
+        else:
+            raise RuntimeError("Cannot save: no source database file")
         
         self.conn = sqlite3.connect(path)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON;")
         self.file_path = path
         self._unsaved_changes = False
+        
         return True
-    
+
     def close(self) -> None:
         """Close the current database connection and reset state."""
         if self.conn:

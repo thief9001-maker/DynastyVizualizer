@@ -228,6 +228,7 @@ class GeneralPanel(QWidget):
         if person.arrival_year:
             self.immigrant_check.setChecked(True)
             self.arrival_date_picker.set_date(person.arrival_year, person.arrival_month)
+            self.arrival_date_picker.unknown_check.setVisible(False)
         else:
             self.immigrant_check.setChecked(False)
         

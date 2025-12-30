@@ -2,24 +2,28 @@
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
-    QLineEdit, QSpinBox, QComboBox, QTextEdit,
+    QLineEdit, QComboBox, QTextEdit,
     QPushButton, QLabel, QDialogButtonBox, QCheckBox, QWidget
 )
 from PySide6.QtCore import Qt
 
+from database.db_manager import DatabaseManager
+from database.person_repository import PersonRepository
 from models.person import Person
-from widgets.date_picker import DatePicker  # Import our new widget
+from widgets.date_picker import DatePicker
 
 
 class AddPersonDialog(QDialog):
     """Dialog for adding a new person with essential information."""
     
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize the add person dialog."""
+    def __init__(self, db_manager: DatabaseManager, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         
+        self.db_manager = db_manager
+        self.person_repo = PersonRepository(db_manager)
+        
         self.setWindowTitle("Add New Person")
-        self.setMinimumWidth(500)  # Slightly wider for date pickers
+        self.setMinimumWidth(500)
         
         self._person: Person | None = None
         
@@ -179,27 +183,28 @@ class AddPersonDialog(QDialog):
         if not self._validate_inputs():
             return
         
-        # Get dates from pickers
         birth_year, birth_month = self.birth_date_picker.get_date()
         
-        # Get arrival date if not born in town
         arrival_year = None
         arrival_month = None
         if not self.born_in_town_check.isChecked():
             arrival_year, arrival_month = self.arrival_date_picker.get_date()
         
-        # Create Person object from form data
         self._person = Person(
-            first_name = self.first_name_input.text().strip(),
-            middle_name = self.middle_name_input.text().strip(),
-            last_name = self.last_name_input.text().strip(),
-            birth_year = birth_year,
-            birth_month = birth_month,
-            arrival_year = arrival_year,
-            arrival_month = arrival_month,
-            gender = self.gender_input.currentText(),
-            notes = self.notes_input.toPlainText().strip()
+            first_name=self.first_name_input.text().strip(),
+            middle_name=self.middle_name_input.text().strip(),
+            last_name=self.last_name_input.text().strip(),
+            birth_year=birth_year,
+            birth_month=birth_month,
+            arrival_year=arrival_year,
+            arrival_month=arrival_month,
+            gender=self.gender_input.currentText(),
+            notes=self.notes_input.toPlainText().strip()
         )
+        
+        # Save to database
+        person_id = self.person_repo.insert(self._person)
+        self._person.id = person_id
         
         self.accept()
     
