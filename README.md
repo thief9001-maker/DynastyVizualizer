@@ -1,6 +1,9 @@
+# AI Disclosure
+This file structure and code base was made using combinations of Claude Code, Claude.ai and ChatGPT.  Instructions and minor adjustments were made by users, but the majority of the code has been generated through LLM systems.
+
 # DynastyVizualizer
 
-A beautiful, feature-rich family tree visualization and genealogy management application for games with multi-generational families.
+A family tree visualization and genealogy management application for games with multi-generational families.
 
 ## Overview
 
