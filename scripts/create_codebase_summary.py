@@ -210,8 +210,8 @@ def generate_summary(root_dir: Path) -> None:
             if files:
                 out.write(f"{category}: ")
                 file_names = [get_relative_path(f, root_dir) for f in sorted(files)]
-                out.write(", ".join(file_names[:5]))
-                if len(files) > 5:
+                out.write(", ".join(file_names[:50]))
+                if len(files) > 50:
                     out.write(f", ... ({len(files)} total)")
                 out.write("\n")
         out.write(f"\n{'='*70}\n")

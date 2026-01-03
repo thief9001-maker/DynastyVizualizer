@@ -1,8 +1,8 @@
 ======================================================================
 DynastyVizualizer - Complete Codebase
 ======================================================================
-Generated: 2025-12-29 02:17
-Files: 27/103 implemented | 2092 code lines
+Generated: 2026-01-03 08:12
+Files: 30/105 implemented | 2967 code lines
 Tech: PySide6, SQLite, Python 3.10+ | MVC + Command pattern
 Status: Phase 1 Complete, Phase 2 ~35% (Add Person done)
 ======================================================================
@@ -13,16 +13,124 @@ undo/redo, flexible dates, special char support, DB migration.
 Pattern: User Action → Dialog → Command → Repository → Database
 
 FILE INDEX:
-Core: main.py, test_edit_person_dialog.py
-Database: database\__init__.py, database\db_manager.py, database\event_repository.py, database\marriage_repository.py, database\person_repository.py
-Models: models\__init__.py, models\event.py, models\family.py, models\major_event.py, models\marriage.py, ... (7 total)
-Actions: actions\__init__.py, actions\edit_actions.py, actions\file_actions.py, actions\help_actions.py, actions\settings_actions.py, ... (7 total)
-Commands: commands\__init__.py, commands\base_command.py, commands\genealogy_commands\__init__.py, commands\genealogy_commands\add_event.py, commands\genealogy_commands\add_marriage.py, ... (28 total)
-Dialogs: dialogs\__init__.py, dialogs\about_dialog.py, dialogs\add_person_dialog.py, dialogs\create_child_dialog.py, dialogs\create_event_dialog.py, ... (15 total)
-Views: views\__init__.py, views\data_table.py, views\dynasty_view.py, views\stats_view\charts.py, views\stats_view\comparison_widget.py, ... (23 total)
-Widgets: widgets\__init__.py, widgets\date_picker.py, widgets\extended_details_panel.py, widgets\person_selector.py, widgets\portrait_gallery.py, ... (6 total)
-Utils: utils\__init__.py, utils\color_manager.py, utils\csv_importer.py, utils\generation_calculator.py, utils\relationship_calculator.py, ... (8 total)
-Scripts: scripts\create_codebase_summary.py, scripts\migrate_database.py
+Core: main.py
+Database: 
+	database\__init__.py, 
+	database\db_manager.py,
+	database\event_repository.py, 
+	database\marriage_repository.py, 
+	database\person_repository.py
+Models:
+	models\__init__.py, 
+	models\event.py, 
+	models\family.py, 
+	models\major_event.py, 
+	models\marriage.py, 
+	models\person.py, 
+	models\portrait.py
+Actions:
+	actions\__init__.py,
+	actions\edit_actions.py, 
+	actions\file_actions.py, 
+	actions\help_actions.py, 
+	actions\settings_actions.py, 
+	actions\tools_actions.py, 
+	actions\view_actions.py
+Commands: 
+	commands\__init__.py, 
+	commands\base_command.py, 
+		commands\genealogy_commands\__init__.py, 
+		commands\genealogy_commands\add_event.py, 
+		commands\genealogy_commands\add_marriage.py,
+		commands\genealogy_commands\add_person.py, 
+		commands\genealogy_commands\assign_parent.py, 
+		commands\genealogy_commands\create_child.py,
+		commands\genealogy_commands\delete_event.py, 
+		commands\genealogy_commands\delete_marriage.py, 
+		commands\genealogy_commands\delete_person.py, 
+		commands\genealogy_commands\edit_event.py, 
+		commands\genealogy_commands\edit_marriage.py, 
+		commands\genealogy_commands\edit_person.py, 
+		commands\genealogy_commands\end_marriage.py, 
+		commands\genealogy_commands\unassign_parent.py, 
+		
+		commands\GUI_commands\__init__.py, 
+		commands\GUI_commands\change_skin.py, 
+		commands\GUI_commands\change_view.py, 
+		commands\GUI_commands\move_node.py, 
+		commands\GUI_commands\move_person.py, 
+		commands\GUI_commands\preference_changes.py, 
+		commands\GUI_commands\rebuild_scene.py, 
+		commands\GUI_commands\recompute_generation.py, 
+		commands\GUI_commands\recompute_generations.py, 
+		commands\GUI_commands\timeline_scroll.py, 
+		commands\undo_redo_manager.py, 
+		commands\view_changes.py
+Dialogs:
+	dialogs\__init__.py, 
+	dialogs\about_dialog.py, 
+	dialogs\add_person_dialog.py, 
+	dialogs\create_child_dialog.py, 
+	dialogs\create_event_dialog.py, 
+	dialogs\create_marriage_dialog.py, 
+	dialogs\edit_event_dialog.py, 
+	dialogs\edit_person_dialog.py, 
+		dialogs\edit_person_panels\__init__.py, 
+		dialogs\edit_person_panels\event_panel.py, 
+		dialogs\edit_person_panels\general_panel.py, 
+		dialogs\edit_person_panels\relationships_panel.py, 
+	dialogs\end_marriage_dialog.py, 
+	dialogs\import_csv_dialog.py, 
+	dialogs\settings_dialog.py
+Views: 
+	views\__init__.py, 
+	views\data_table_view.py, 
+	views\dynasty_view.py, 
+		views\stats_view\charts.py, 
+		views\stats_view\comparison_widget.py, 
+		views\stats_view\family_dashboard.py,
+ 
+		views\table_view\event_table.py, 
+		views\table_view\family_table.py, 
+		views\table_view\marriage_table.py, 
+		views\table_view\person_table.py, 
+
+		views\timeline_view\event_marker.py, 
+		views\timeline_view\family_bar.py, 
+		views\timeline_view\major_event_marker.py, 
+		views\timeline_view\person_bar.py, 
+		views\timeline_view\timeline_canvas.py, 
+		views\timeline_view.py, 
+
+		views\tree_view\__init__.py, 
+		views\tree_view\enhanced_tooltip_panel.py, 
+		views\tree_view\generation_band.py, 
+		views\tree_view\layout_engine.py, 
+		views\tree_view\marriage_node.py, 
+		views\tree_view\person_box.py, 
+		views\tree_view\relationship_line.py, 
+		views\tree_view\tree_canvas.py
+Widgets: 
+	widgets\__init__.py, 
+	widgets\date_picker.py, 
+	widgets\extended_details_panel.py, 
+	widgets\person_selector.py, 
+	widgets\portrait_gallery.py, 
+	widgets\search_bar.py
+Utils: 
+	utils\__init__.py, 
+	utils\color_manager.py, 
+	utils\csv_importer.py, 
+	utils\generation_calculator.py, 
+	utils\relationship_calculator.py, 
+	utils\settings_manager.py, 
+	utils\skin_manager.py, 
+	utils\validators.py
+Scripts:
+	scripts\create_codebase_summary.py, 
+	scripts\migrate_database.py, 
+	scripts\test_edit_person_dialog.py,
+	scripts\test_person_box.py
 
 ======================================================================
 COMPLETE SOURCE CODE
@@ -33,10 +141,16 @@ COMPLETE SOURCE CODE
 CORE
 ──────────────────────────────────────────────────────────────────────
 
->> ✅ main.py (159 code lines)
-import sys
+>> ✅ main.py (180 code lines)
+"""Main application window for Dynasty Visualizer."""
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar, QMessageBox
+import sys, os
+
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QMenuBar, QMessageBox,
+    QStackedWidget, QLabel
+)
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 
 from database.db_manager import DatabaseManager
@@ -44,26 +158,20 @@ from actions import FileActions, EditActions, ViewActions, ToolsActions, HelpAct
 from commands.undo_redo_manager import UndoRedoManager
 from utils.settings_manager import SettingsManager
 
+
 class MainWindow(QMainWindow):
     """Main application window for Dynasty Visualizer."""
 
     def __init__(self) -> None:
-        """Initialize the main window and all UI components."""
         super().__init__()
 
         self.setWindowTitle("Dynasty Visualizer")
         self.resize(1000, 700)
 
-        # Initialize database manager
         self.db = DatabaseManager(self)
-
-        # Initialize undo/redo manager
         self.undo_manager = UndoRedoManager()
-
-        # Initialize settings manager
         self.settings_manager = SettingsManager()
 
-        # Initialize action handlers
         self.file_actions = FileActions(self)
         self.edit_actions = EditActions(self)
         self.view_actions = ViewActions(self)
@@ -71,19 +179,50 @@ class MainWindow(QMainWindow):
         self.settings_actions = SettingsActions(self)
         self.help_actions = HelpActions(self)
 
-        # Create UI elements
+        self._setup_central_widget()
         self._create_menus()
-
-        # Connect menu actions to handlers
         self._connect_actions()
+        
+        self._create_untitled_database()
 
-        # Update window title and menu states
+        self._show_family_trees()
+        
         self._update_window_title()
         self._update_menu_states()
 
+    def _create_untitled_database(self) -> None:
+        """Create a temporary database for new sessions."""
+        import tempfile
+        
+        temp_dir = tempfile.gettempdir()
+        temp_file = os.path.join(temp_dir, "dynasty_untitled.dyn")
+        
+        if os.path.exists(temp_file):
+            try:
+                os.remove(temp_file)
+            except:
+                pass
+        
+        self.db.new_database(temp_file)
+
+        self.db._temp_file_path = temp_file
+        self.db.file_path = None
+        
+        self.refresh_ui()
+
     # ------------------------------------------------------------------
-    # UI Creation
+    # UI Setup
     # ------------------------------------------------------------------
+
+    def _setup_central_widget(self) -> None:
+        """Setup the central widget with stacked views."""
+        self.view_stack = QStackedWidget()
+        self.setCentralWidget(self.view_stack)
+        
+        self.genealogy_view = None
+        self.timeline_view = None
+        self.dynasty_view = None
+        self.data_table_view = None
 
     def _create_menus(self) -> None:
         """Create all menu bars and menu items."""
@@ -97,7 +236,7 @@ class MainWindow(QMainWindow):
         self._create_help_menu(menubar)
 
     def _create_file_menu(self, menubar: QMenuBar) -> None:
-        """Create the File menu with all file operations."""
+        """Create the File menu."""
         file_menu = menubar.addMenu("File")
 
         self.action_new_dynasty = QAction("New Dynasty", self)
@@ -108,6 +247,14 @@ class MainWindow(QMainWindow):
         self.action_open_dynasty.setObjectName("file.open")
         self.action_open_dynasty.setShortcut(self.settings_manager.get_shortcut("file.open"))
 
+        file_menu.addAction(self.action_new_dynasty)
+        file_menu.addAction(self.action_open_dynasty)
+
+        self.recent_files_menu = file_menu.addMenu("Recent Files")
+        self._update_recent_files_menu()
+        
+        file_menu.addSeparator()
+
         self.action_save = QAction("Save", self)
         self.action_save.setObjectName("file.save")
         self.action_save.setShortcut(self.settings_manager.get_shortcut("file.save"))
@@ -116,20 +263,18 @@ class MainWindow(QMainWindow):
         self.action_save_as.setObjectName("file.save_as")
         self.action_save_as.setShortcut(self.settings_manager.get_shortcut("file.save_as"))
 
-        self.action_exit = QAction("Exit", self)
-        self.action_exit.setObjectName("file.exit")
-        self.action_exit.setShortcut(self.settings_manager.get_shortcut("file.exit"))
-
-        file_menu.addAction(self.action_new_dynasty)
-        file_menu.addAction(self.action_open_dynasty)
-        file_menu.addSeparator()
         file_menu.addAction(self.action_save)
         file_menu.addAction(self.action_save_as)
         file_menu.addSeparator()
+
+        self.action_exit = QAction("Exit", self)
+        self.action_exit.setObjectName("file.exit")
+        self.action_exit.setShortcut(self.settings_manager.get_shortcut("file.exit"))
+        
         file_menu.addAction(self.action_exit)
 
     def _create_edit_menu(self, menubar: QMenuBar) -> None:
-        """Create the Edit menu with editing operations."""
+        """Create the Edit menu."""
         edit_menu = menubar.addMenu("Edit")
 
         self.action_undo = QAction("Undo", self)
@@ -144,6 +289,10 @@ class MainWindow(QMainWindow):
         self.action_add_person.setObjectName("edit.add_person")
         self.action_add_person.setShortcut(self.settings_manager.get_shortcut("edit.add_person"))
 
+        self.action_edit_person = QAction("Edit Person", self)
+        self.action_edit_person.setObjectName("edit.edit_person")
+        self.action_edit_person.setShortcut("Ctrl+E")  # Add to settings_manager later
+
         self.action_remove_person = QAction("Remove Person", self)
         self.action_remove_person.setObjectName("edit.remove_person")
         self.action_remove_person.setShortcut(self.settings_manager.get_shortcut("edit.remove_person"))
@@ -151,12 +300,15 @@ class MainWindow(QMainWindow):
         self.action_add_new_family = QAction("Add New Family", self)
         self.action_add_new_family.setObjectName("edit.add_new_family")
         self.action_add_new_family.setShortcut(self.settings_manager.get_shortcut("edit.add_new_family"))
+        self.action_add_new_family.setEnabled(False)  # Disabled for now
 
         edit_menu.addAction(self.action_undo)
         edit_menu.addAction(self.action_redo)
         edit_menu.addSeparator()
         edit_menu.addAction(self.action_add_person)
+        edit_menu.addAction(self.action_edit_person)
         edit_menu.addAction(self.action_remove_person)
+        edit_menu.addSeparator()
         edit_menu.addAction(self.action_add_new_family)
 
         self.edit_actions.undo_action = self.action_undo
@@ -164,7 +316,7 @@ class MainWindow(QMainWindow):
         self.edit_actions.update_undo_redo_actions()
 
     def _create_view_menu(self, menubar: QMenuBar) -> None:
-        """Create the View menu with different visualization options."""
+        """Create the View menu."""
         view_menu = menubar.addMenu("View")
 
         self.action_view_family_trees = QAction("Family Trees", self)
@@ -189,7 +341,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.action_view_data_table)
 
     def _create_tools_menu(self, menubar: QMenuBar) -> None:
-        """Create the Tools menu with utility operations."""
+        """Create the Tools menu."""
         tools_menu = menubar.addMenu("Tools")
 
         self.action_rebuild_scene = QAction("Rebuild Scene", self)
@@ -214,7 +366,7 @@ class MainWindow(QMainWindow):
         tools_menu.addAction(self.action_validate_parentage)
 
     def _create_settings_menu(self, menubar: QMenuBar) -> None:
-        """Create the settings menu with application options."""
+        """Create the Settings menu."""
         settings_menu = menubar.addMenu("Settings")
 
         self.action_settings = QAction("Settings", self)
@@ -249,9 +401,8 @@ class MainWindow(QMainWindow):
         settings_menu.addAction(self.action_appearance)
         settings_menu.addAction(self.action_formats)
 
-
     def _create_help_menu(self, menubar: QMenuBar) -> None:
-        """Create the Help menu with application information."""
+        """Create the Help menu."""
         help_menu = menubar.addMenu("Help")
 
         self.action_about = QAction("About", self)
@@ -265,33 +416,29 @@ class MainWindow(QMainWindow):
 
     def _connect_actions(self) -> None:
         """Connect all menu actions to their handler methods."""
-        # File menu connections
         self.action_new_dynasty.triggered.connect(self.file_actions.new_dynasty)
         self.action_open_dynasty.triggered.connect(self.file_actions.open_dynasty)
         self.action_save.triggered.connect(self.file_actions.save)
         self.action_save_as.triggered.connect(self.file_actions.save_as)
         self.action_exit.triggered.connect(self.file_actions.exit_app)
 
-        # Edit menu connections
         self.action_undo.triggered.connect(self.edit_actions.undo)
         self.action_redo.triggered.connect(self.edit_actions.redo)
         self.action_add_person.triggered.connect(self.edit_actions.add_person)
+        self.action_edit_person.triggered.connect(self._edit_selected_person)
         self.action_remove_person.triggered.connect(self.edit_actions.remove_person)
         self.action_add_new_family.triggered.connect(self.edit_actions.add_new_family)
 
-        # View menu connections
-        self.action_view_family_trees.triggered.connect(self.view_actions.family_trees)
-        self.action_view_timeline.triggered.connect(self.view_actions.timeline)
-        self.action_view_dynasty.triggered.connect(self.view_actions.dynasty)
-        self.action_view_data_table.triggered.connect(self.view_actions.data_table)
+        self.action_view_family_trees.triggered.connect(self._show_family_trees)
+        self.action_view_timeline.triggered.connect(self._show_timeline)
+        self.action_view_dynasty.triggered.connect(self._show_dynasty)
+        self.action_view_data_table.triggered.connect(self._show_data_table)
 
-        # Tools menu connections
         self.action_rebuild_scene.triggered.connect(self.tools_actions.rebuild_scene)
         self.action_recompute_generations.triggered.connect(self.tools_actions.recompute_generations)
         self.action_validate_marriages.triggered.connect(self.tools_actions.validate_marriages)
         self.action_validate_parentage.triggered.connect(self.tools_actions.validate_parentage)
 
-        # Settings menu connections
         self.action_settings.triggered.connect(self.settings_actions.settings)
         self.action_general.triggered.connect(self.settings_actions.general)
         self.action_shortcuts.triggered.connect(self.settings_actions.shortcuts)
@@ -299,8 +446,128 @@ class MainWindow(QMainWindow):
         self.action_appearance.triggered.connect(self.settings_actions.appearance)
         self.action_formats.triggered.connect(self.settings_actions.formats)
 
-        # Help menu connections
         self.action_about.triggered.connect(self.help_actions.about)
+
+    # ------------------------------------------------------------------
+    # Recent Files Management
+    # ------------------------------------------------------------------
+
+    def _update_recent_files_menu(self) -> None:
+        """Update the Recent Files submenu with current list."""
+        self.recent_files_menu.clear()
+        
+        recent = self.settings_manager.get_recent_files()
+        
+        if recent:
+            for path in recent:
+                filename = os.path.basename(path)
+                action = QAction(filename, self)
+                action.setData(path)
+                action.triggered.connect(lambda checked, p=path: self._open_recent_file(p))
+                self.recent_files_menu.addAction(action)
+            
+            self.recent_files_menu.addSeparator()
+            
+            clear_action = QAction("Clear Recent Files", self)
+            clear_action.triggered.connect(self._clear_recent_files)
+            self.recent_files_menu.addAction(clear_action)
+        else:
+            no_recent = QAction("(No Recent Files)", self)
+            no_recent.setEnabled(False)
+            self.recent_files_menu.addAction(no_recent)
+
+    def _open_recent_file(self, path: str) -> None:
+        """Open a file from recent files list."""
+        if not os.path.exists(path):
+            QMessageBox.warning(
+                self,
+                "File Not Found",
+                f"The file '{path}' no longer exists."
+            )
+            self._remove_from_recent_files(path)
+            return
+        
+        try:
+            self.db.open_database(path)
+            self.refresh_ui()
+            self.file_actions._refresh_all_views()
+            self.settings_manager.add_recent_file(path)
+            self._update_recent_files_menu()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to open file:\n{str(e)}")
+
+    def _remove_from_recent_files(self, path: str) -> None:
+        """Remove a file from recent files list."""
+        recent = self.settings_manager.get_recent_files()
+        if path in recent:
+            recent.remove(path)
+            self.settings_manager.clear_recent_files()
+            for p in recent:
+                self.settings_manager.add_recent_file(p)
+        self._update_recent_files_menu()
+
+    def _clear_recent_files(self) -> None:
+        """Clear the recent files list."""
+        self.settings_manager.clear_recent_files()
+        self._update_recent_files_menu()
+
+    # ------------------------------------------------------------------
+    # View Management
+    # ------------------------------------------------------------------
+
+    def _show_family_trees(self) -> None:
+        """Switch to family trees view."""
+        if self.genealogy_view is None:
+            genealogy_placeholder = QLabel("Genealogy View\n(Coming Soon!)")
+            genealogy_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            genealogy_placeholder.setStyleSheet("font-size: 24px; color: gray;")
+            self.genealogy_view = genealogy_placeholder
+            self.view_stack.addWidget(self.genealogy_view)
+        
+        self.view_stack.setCurrentWidget(self.genealogy_view)
+
+    def _show_timeline(self) -> None:
+        """Switch to timeline view."""
+        if self.timeline_view is None:
+            timeline_placeholder = QLabel("Timeline View\n(Coming Soon!)")
+            timeline_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            timeline_placeholder.setStyleSheet("font-size: 24px; color: gray;")
+            self.timeline_view = timeline_placeholder
+            self.view_stack.addWidget(self.timeline_view)
+        
+        self.view_stack.setCurrentWidget(self.timeline_view)
+
+    def _show_dynasty(self) -> None:
+        """Switch to dynasty view."""
+        if self.dynasty_view is None:
+            dynasty_placeholder = QLabel("Dynasty View\n(Coming Soon!)")
+            dynasty_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            dynasty_placeholder.setStyleSheet("font-size: 24px; color: gray;")
+            self.dynasty_view = dynasty_placeholder
+            self.view_stack.addWidget(self.dynasty_view)
+        
+        self.view_stack.setCurrentWidget(self.dynasty_view)
+
+    def _show_data_table(self) -> None:
+        """Switch to data table view."""
+        if self.data_table_view is None:
+            from views.data_table_view import DataTableView
+            self.data_table_view = DataTableView(self.db, self)
+            self.view_stack.addWidget(self.data_table_view)
+        
+        self.data_table_view.refresh_data()
+        self.view_stack.setCurrentWidget(self.data_table_view)
+
+    def _edit_selected_person(self) -> None:
+        """Edit the currently selected person in the active view."""
+        if self.data_table_view and self.view_stack.currentWidget() == self.data_table_view:
+            self.data_table_view._edit_selected_person()
+        else:
+            QMessageBox.information(
+                self,
+                "Edit Person",
+                "Please select a person to edit."
+            )
 
     # ------------------------------------------------------------------
     # UI Update Methods
@@ -309,8 +576,12 @@ class MainWindow(QMainWindow):
     def _update_window_title(self) -> None:
         """Update the window title to reflect current database state."""
         if self.db.is_open:
-            dirty_marker = " *" if self.db.is_dirty else ""
-            self.setWindowTitle(f"Dynasty Visualizer - {self.db.database_name}{dirty_marker}")
+            if self.db.file_path is None:
+                title = "Dynasty Visualizer - Untitled *"
+            else:
+                dirty_marker = " *" if self.db.is_dirty else ""
+                title = f"Dynasty Visualizer - {self.db.database_name}{dirty_marker}"
+            self.setWindowTitle(title)
         else:
             self.setWindowTitle("Dynasty Visualizer")
 
@@ -318,46 +589,38 @@ class MainWindow(QMainWindow):
         """Enable or disable menu items based on current state."""
         has_db = self.db.is_open
 
-        # File menu states
-        self.action_save.setEnabled(has_db and self.db.is_dirty)
+        # Always allow Save/Save As even for untitled
+        self.action_save.setEnabled(has_db)
         self.action_save_as.setEnabled(has_db)
 
-        # Edit menu states (disable if no database open)
         self.action_undo.setEnabled(self.undo_manager.can_undo())
         self.action_redo.setEnabled(self.undo_manager.can_redo())
         self.action_add_person.setEnabled(has_db)
+        self.action_edit_person.setEnabled(has_db)
         self.action_remove_person.setEnabled(has_db)
-        self.action_add_new_family.setEnabled(has_db)
 
-        # View menu states
         self.action_view_family_trees.setEnabled(has_db)
         self.action_view_timeline.setEnabled(has_db)
         self.action_view_dynasty.setEnabled(has_db)
         self.action_view_data_table.setEnabled(has_db)
 
-        # Tools menu states
         self.action_rebuild_scene.setEnabled(has_db)
         self.action_recompute_generations.setEnabled(has_db)
         self.action_validate_marriages.setEnabled(has_db)
         self.action_validate_parentage.setEnabled(has_db)
 
-    # ------------------------------------------------------------------
-    # Public Methods
-    # ------------------------------------------------------------------
-
     def refresh_ui(self) -> None:
         """Refresh window title and menu states after database changes."""
         self._update_window_title()
         self._update_menu_states()
+
     # ------------------------------------------------------------------
     # Event Handlers
     # ------------------------------------------------------------------
 
     def closeEvent(self, event) -> None:
-        """Handle window close event - intercept X button, Alt+F4, etc."""
-
+        """Handle window close event."""
         if self.db.is_open and self.db.is_dirty:
-
             msg = QMessageBox(self)
             msg.setWindowTitle("Unsaved Changes")
             msg.setText("You have unsaved changes. Do you want to save before exiting?")
@@ -369,65 +632,28 @@ class MainWindow(QMainWindow):
             choice = msg.exec()
             
             if choice == QMessageBox.StandardButton.Save:
-
                 if self.file_actions.save():
                     event.accept()
                 else:
                     event.ignore()
             elif choice == QMessageBox.StandardButton.Discard:
                 event.accept()
-            
             else: 
                 event.ignore()
-        
         else:
             event.accept()
+
 
 def main() -> None:
     """Application entry point."""
     app = QApplication(sys.argv)
-
     window = MainWindow()
     window.show()
-
     sys.exit(app.exec())
 
 
 if __name__ == "__main__":
     main()
-
->> ✅ test_edit_person_dialog.py (21 code lines)
-import sys
-from PySide6.QtWidgets import QApplication
-
-from database.db_manager import DatabaseManager
-from database.person_repository import PersonRepository
-from dialogs.edit_person_dialog import EditPersonDialog
-
-app = QApplication(sys.argv)
-
-# Open database
-db = DatabaseManager(None)
-db.open_database("Struggberg Family Tree 1.dyn")  # Use your actual .dyn file
-
-# Get a person to edit
-repo = PersonRepository(db)
-people = repo.get_all()
-
-if people:
-    person = people[0]  # Edit the first person
-    
-    dialog = EditPersonDialog(db, person)
-    result = dialog.exec()
-    
-    if result:
-        print("User clicked Save")
-    else:
-        print("User clicked Cancel")
-else:
-    print("No people in database!")
-
-sys.exit(0)
 
 
 ──────────────────────────────────────────────────────────────────────
@@ -440,7 +666,7 @@ from .person_repository import PersonRepository
 
 __all__ = ['DatabaseManager', 'PersonRepository']
 
->> ✅ database\db_manager.py (86 code lines)
+>> ✅ database\db_manager.py (112 code lines)
 """Manages SQLite-based .dyn dynasty database files."""
 
 import sqlite3
@@ -455,6 +681,7 @@ class DatabaseManager:
         self.parent = parent
         self.conn: sqlite3.Connection | None = None
         self.file_path: str | None = None
+        self._temp_file_path: str | None = None
         self._unsaved_changes: bool = False
 
     # ------------------------------------------------------------------
@@ -530,21 +757,25 @@ class DatabaseManager:
             self._unsaved_changes = False
             return True
         
-        if self.file_path is None:
-            return False
-        
         self.conn.commit()
+        
+        current_path = self.file_path or getattr(self, '_temp_file_path', None)
+        
         self.conn.close()
         
-        shutil.copy2(self.file_path, path)
+        if current_path and os.path.exists(current_path):
+            shutil.copy2(current_path, path)
+        else:
+            raise RuntimeError("Cannot save: no source database file")
         
         self.conn = sqlite3.connect(path)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON;")
         self.file_path = path
         self._unsaved_changes = False
+        
         return True
-    
+
     def close(self) -> None:
         """Close the current database connection and reset state."""
         if self.conn:
@@ -604,6 +835,7 @@ class DatabaseManager:
             dynasty_id INTEGER DEFAULT 1,
             is_founder INTEGER DEFAULT 0,
             education INTEGER DEFAULT 0,
+            is_favorite INTEGER DEFAULT 0,
             notes TEXT,
             FOREIGN KEY(father_id) REFERENCES Person(id) ON DELETE SET NULL,
             FOREIGN KEY(mother_id) REFERENCES Person(id) ON DELETE SET NULL,
@@ -706,7 +938,8 @@ class DatabaseManager:
         self._migrate_person_table(cursor)
         self._migrate_marriage_table(cursor)
         self._migrate_event_table_data(cursor)
-        
+        self._migrate_person_table_data(cursor)
+
         self.conn.commit()
     
     def _migrate_person_table(self, cursor: sqlite3.Cursor) -> None:
@@ -719,6 +952,7 @@ class DatabaseManager:
             ("dynasty_id", "ALTER TABLE Person ADD COLUMN dynasty_id INTEGER DEFAULT 1"),
             ("is_founder", "ALTER TABLE Person ADD COLUMN is_founder INTEGER DEFAULT 0"),
             ("education", "ALTER TABLE Person ADD COLUMN education INTEGER DEFAULT 0"),
+            ("is_favorite", "ALTER TABLE Person ADD COLUMN is_favorite INTEGER DEFAULT 0"),
         ]
         
         self._apply_column_migrations(cursor, existing_columns, migrations)
@@ -772,6 +1006,52 @@ class DatabaseManager:
                 WHERE id = ?
             """, (new_start, new_end, event_id))
     
+    def _migrate_person_table_data(self, cursor: sqlite3.Cursor) -> None:
+        """Convert Person table month names from text to integers."""
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Person'")
+        if not cursor.fetchone():
+            return
+        
+        cursor.execute("SELECT id, birth_month FROM Person WHERE birth_month IS NOT NULL LIMIT 1")
+        row = cursor.fetchone()
+        
+        if not row or not row[1]:
+            return
+        
+        if isinstance(row[1], str) and not row[1].isdigit():
+            self._convert_person_months_to_integers(cursor)
+
+    def _convert_person_months_to_integers(self, cursor: sqlite3.Cursor) -> None:
+        """Convert text month names to integer values in Person table."""
+        month_map: dict[str, int] = {
+            "January": 1, "February": 2, "March": 3, "April": 4,
+            "May": 5, "June": 6, "July": 7, "August": 8,
+            "September": 9, "October": 10, "November": 11, "December": 12
+        }
+        
+        cursor.execute("""
+            SELECT id, birth_month, death_month, arrival_month, moved_out_month
+            FROM Person 
+            WHERE birth_month IS NOT NULL 
+            OR death_month IS NOT NULL 
+            OR arrival_month IS NOT NULL 
+            OR moved_out_month IS NOT NULL
+        """)
+        
+        for person_id, birth_month, death_month, arrival_month, moved_out_month in cursor.fetchall():
+            new_birth_month: int | None = month_map.get(birth_month) if birth_month else None
+            new_death_month: int | None = month_map.get(death_month) if death_month else None
+            new_arrival_month: int | None = month_map.get(arrival_month) if arrival_month else None
+            new_moved_out_month: int | None = month_map.get(moved_out_month) if moved_out_month else None
+            
+            cursor.execute("""
+                UPDATE Person 
+                SET birth_month = ?, 
+                    death_month = ?, 
+                    arrival_month = ?, 
+                    moved_out_month = ? 
+                WHERE id = ?
+            """, (new_birth_month, new_death_month, new_arrival_month, new_moved_out_month, person_id))    
     # ------------------------------------------------------------------
     # Private Methods - Utilities
     # ------------------------------------------------------------------
@@ -2053,7 +2333,7 @@ class EditActions:
         """Create a new family branch in the dynasty."""
         pass  # TODO: Implement family creation
 
->> ✅ actions\file_actions.py (52 code lines)
+>> ✅ actions\file_actions.py (75 code lines)
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 
@@ -2110,25 +2390,42 @@ class FileActions:
     def _show_error(self, title: str, message: str) -> None:
         """Display an error message dialog."""
         QMessageBox.critical(self.parent, title, message)
+
+    def _refresh_all_views(self) -> None:
+        """Refresh all active views with new database data."""
+        if self.parent.data_table_view:
+            self.parent.data_table_view.refresh_data()    
     
     # ------------------------------------------------------------------
     # File Operations
     # ------------------------------------------------------------------
     
     def new_dynasty(self) -> None:
-        """Prompt user to create a new dynasty database file."""
-        path = self._get_save_path("Create New Dynasty File")
-        if not path:
-            return
-        
-        try:
-            self.parent.db.new_database(path)
-            self.parent.refresh_ui()
-        except Exception as e:
-            self._show_error(
-                "Error Creating Database",
-                f"Failed to create dynasty file:\n{str(e)}"
+        """Create a new untitled dynasty database."""
+        if self.parent.db.is_dirty:
+            reply = QMessageBox.question(
+                self.parent,
+                "Unsaved Changes",
+                "You have unsaved changes. Do you want to save before creating a new dynasty?",
+                QMessageBox.StandardButton.Save | 
+                QMessageBox.StandardButton.Discard | 
+                QMessageBox.StandardButton.Cancel
             )
+            
+            if reply == QMessageBox.StandardButton.Save:
+                if not self.save():
+                    return
+            elif reply == QMessageBox.StandardButton.Cancel:
+                return
+
+        self.parent.db.close()
+
+        self.parent._create_untitled_database()
+
+        self.parent.refresh_ui()
+        self._refresh_all_views()
+        
+        self.parent._show_family_trees()
     
     def open_dynasty(self) -> None:
         """Prompt user to open an existing dynasty database file."""
@@ -2139,6 +2436,9 @@ class FileActions:
         try:
             self.parent.db.open_database(path)
             self.parent.refresh_ui()
+            self._refresh_all_views()
+            self.parent.settings_manager.add_recent_file(path)
+            self.parent._update_recent_files_menu()
         except FileNotFoundError:
             self._show_error(
                 "File Not Found",
@@ -2149,7 +2449,7 @@ class FileActions:
                 "Error Opening Database",
                 f"Failed to open dynasty file:\n{str(e)}"
             )
-    
+        
     def save(self) -> bool:
         """Save current database, falling back to save_as if no path set."""
         if not self._ensure_db():
@@ -2162,6 +2462,10 @@ class FileActions:
             result = self.parent.db.save_database()
             if result:
                 self.parent.refresh_ui()
+                # Add to recent files after successful save
+                if self.parent.db.file_path:
+                    self.parent.settings_manager.add_recent_file(self.parent.db.file_path)
+                    self.parent._update_recent_files_menu()
             return result
         except Exception as e:
             self._show_error(
@@ -2169,13 +2473,12 @@ class FileActions:
                 f"Failed to save dynasty file:\n{str(e)}"
             )
             return False
-    
+
     def save_as(self) -> bool:
         """Prompt user to save database to a new file."""
         if not self._ensure_db():
             return False
         
-        # Suggest current filename if it exists
         default_name = self.parent.db.database_name or ""
         path = self._get_save_path("Save Dynasty File As", default_name)
         if not path:
@@ -2183,6 +2486,9 @@ class FileActions:
         
         try:
             self.parent.db.save_database(path)
+            self.parent.refresh_ui()
+            self.parent.settings_manager.add_recent_file(path)
+            self.parent._update_recent_files_menu()
             return True
         except Exception as e:
             self._show_error(
@@ -3058,29 +3364,33 @@ class AboutDialog(QDialog):
         pass
 
 
->> ✅ dialogs\add_person_dialog.py (60 code lines)
+>> ✅ dialogs\add_person_dialog.py (71 code lines)
 """Dialog for adding a new person to the database."""
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout,
-    QLineEdit, QSpinBox, QComboBox, QTextEdit,
+    QLineEdit, QComboBox, QTextEdit,
     QPushButton, QLabel, QDialogButtonBox, QCheckBox, QWidget
 )
 from PySide6.QtCore import Qt
 
+from database.db_manager import DatabaseManager
+from database.person_repository import PersonRepository
 from models.person import Person
-from widgets.date_picker import DatePicker  # Import our new widget
+from widgets.date_picker import DatePicker
 
 
 class AddPersonDialog(QDialog):
     """Dialog for adding a new person with essential information."""
     
-    def __init__(self, parent: QWidget | None = None) -> None:
-        """Initialize the add person dialog."""
+    def __init__(self, db_manager: DatabaseManager, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         
+        self.db_manager = db_manager
+        self.person_repo = PersonRepository(db_manager)
+        
         self.setWindowTitle("Add New Person")
-        self.setMinimumWidth(500)  # Slightly wider for date pickers
+        self.setMinimumWidth(500)
         
         self._person: Person | None = None
         
@@ -3240,27 +3550,28 @@ class AddPersonDialog(QDialog):
         if not self._validate_inputs():
             return
         
-        # Get dates from pickers
         birth_year, birth_month = self.birth_date_picker.get_date()
         
-        # Get arrival date if not born in town
         arrival_year = None
         arrival_month = None
         if not self.born_in_town_check.isChecked():
             arrival_year, arrival_month = self.arrival_date_picker.get_date()
         
-        # Create Person object from form data
         self._person = Person(
-            first_name = self.first_name_input.text().strip(),
-            middle_name = self.middle_name_input.text().strip(),
-            last_name = self.last_name_input.text().strip(),
-            birth_year = birth_year,
-            birth_month = birth_month,
-            arrival_year = arrival_year,
-            arrival_month = arrival_month,
-            gender = self.gender_input.currentText(),
-            notes = self.notes_input.toPlainText().strip()
+            first_name=self.first_name_input.text().strip(),
+            middle_name=self.middle_name_input.text().strip(),
+            last_name=self.last_name_input.text().strip(),
+            birth_year=birth_year,
+            birth_month=birth_month,
+            arrival_year=arrival_year,
+            arrival_month=arrival_month,
+            gender=self.gender_input.currentText(),
+            notes=self.notes_input.toPlainText().strip()
         )
+        
+        # Save to database
+        person_id = self.person_repo.insert(self._person)
+        self._person.id = person_id
         
         self.accept()
     
@@ -4528,7 +4839,7 @@ class EventsPanel(QWidget):
             parent = parent.parent()
         return None
 
->> ✅ dialogs\edit_person_panels\general_panel.py (78 code lines)
+>> ✅ dialogs\edit_person_panels\general_panel.py (79 code lines)
 """General information panel for Edit Person dialog."""
 
 from PySide6.QtWidgets import (
@@ -4759,6 +5070,7 @@ class GeneralPanel(QWidget):
         if person.arrival_year:
             self.immigrant_check.setChecked(True)
             self.arrival_date_picker.set_date(person.arrival_year, person.arrival_month)
+            self.arrival_date_picker.unknown_check.setVisible(False)
         else:
             self.immigrant_check.setChecked(False)
         
@@ -5767,11 +6079,250 @@ class PreferencesDialog(QDialog):
 VIEWS
 ──────────────────────────────────────────────────────────────────────
 
->> 📋 views\__init__.py (0 code lines)
+>> 📋 views\__init__.py (2 code lines)
+from .data_table_view import DataTableView
+
+__all__ = ['DataTableView']
+
+>> ✅ views\data_table_view.py (51 code lines)
+"""Data table view for displaying all people."""
+
+import unicodedata
+
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem,
+    QPushButton, QHeaderView, QMenu, QMessageBox, QLineEdit, QLabel
+)
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QAction
+
+from database.db_manager import DatabaseManager
+from database.person_repository import PersonRepository
+from models.person import Person
 
 
->> 📋 views\data_table.py (0 code lines)
-
+class DataTableView(QWidget):
+    """Widget displaying all people in a sortable, filterable table."""
+    
+    person_edited = Signal()
+    
+    def __init__(self, db_manager: DatabaseManager, parent=None) -> None:
+        super().__init__(parent)
+        
+        self.db_manager = db_manager
+        self.person_repo = PersonRepository(db_manager)
+        self.people: list[Person] = []
+        self.person_display_numbers: dict[int, int] = {}  # Maps person.id -> display number
+        
+        self._setup_ui()
+    
+    def _setup_ui(self) -> None:
+        """Create the table and controls."""
+        layout = QVBoxLayout(self)
+        
+        toolbar = QHBoxLayout()
+        
+        toolbar.addWidget(QLabel("Search:"))
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Filter by name...")
+        self.search_input.textChanged.connect(self._filter_table)
+        self.search_input.setMaximumWidth(300)
+        toolbar.addWidget(self.search_input)
+        
+        toolbar.addStretch()
+        
+        add_btn = QPushButton("+ Add Person")
+        add_btn.clicked.connect(self._add_person)
+        toolbar.addWidget(add_btn)
+        
+        refresh_btn = QPushButton("Refresh")
+        refresh_btn.clicked.connect(self.refresh_data)
+        toolbar.addWidget(refresh_btn)
+        
+        layout.addLayout(toolbar)
+        
+        self.table = QTableWidget()
+        self.table.setColumnCount(5)
+        self.table.setHorizontalHeaderLabels([
+            "#", "Name", "Gender", "Birth Year", "Death Year"
+        ])
+        
+        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setSortingEnabled(True)
+        self.table.setAlternatingRowColors(True)
+        
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)
+        
+        self.table.doubleClicked.connect(self._on_row_double_clicked)
+        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._show_context_menu)
+        
+        layout.addWidget(self.table)
+    
+    def refresh_data(self) -> None:
+        """Load all people from database and assign persistent display numbers."""
+        self.people = self.person_repo.get_all()
+        
+        # Sort by ID for consistent numbering
+        self.people.sort(key=lambda p: p.id or 0)
+        
+        # Assign persistent display numbers
+        self.person_display_numbers.clear()
+        for index, person in enumerate(self.people, start=1):
+            if person.id:
+                self.person_display_numbers[person.id] = index
+        
+        self._populate_table(self.people)
+    
+    def _populate_table(self, people: list[Person]) -> None:
+        """Fill table with person data."""
+        self.table.setSortingEnabled(False)
+        self.table.setRowCount(0)
+        
+        for person in people:
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+            
+            # Display number (persistent, doesn't change with sorting)
+            display_num = self.person_display_numbers.get(person.id or 0, 0)
+            display_num_item = QTableWidgetItem(f"{display_num:06d}")
+            display_num_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            display_num_item.setData(Qt.ItemDataRole.UserRole, person.id)
+            # Store as integer for proper sorting
+            display_num_item.setData(Qt.ItemDataRole.UserRole + 1, display_num)
+            self.table.setItem(row, 0, display_num_item)
+            
+            # Name
+            name_item = QTableWidgetItem(person.display_name)
+            self.table.setItem(row, 1, name_item)
+            
+            # Gender
+            gender_item = QTableWidgetItem(person.gender or "Unknown")
+            gender_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 2, gender_item)
+            
+            # Birth Year
+            birth_item = QTableWidgetItem(str(person.birth_year) if person.birth_year else "")
+            birth_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 3, birth_item)
+            
+            # Death Year
+            death_item = QTableWidgetItem(str(person.death_year) if person.death_year else "")
+            death_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 4, death_item)
+        
+        self.table.setSortingEnabled(True)
+    
+    @staticmethod
+    def _normalize_text(text: str) -> str:
+        """Normalize Unicode text for accent-insensitive comparison."""
+        return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('utf-8')
+    
+    def _filter_table(self) -> None:
+        """Filter table based on search text (accent-insensitive)."""
+        search_text = self.search_input.text().lower()
+        
+        if not search_text:
+            self._populate_table(self.people)
+            return
+        
+        # Normalize search text for comparison
+        normalized_search = self._normalize_text(search_text)
+        
+        filtered = [
+            p for p in self.people 
+            if normalized_search in self._normalize_text(p.display_name.lower())
+        ]
+        self._populate_table(filtered)
+    
+    def _get_selected_person(self) -> Person | None:
+        """Get the person from the selected row."""
+        selected_rows = self.table.selectedIndexes()
+        if not selected_rows:
+            return None
+        
+        row = selected_rows[0].row()
+        display_num_item = self.table.item(row, 0)
+        if not display_num_item:
+            return None
+        
+        person_id = display_num_item.data(Qt.ItemDataRole.UserRole)
+        return self.person_repo.get_by_id(person_id)
+    
+    def _on_row_double_clicked(self) -> None:
+        """Handle double-click on a row."""
+        self._edit_selected_person()
+    
+    def _show_context_menu(self, position) -> None:
+        """Show right-click context menu."""
+        if not self._get_selected_person():
+            return
+        
+        menu = QMenu(self)
+        
+        edit_action = QAction("Edit Person", self)
+        edit_action.triggered.connect(self._edit_selected_person)
+        menu.addAction(edit_action)
+        
+        menu.addSeparator()
+        
+        delete_action = QAction("Delete Person", self)
+        delete_action.triggered.connect(self._delete_selected_person)
+        menu.addAction(delete_action)
+        
+        menu.exec(self.table.viewport().mapToGlobal(position))
+    
+    def _add_person(self) -> None:
+        """Open Add Person dialog."""
+        from dialogs.add_person_dialog import AddPersonDialog
+        
+        dialog = AddPersonDialog(self.db_manager)
+        if dialog.exec():
+            self.refresh_data()
+            self.person_edited.emit()
+    
+    def _edit_selected_person(self) -> None:
+        """Open Edit Person dialog for selected row."""
+        person = self._get_selected_person()
+        if not person:
+            QMessageBox.warning(self, "No Selection", "Please select a person to edit.")
+            return
+        
+        from dialogs.edit_person_dialog import EditPersonDialog
+        
+        dialog = EditPersonDialog(self.db_manager, person)
+        if dialog.exec():
+            self.refresh_data()
+            self.person_edited.emit()
+    
+    def _delete_selected_person(self) -> None:
+        """Delete the selected person after confirmation."""
+        person = self._get_selected_person()
+        if not person:
+            QMessageBox.warning(self, "No Selection", "Please select a person to delete.")
+            return
+        
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Delete Person")
+        msg.setText(f"Delete {person.display_name}?")
+        msg.setInformativeText("This will also delete all their marriages, events, and relationships.")
+        msg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if msg.exec() == QMessageBox.StandardButton.Yes:
+            if person.id:
+                self.person_repo.delete(person.id)
+                self.refresh_data()  # This reassigns numbers 1,2,3... to remaining people
+                self.person_edited.emit()
 
 >> 📋 views\dynasty_view.py (0 code lines)
 
@@ -6104,6 +6655,999 @@ class TimelineCanvas(QGraphicsView):
 >> 📋 views\tree_view\__init__.py (0 code lines)
 """Tree view components for family tree visualization."""
 
+from .enhanced_tooltip_panel import EnhancedTooltipPanel
+from .person_box import PersonBox
+from .relationship_line import RelationshipLine
+
+__all__ = [
+    "EnhancedTooltipPanel",
+    "PersonBox",
+    "RelationshipLine",
+]
+
+>> ✅ views\tree_view\enhanced_tooltip_panel.py (376 code lines)
+"""Enhanced tooltip panel for person details."""
+
+from PySide6.QtWidgets import QGraphicsWidget
+from PySide6.QtCore import Qt, QRectF, Signal, QTimer, QPoint
+from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QCursor
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from models.person import Person
+    from database.db_manager import DatabaseManager
+    from views.tree_view.person_box import PersonBox
+
+
+class EnhancedTooltipPanel(QGraphicsWidget):
+    """Enhanced tooltip showing detailed person information."""
+    
+    closed: Signal = Signal()
+    manually_moved: Signal = Signal()
+    
+    PANEL_WIDTH: int = 300
+    PANEL_HEIGHT: int = 600
+    PADDING: int = 15
+    CORNER_RADIUS: int = 8
+    
+    LOCK_ICON_SIZE: int = 10
+    LOCK_INDICATOR_SIZE: int = 20
+    LOCK_START_DELAY: int = 1000
+    HOVER_LOCK_DURATION: int = 3000
+    
+    SECTION_HEADER_SPACING: int = 20
+    SECTION_BOTTOM_SPACING: int = 10
+    SEPARATOR_BOTTOM_SPACING: int = 15
+    LINE_SPACING: int = 16
+    LINE_SPACING_SMALL: int = 14
+    LINE_SPACING_TINY: int = 4
+    
+    INDENT_LEVEL_0: int = 0
+    INDENT_LEVEL_1: int = 10
+    INDENT_LEVEL_2: int = 20
+    INDENT_LEVEL_3: int = 30
+    
+    LOCK_ICON_OFFSET_X: float = 6.5
+    LOCK_ICON_OFFSET_Y: float = 4
+    LOCK_INDICATOR_X_OFFSET: int = 63
+    LOCK_INDICATOR_Y_OFFSET: int = 15
+    LOCK_ICON_CLICKABLE_SIZE: int = 25
+
+    
+    CLOSE_BUTTON_X_OFFSET: int = 30
+    CLOSE_BUTTON_Y_OFFSET: int = 10
+    CLOSE_BUTTON_SIZE: int = 20
+    CLOSE_BUTTON_LINE_LENGTH: int = 15
+    
+    HEADER_HEIGHT: int = 50
+    HEADER_PARTIAL_HEIGHT: int = 25
+    HEADER_TEXT_Y_OFFSET: int = 10
+    HEADER_TEXT_HEIGHT: int = 30
+    HEADER_RIGHT_MARGIN: int = 70
+    
+    INITIAL_CONTENT_Y: int = 70
+    DESCENDANTS_MAX_Y_OFFSET: int = 150
+    EVENTS_MAX_Y_OFFSET: int = 20
+    
+    GENERATION_HEADER_Y_OFFSET: int = 14
+    GENERATION_HEADER_HEIGHT: int = 16
+    GENERATION_GROUP_SPACING: int = 18
+    
+    PERSON_ENTRY_NAME_OFFSET: int = 14
+    PERSON_ENTRY_DATE_OFFSET: int = 16
+    PERSON_ENTRY_DATE_INDENT: int = 10
+    PERSON_ENTRY_ARRIVAL_OFFSET: int = 12
+    
+    SIBLING_DISPLAY_COUNT: int = 3
+    SIBLING_OVERFLOW_INDENT: int = 10
+    
+    EVENT_TYPE_INDENT: int = 10
+    
+    PIE_START_ANGLE: int = 90 * 16
+    PIE_FULL_CIRCLE: int = 360 * 16
+    
+    HOVER_HIDE_DELAY: int = 100
+    
+    COLOR_BG: QColor = QColor(255, 255, 255)
+    COLOR_BORDER: QColor = QColor(100, 100, 255)
+    COLOR_HEADER_BG: QColor = QColor(240, 240, 255)
+    COLOR_TEXT: QColor = QColor(33, 33, 33)
+    COLOR_TEXT_LIGHT: QColor = QColor(100, 100, 100)
+    COLOR_CLOSE_BUTTON: QColor = QColor(200, 0, 0)
+    COLOR_CLOSE_BUTTON_IDLE: QColor = QColor(150, 150, 150)
+    COLOR_SEPARATOR: QColor = QColor(220, 220, 220)
+    COLOR_LOCK_FILL: QColor = QColor(100, 100, 255)
+    COLOR_LOCK_INDICATOR: QColor = QColor(100, 100, 255, 100)
+    COLOR_LOCK_ICON_INACTIVE: QColor = QColor(80, 80, 80)
+    
+    def __init__(
+        self,
+        person_id: int,
+        db_manager: 'DatabaseManager',
+        current_year: int
+    ) -> None:
+        super().__init__()
+        
+        self.person_id: int = person_id
+        self.db: 'DatabaseManager' = db_manager
+        self.current_year: int = current_year
+        
+        self.person: 'Person | None' = None
+        self.events: list = []
+        self.relationships: dict = {}
+        
+        self._load_person_data()
+        self._load_events()
+        self.relationships = self._load_relationships()
+        
+        self.setMinimumSize(self.PANEL_WIDTH, self.PANEL_HEIGHT)
+        self.setMaximumSize(self.PANEL_WIDTH, self.PANEL_HEIGHT)
+        
+        self._close_button_hovered: bool = False
+        self._is_being_dragged: bool = False
+        self._drag_start_pos: QPoint | None = None
+        self.is_hovered: bool = False
+        self.is_locked: bool = False
+        self.parent_person_box: 'PersonBox | None' = None
+        
+        self._collapsed_generations: dict[str, bool] = {
+            'descendants': False,
+            'children': True,
+            'grandchildren': True,
+            'great_grandchildren': True,
+            'great_great_grandchildren': True
+        }
+        self._generation_click_rects: dict[str, QRectF] = {}
+        
+        self._font_icon_small: QFont = QFont("Segoe UI Emoji", self.LOCK_ICON_SIZE)
+        
+        self._lock_delay_timer: QTimer = QTimer()
+        self._lock_delay_timer.setSingleShot(True)
+        self._lock_delay_timer.timeout.connect(self._start_lock_timer)
+        
+        self._hover_timer: QTimer = QTimer()
+        self._hover_timer.setSingleShot(True)
+        self._hover_timer.timeout.connect(self._on_hover_lock)
+        
+        self._animation_timer: QTimer = QTimer()
+        self._animation_timer.setInterval(50)
+        self._animation_timer.timeout.connect(self.update)
+        
+        self.setAcceptHoverEvents(True)
+        self.setFlags(
+            QGraphicsWidget.GraphicsItemFlag.ItemIsMovable |
+            QGraphicsWidget.GraphicsItemFlag.ItemIsSelectable
+        )
+    
+    # ========================================
+    # Data Loading
+    # ========================================
+    
+    def _load_person_data(self) -> None:
+        """Load person data from database."""
+        if not self.db or not self.db.conn:
+            return
+        
+        cursor = self.db.conn.cursor()
+        cursor.execute("SELECT * FROM Person WHERE id = ?", (self.person_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            return
+        
+        person_dict: dict = dict(row)
+        
+        from models.person import Person
+        
+        self.person = Person(
+            id=person_dict.get('id'),
+            first_name=person_dict.get('first_name', ''),
+            middle_name=person_dict.get('middle_name', ''),
+            last_name=person_dict.get('last_name', ''),
+            maiden_name=person_dict.get('maiden_name') or '',
+            nickname=person_dict.get('nickname', ''),
+            gender=person_dict.get('gender', 'Unknown'),
+            birth_year=person_dict.get('birth_year'),
+            birth_month=person_dict.get('birth_month'),
+            birth_day=person_dict.get('birth_day'),
+            death_year=person_dict.get('death_year'),
+            death_month=person_dict.get('death_month'),
+            death_day=person_dict.get('death_day'),
+            arrival_year=person_dict.get('arrival_year'),
+            arrival_month=person_dict.get('arrival_month'),
+            arrival_day=person_dict.get('arrival_day'),
+            moved_out_year=person_dict.get('moved_out_year'),
+            moved_out_month=person_dict.get('moved_out_month'),
+            moved_out_day=person_dict.get('moved_out_day'),
+            father_id=person_dict.get('father_id'),
+            mother_id=person_dict.get('mother_id'),
+            family_id=person_dict.get('family_id'),
+            dynasty_id=person_dict.get('dynasty_id', 1),
+            is_founder=bool(person_dict.get('is_founder', 0)),
+            education=person_dict.get('education', 0),
+            notes=person_dict.get('notes', '')
+        )
+    
+    def _load_events(self) -> None:
+        """Load events for this person."""
+        if not self.db or not self.db.conn:
+            return
+        
+        cursor = self.db.conn.cursor()
+        cursor.execute("""
+            SELECT * FROM Event 
+            WHERE person_id = ?
+            ORDER BY start_year, start_month, start_day
+        """, (self.person_id,))
+        
+        self.events = cursor.fetchall()
+    
+    def _load_relationships(self) -> dict:
+        """Load family relationships including full and half siblings."""
+        if not self.db or not self.db.conn or not self.person:
+            return {}
+        
+        cursor = self.db.conn.cursor()
+
+        siblings: dict[str, list[str]] = {
+            'brothers': [], 
+            'sisters': [], 
+            'other': [],
+            'half_brothers': [],
+            'half_sisters': [],
+            'half_other': []
+        }
+        
+        has_parents: bool = self.person.father_id is not None or self.person.mother_id is not None
+        
+        if has_parents:
+            cursor.execute("""
+                SELECT id, first_name, last_name, gender, father_id, mother_id
+                FROM Person 
+                WHERE (father_id = ? OR mother_id = ?)
+                AND id != ?
+            """, (self.person.father_id, self.person.mother_id, self.person_id))
+            
+            for row in cursor.fetchall():
+                sibling: dict = dict(row)
+                sibling_name: str = f"{sibling['first_name']} {sibling['last_name']}"
+                
+                shares_father: bool = sibling['father_id'] == self.person.father_id and self.person.father_id is not None
+                shares_mother: bool = sibling['mother_id'] == self.person.mother_id and self.person.mother_id is not None
+                is_full_sibling: bool = shares_father and shares_mother
+                
+                sibling_gender: str = sibling['gender']
+                category_suffix: str = '' if is_full_sibling else 'half_'
+                
+                if sibling_gender == 'Male':
+                    siblings[f'{category_suffix}brothers'].append(sibling_name)
+                elif sibling_gender == 'Female':
+                    siblings[f'{category_suffix}sisters'].append(sibling_name)
+                else:
+                    siblings[f'{category_suffix}other'].append(sibling_name)
+
+        descendants: dict = self._load_all_descendants()
+        
+        return {
+            'siblings': siblings,
+            'descendants': descendants
+        }
+
+    def _load_all_descendants(self) -> dict[str, list[dict] | dict]:
+        """Load all descendants with full details for collapsible list."""
+        if not self.db or not self.db.conn:
+            return {'all': [], 'by_generation': {}}
+        
+        cursor = self.db.conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, first_name, last_name, birth_year, death_year, gender, arrival_year, moved_out_year
+            FROM Person 
+            WHERE father_id = ? OR mother_id = ?
+            ORDER BY birth_year
+        """, (self.person_id, self.person_id))
+        
+        children: list[dict] = [dict(row) for row in cursor.fetchall()]
+        all_descendants: list[dict] = []
+        descendants_by_generation: dict[str, list[dict]] = {'children': children}
+        
+        for child in children:
+            all_descendants.append(self._create_descendant_dict(child, 'child'))
+        
+        current_generation_ids: list[int] = [c['id'] for c in children]
+        generation_names: list[str] = ['grandchildren', 'great_grandchildren', 'great_great_grandchildren']
+        
+        for generation_name in generation_names:
+            if not current_generation_ids:
+                break
+            
+            next_generation: list[dict] = self._fetch_generation(cursor, current_generation_ids)
+            
+            if next_generation:
+                descendants_by_generation[generation_name] = next_generation
+                
+                for person in next_generation:
+                    generation_label: str = generation_name.replace('_', ' ')
+                    all_descendants.append(self._create_descendant_dict(person, generation_label))
+                
+                current_generation_ids = [p['id'] for p in next_generation]
+            else:
+                break
+        
+        return {
+            'all': all_descendants,
+            'by_generation': descendants_by_generation
+        }
+
+    def _fetch_generation(self, cursor, parent_ids: list[int]) -> list[dict]:
+        """Fetch a generation of descendants given parent IDs."""
+        placeholders: str = ','.join('?' * len(parent_ids))
+        cursor.execute(f"""
+            SELECT id, first_name, last_name, birth_year, death_year, gender, arrival_year, moved_out_year
+            FROM Person 
+            WHERE father_id IN ({placeholders}) OR mother_id IN ({placeholders})
+            ORDER BY birth_year
+        """, parent_ids + parent_ids)
+        
+        return [dict(row) for row in cursor.fetchall()]
+
+    def _create_descendant_dict(self, person: dict, generation: str) -> dict:
+        """Create standardized descendant dictionary."""
+        return {
+            'id': person['id'],
+            'first_name': person['first_name'],
+            'last_name': person['last_name'],
+            'name': f"{person['first_name']} {person['last_name']}",
+            'generation': generation,
+            'gender': person.get('gender', 'Unknown'),
+            'birth_year': person['birth_year'],
+            'death_year': person['death_year'],
+            'arrival_year': person.get('arrival_year'),
+            'moved_out_year': person.get('moved_out_year')
+        }
+    
+    # ========================================
+    # Helper Methods
+    # ========================================
+    
+    def _get_close_button_rect(self) -> QRectF:
+        """Get close button clickable area."""
+        close_x: float = self.PANEL_WIDTH - self.CLOSE_BUTTON_X_OFFSET
+        close_y: float = self.CLOSE_BUTTON_Y_OFFSET
+        return QRectF(close_x, close_y, self.CLOSE_BUTTON_SIZE, self.CLOSE_BUTTON_SIZE)
+    
+    def _get_lock_icon_rect(self) -> QRectF:
+        """Get clickable area for lock icon."""
+        indicator_x: float = self.PANEL_WIDTH - self.LOCK_INDICATOR_X_OFFSET
+        indicator_y: float = self.LOCK_ICON_OFFSET_Y
+        return QRectF(indicator_x - 5, indicator_y, self.LOCK_ICON_CLICKABLE_SIZE, 20)
+    
+    def _get_generation_header_rect(self, y: float, generation_key: str) -> QRectF:
+        """Get clickable rectangle for generation header."""
+        if generation_key == 'descendants':
+            rect: QRectF = QRectF(
+                self.PADDING + self.INDENT_LEVEL_1, 
+                y - self.GENERATION_HEADER_Y_OFFSET, 
+                self.PANEL_WIDTH - self.PADDING - self.INDENT_LEVEL_2, 
+                self.GENERATION_HEADER_HEIGHT
+        )
+        else:
+            rect: QRectF = QRectF(
+                self.PADDING + self.INDENT_LEVEL_1, 
+                y - self.GENERATION_HEADER_Y_OFFSET, 
+                self.PANEL_WIDTH - self.PADDING - self.INDENT_LEVEL_2, 
+                self.GENERATION_HEADER_HEIGHT
+        )
+        self._generation_click_rects[generation_key] = rect
+        return rect
+    
+    def _get_generation_display_name(self, generation_key: str) -> str:
+        """Get display name for generation with proper formatting."""
+        generation_names: dict[str, str] = {
+            'children': 'Children',
+            'grandchildren': 'Grandchildren',
+            'great_grandchildren': 'Great Grandchildren',
+            'great_great_grandchildren': 'G² Grandchildren'
+        }
+        
+        if generation_key.startswith('great_'):
+            great_count: int = generation_key.count('great_')
+            if great_count > 2:
+                return f"G^{great_count} Grandchildren"
+        
+        return generation_names.get(generation_key, generation_key.replace('_', ' ').title())
+    
+    def _get_gender_symbol(self, gender: str) -> str:
+        """Get gender symbol for display."""
+        return {"Male": "♂", "Female": "♀"}.get(gender, "⚲")
+    
+    def _toggle_generation(self, generation_key: str) -> None:
+        """Toggle collapse state for a generation and repaint."""
+        current_state: bool = self._collapsed_generations.get(generation_key, True)
+        self._collapsed_generations[generation_key] = not current_state
+        self.update()
+    
+    def _start_lock_timer(self) -> None:
+        """Start the hover lock timer."""
+        if not self.is_locked:
+            self._hover_timer.start(self.HOVER_LOCK_DURATION)
+            self._animation_timer.start()
+    
+    def _on_hover_lock(self) -> None:
+        """Called when lock timer completes."""
+        self.is_locked = True
+        self._animation_timer.stop()
+        self.update()
+    
+    def _check_self_hide(self) -> None:
+        """Hide tooltip if mouse isn't back in it and not locked."""
+        mouse_not_in_tooltip: bool = not self.is_hovered
+        tooltip_not_locked: bool = not self.is_locked
+        
+        should_hide: bool = mouse_not_in_tooltip and tooltip_not_locked
+        
+        if should_hide and self.scene():
+            self.scene().removeItem(self)
+            self.closed.emit()
+    
+    def _format_single_date(self, year: int | None, month: int | None, day: int | None) -> str:
+        """Format a single date with month abbreviation."""
+        if year is None:
+            return "?"
+        
+        month_names: dict[int, str] = {
+            1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr',
+            5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Aug',
+            9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dec'
+        }
+        
+        if day and month:
+            month_abbr: str = month_names.get(month, '')
+            return f"{day} {month_abbr} {year}"
+        elif month:
+            month_abbr: str = month_names.get(month, '')
+            return f"{month_abbr} {year}"
+        else:
+            return str(year)
+
+    def _format_years(self, birth_year: int | None, death_year: int | None) -> str:
+        """Format birth and death years for display."""
+        birth_text: str = f"b. {birth_year}" if birth_year else "b. ?"
+        
+        if death_year:
+            return f"({birth_text} - d. {death_year})"
+        
+        return f"({birth_text})"
+    
+    def _format_person_dates(self, person: dict) -> str:
+        """Format all important dates for a person."""
+        dates_parts: list[str] = []
+        
+        arrival_year: int | None = person.get('arrival_year')
+        arrival_month: int | None = person.get('arrival_month')
+        moved_out_year: int | None = person.get('moved_out_year')
+        moved_out_month: int | None = person.get('moved_out_month')
+        birth_year: int | None = person.get('birth_year')
+        birth_month: int | None = person.get('birth_month')
+        death_year: int | None = person.get('death_year')
+        death_month: int | None = person.get('death_month')
+        
+        arrival_text: str = f"Arrival {arrival_month} {arrival_year}"
+        if arrival_year and moved_out_year:
+            dates_parts.append(f"{arrival_text} - Departure {moved_out_month} {moved_out_year}")
+        elif arrival_year:
+            dates_parts.append(f"{arrival_text}")
+
+        birth_text: str = f"b. {birth_month} {birth_year}" if birth_month and birth_year else "b. ?"
+        if death_year:
+            dates_parts.append(f"{birth_text} - d. {death_month} {death_year}")
+        else:
+            dates_parts.append(birth_text)
+        
+        return " | ".join(dates_parts) if dates_parts else ""
+    
+    def _draw_section_header(self, painter: QPainter, y: float, section_font: QFont, text: str) -> float:
+        """Draw a section header and return updated y position."""
+        painter.setFont(section_font)
+        painter.setPen(QPen(self.COLOR_TEXT))
+        painter.drawText(self.PADDING, int(y), text)
+        return y + self.SECTION_HEADER_SPACING
+    
+    def _draw_separator_line(self, painter: QPainter, y: float) -> float:
+        """Draw horizontal separator line and return updated y position."""
+        painter.setPen(QPen(self.COLOR_SEPARATOR, 1))
+        painter.drawLine(self.PADDING, int(y), self.PANEL_WIDTH - self.PADDING, int(y))
+        return y + self.SEPARATOR_BOTTOM_SPACING
+    
+    # ========================================
+    # Painting
+    # ========================================
+    
+    def paint(self, painter: QPainter, option, widget=None) -> None:
+        """Draw the tooltip panel."""
+        if not self.person:
+            return
+        
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        painter.setPen(QPen(self.COLOR_BORDER, 2))
+        painter.setBrush(QBrush(self.COLOR_BG))
+        painter.drawRoundedRect(
+            QRectF(0, 0, self.PANEL_WIDTH, self.PANEL_HEIGHT),
+            self.CORNER_RADIUS,
+            self.CORNER_RADIUS
+        )
+        
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(self.COLOR_HEADER_BG))
+        painter.drawRoundedRect(
+            QRectF(0, 0, self.PANEL_WIDTH, self.HEADER_HEIGHT),
+            self.CORNER_RADIUS,
+            self.CORNER_RADIUS
+        )
+        painter.drawRect(QRectF(0, self.HEADER_PARTIAL_HEIGHT, self.PANEL_WIDTH, self.HEADER_PARTIAL_HEIGHT))
+        
+        self._draw_lock_indicator(painter)
+        self._draw_close_button(painter)
+        self._draw_header(painter)
+        self._draw_content(painter)
+    
+    def _draw_lock_indicator(self, painter: QPainter) -> None:
+        """Draw lock indicator with countdown animation and clickable icon."""
+        indicator_x: float = self.PANEL_WIDTH - self.LOCK_INDICATOR_X_OFFSET
+        indicator_y: float = self.LOCK_INDICATOR_Y_OFFSET
+        center_x: float = indicator_x + self.LOCK_INDICATOR_SIZE / 2
+        center_y: float = indicator_y + self.LOCK_INDICATOR_SIZE / 2
+        
+        is_timer_active: bool = self._hover_timer.isActive()
+        
+        if is_timer_active:
+            elapsed: int = self._hover_timer.interval() - self._hover_timer.remainingTime()
+            fill_percent: float = min(1.0, elapsed / self.HOVER_LOCK_DURATION)
+            
+            painter.setPen(QPen(self.COLOR_LOCK_INDICATOR, 2))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawEllipse(
+                int(indicator_x), 
+                int(indicator_y), 
+                self.LOCK_INDICATOR_SIZE, 
+                self.LOCK_INDICATOR_SIZE
+            )
+            
+            if fill_percent > 0:
+                painter.setBrush(QBrush(self.COLOR_LOCK_FILL))
+                span_angle: int = int(-self.PIE_FULL_CIRCLE * fill_percent)
+                painter.drawPie(
+                    int(indicator_x), 
+                    int(indicator_y), 
+                    self.LOCK_INDICATOR_SIZE, 
+                    self.LOCK_INDICATOR_SIZE,
+                    self.PIE_START_ANGLE,
+                    span_angle
+                )
+        
+        painter.setFont(self._font_icon_small)
+        
+        if self.is_locked:
+            painter.setPen(QPen(self.COLOR_LOCK_FILL))
+            painter.drawText(
+                int(center_x - self.LOCK_ICON_OFFSET_X), 
+                int(center_y + self.LOCK_ICON_OFFSET_Y), 
+                "🔒"
+            )
+        else:
+            painter.setPen(QPen(self.COLOR_LOCK_ICON_INACTIVE))
+            painter.drawText(
+                int(center_x - self.LOCK_ICON_OFFSET_X), 
+                int(center_y + self.LOCK_ICON_OFFSET_Y), 
+                "🔓"
+            )
+    
+    def _draw_close_button(self, painter: QPainter) -> None:
+        """Draw close button."""
+        close_x: float = self.PANEL_WIDTH - self.CLOSE_BUTTON_X_OFFSET
+        close_y: float = self.CLOSE_BUTTON_Y_OFFSET
+        button_color: QColor = self.COLOR_CLOSE_BUTTON if self._close_button_hovered else self.COLOR_CLOSE_BUTTON_IDLE
+        
+        painter.setPen(QPen(button_color, 2))
+        painter.drawLine(
+            int(close_x), 
+            int(close_y), 
+            int(close_x + self.CLOSE_BUTTON_LINE_LENGTH), 
+            int(close_y + self.CLOSE_BUTTON_LINE_LENGTH)
+        )
+        painter.drawLine(
+            int(close_x + self.CLOSE_BUTTON_LINE_LENGTH), 
+            int(close_y), 
+            int(close_x), 
+            int(close_y + self.CLOSE_BUTTON_LINE_LENGTH)
+        )
+    
+    def _draw_header(self, painter: QPainter) -> None:
+        """Draw header with person name."""
+        if not self.person:
+            return
+        
+        painter.setPen(QPen(self.COLOR_TEXT))
+        title_font: QFont = QFont("Segoe UI", 12, QFont.Weight.Bold)
+        painter.setFont(title_font)
+        painter.drawText(
+            QRectF(
+                self.PADDING, 
+                self.HEADER_TEXT_Y_OFFSET, 
+                self.PANEL_WIDTH - self.HEADER_RIGHT_MARGIN, 
+                self.HEADER_TEXT_HEIGHT
+            ), 
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, 
+            self.person.full_name
+        )
+    
+    def _draw_content(self, painter: QPainter) -> None:
+        """Draw all content sections."""
+        y: float = self.INITIAL_CONTENT_Y
+        normal_font: QFont = QFont("Segoe UI", 9)
+        section_font: QFont = QFont("Segoe UI", 10, QFont.Weight.Bold)
+        
+        section_methods: list[Callable] = [
+            self._draw_statistics,
+            self._draw_relationships,
+            self._draw_descendants,
+            self._draw_events
+        ]
+        
+        for section_method in section_methods:
+            y = section_method(painter, y, section_font, normal_font)
+    
+    def _draw_statistics(self, painter: QPainter, y: float, section_font: QFont, normal_font: QFont) -> float:
+        """Draw statistics section."""
+        if not self.person:
+            return y
+        
+        y = self._draw_section_header(painter, y, section_font, "Statistics")
+        
+        painter.setFont(normal_font)
+        painter.setPen(QPen(self.COLOR_TEXT_LIGHT))
+        
+        stats: list[str] = [
+            f"Birth: {self._format_single_date(self.person.birth_year, self.person.birth_month, self.person.birth_day)}",
+            f"Death: {self._format_single_date(self.person.death_year, self.person.death_month, self.person.death_day)}" if self.person.is_deceased else "Status: Living",
+            f"Age: {self.person.get_age(self.current_year) or 'Unknown'}",
+        ]
+        
+        for stat in stats:
+            painter.drawText(self.PADDING, int(y), stat)
+            y += self.LINE_SPACING
+        
+        return y + self.SECTION_BOTTOM_SPACING
+    
+    def _draw_relationships(self, painter: QPainter, y: float, section_font: QFont, normal_font: QFont) -> float:
+        """Draw relationships section."""
+        y = self._draw_section_header(painter, y, section_font, "Relationships")
+        
+        painter.setFont(normal_font)
+        painter.setPen(QPen(self.COLOR_TEXT_LIGHT))
+        
+        siblings: dict[str, list[str]] = self.relationships.get('siblings', {})
+        
+        sibling_types: list[tuple[str, str]] = [
+            ('brothers', 'Brothers'),
+            ('half_brothers', 'Half-Brothers'),
+            ('sisters', 'Sisters'),
+            ('half_sisters', 'Half-Sisters'),
+            ('other', 'Other Siblings'),
+            ('half_other', 'Half-Siblings (Other)')
+        ]
+        
+        for key, label in sibling_types:
+            sibling_list: list[str] = siblings.get(key, [])
+            if sibling_list:
+                y = self._draw_sibling_group(painter, y, label, sibling_list)
+        
+        y += self.SECTION_BOTTOM_SPACING
+        y = self._draw_separator_line(painter, y)
+        return y
+
+    def _draw_sibling_group(self, painter: QPainter, y: float, label: str, sibling_list: list[str]) -> float:
+        """Draw a group of siblings with overflow handling."""
+        displayed_names: str = ', '.join(sibling_list[:self.SIBLING_DISPLAY_COUNT])
+        painter.drawText(self.PADDING, int(y), f"{label}: {displayed_names}")
+        y += self.LINE_SPACING
+        
+        overflow_count: int = len(sibling_list) - self.SIBLING_DISPLAY_COUNT
+        if overflow_count > 0:
+            painter.drawText(
+                self.PADDING + self.SIBLING_OVERFLOW_INDENT, 
+                int(y), 
+                f"...and {overflow_count} more"
+            )
+            y += self.LINE_SPACING
+        
+        return y
+    
+    def _draw_descendants(self, painter: QPainter, y: float, section_font: QFont, normal_font: QFont) -> float:
+        """Draw descendants section with collapsible generations."""
+        descendants: dict = self.relationships.get('descendants', {})
+        descendants_by_generation: dict = descendants.get('by_generation', {})
+        all_descendants: list[dict] = descendants.get('all', [])
+        
+        if not all_descendants:
+            return y
+        
+        is_collapsed: bool = self._collapsed_generations.get('descendants', False)
+        arrow: str = "▶" if is_collapsed else "▼"
+        
+        painter.setFont(section_font)
+        painter.setPen(QPen(self.COLOR_TEXT))
+        painter.drawText(self.PADDING, int(y), f"Descendants ({len(all_descendants)}) {arrow}")
+        self._get_generation_header_rect(y, 'descendants')
+        
+        y += self.SECTION_HEADER_SPACING
+        
+        if is_collapsed:
+            y += self.SECTION_BOTTOM_SPACING
+            y = self._draw_separator_line(painter, y)
+            return y
+
+        descendants_section_max_y: float = self.PANEL_HEIGHT - self.DESCENDANTS_MAX_Y_OFFSET
+        
+        generation_order: list[str] = sorted(
+            descendants_by_generation.keys(),
+            key=lambda x: (x.count('great_'), x)
+        )
+        
+        for generation_key in generation_order:
+            generation_list: list[dict] = descendants_by_generation[generation_key]
+            if not generation_list:
+                continue
+            
+            if y > descendants_section_max_y:
+                break
+            
+            y = self._draw_generation_group(painter, y, generation_key, generation_list, normal_font, descendants_section_max_y)
+        
+        y += self.SECTION_BOTTOM_SPACING
+        y = self._draw_separator_line(painter, y)
+        return y
+
+    def _draw_generation_group(
+        self, 
+        painter: QPainter, 
+        y: float, 
+        generation_key: str, 
+        generation_list: list[dict],
+        normal_font: QFont,
+        max_y: float
+    ) -> float:
+        """Draw a collapsible generation group."""
+        is_collapsed: bool = self._collapsed_generations.get(generation_key, True)
+        arrow: str = "▶" if is_collapsed else "▼"
+        
+        generation_name: str = self._get_generation_display_name(generation_key)
+        
+        self._get_generation_header_rect(y, generation_key)
+        
+        painter.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        painter.setPen(QPen(self.COLOR_TEXT))
+        painter.drawText(
+            self.PADDING + self.INDENT_LEVEL_1, 
+            int(y), 
+            f"{arrow} {generation_name} ({len(generation_list)})"
+        )
+        y += self.GENERATION_GROUP_SPACING
+        
+        if is_collapsed:
+            return y
+        
+        painter.setFont(normal_font)
+        
+        for person in generation_list:
+            if y > max_y:
+                remaining: int = len(generation_list) - generation_list.index(person)
+                painter.setPen(QPen(self.COLOR_TEXT_LIGHT))
+                painter.drawText(self.PADDING + self.INDENT_LEVEL_2, int(y), f"...and {remaining} more")
+                break
+            
+            y = self._draw_person_entry(painter, y, person)
+        
+        return y
+
+    def _draw_person_entry(self, painter: QPainter, y: float, person: dict) -> float:
+        """Draw a single person entry with name, gender, and dates on separate lines."""
+        person_name: str = f"{person['first_name']} {person['last_name']}"
+        gender_symbol: str = self._get_gender_symbol(person.get('gender', 'Unknown'))
+        
+        painter.setPen(QPen(self.COLOR_TEXT))
+        painter.drawText(self.PADDING + self.INDENT_LEVEL_2, int(y), f"{person_name} {gender_symbol}")
+        y += self.PERSON_ENTRY_NAME_OFFSET
+        
+        painter.setPen(QPen(self.COLOR_TEXT_LIGHT))
+        painter.setFont(QFont("Segoe UI", 8))
+        
+        has_arrival: bool = person.get('arrival_year') is not None
+        
+        if has_arrival:
+            arrival_text: str = self._format_single_date(
+                person.get('arrival_year'),
+                person.get('arrival_month'),
+                person.get('arrival_day')
+            )
+            
+            has_departure: bool = person.get('moved_out_year') is not None
+            
+            if has_departure:
+                departure_text: str = self._format_single_date(
+                    person.get('moved_out_year'),
+                    person.get('moved_out_month'),
+                    person.get('moved_out_day')
+                )
+                painter.drawText(self.PADDING + self.INDENT_LEVEL_3, int(y), f"Arr: {arrival_text} - Dep: {departure_text}")
+            else:
+                painter.drawText(self.PADDING + self.INDENT_LEVEL_3, int(y), f"Arrival: {arrival_text}")
+            
+            y += self.PERSON_ENTRY_ARRIVAL_OFFSET
+        
+        birth_text: str = self._format_single_date(
+            person.get('birth_year'),
+            person.get('birth_month'),
+            person.get('birth_day')
+        )
+        
+        has_death: bool = person.get('death_year') is not None
+        
+        if has_death:
+            death_text: str = self._format_single_date(
+                person.get('death_year'),
+                person.get('death_month'),
+                person.get('death_day')
+            )
+            painter.drawText(self.PADDING + self.INDENT_LEVEL_3, int(y), f"b. {birth_text} - d. {death_text}")
+        else:
+            painter.drawText(self.PADDING + self.INDENT_LEVEL_3, int(y), f"b. {birth_text}")
+        
+        painter.setFont(QFont("Segoe UI", 9))
+        y += self.PERSON_ENTRY_DATE_OFFSET
+        
+        return y
+    
+    def _draw_events(self, painter: QPainter, y: float, section_font: QFont, normal_font: QFont) -> float:
+        """Draw events timeline section."""
+        y = self._draw_section_header(painter, y, section_font, f"Life Events ({len(self.events)})")
+        
+        painter.setFont(normal_font)
+        painter.setPen(QPen(self.COLOR_TEXT_LIGHT))
+        
+        max_y: float = self.PANEL_HEIGHT - self.PADDING
+        event_count: int = 0
+        
+        for event in self.events:
+            if y > max_y - self.EVENTS_MAX_Y_OFFSET:
+                remaining_events: int = len(self.events) - event_count
+                painter.drawText(self.PADDING, int(y), f"...and {remaining_events} more")
+                break
+            
+            event_dict: dict = dict(event)
+            event_year: str = str(event_dict.get('start_year', '?'))
+            event_title: str = event_dict.get('event_title', 'Unknown')
+            event_type: str = event_dict.get('event_type', '')
+            
+            painter.drawText(self.PADDING, int(y), f"{event_year}: {event_title}")
+            y += self.LINE_SPACING_SMALL
+            
+            if event_type:
+                painter.drawText(self.PADDING + self.EVENT_TYPE_INDENT, int(y), f"({event_type})")
+                y += self.LINE_SPACING_SMALL
+            
+            event_count += 1
+            y += self.LINE_SPACING_TINY
+        
+        return y
+    
+    # ========================================
+    # Qt Event Handlers
+    # ========================================
+    
+    def boundingRect(self) -> QRectF:
+        """Define widget bounds for Qt rendering system."""
+        return QRectF(0, 0, self.PANEL_WIDTH, self.PANEL_HEIGHT)
+
+    def hoverEnterEvent(self, event) -> None:
+        """Track when mouse enters tooltip and start lock delay timer."""
+        self.is_hovered = True
+        self._lock_delay_timer.start(self.LOCK_START_DELAY)
+        super().hoverEnterEvent(event)
+
+    def hoverMoveEvent(self, event) -> None:
+        """Track close button, lock icon, and generation header hover states."""
+        mouse_position = event.pos()
+        
+        close_rect: QRectF = self._get_close_button_rect()
+        self._close_button_hovered = close_rect.contains(mouse_position)
+        
+        lock_rect: QRectF = self._get_lock_icon_rect()
+        lock_icon_hovered: bool = lock_rect.contains(mouse_position)
+        
+        hovering_header: bool = False
+        for rect in self._generation_click_rects.values():
+            if rect.contains(mouse_position):
+                hovering_header = True
+                break
+        
+        is_hovering_interactive_element: bool = self._close_button_hovered or hovering_header or lock_icon_hovered
+        
+        if is_hovering_interactive_element:
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+        
+        self.update()
+        super().hoverMoveEvent(event)
+
+    def hoverLeaveEvent(self, event) -> None:
+        """Track when mouse leaves tooltip and potentially hide."""
+        self.is_hovered = False
+        self._lock_delay_timer.stop()
+        self._hover_timer.stop()
+        self._animation_timer.stop()
+        
+        if not self.is_locked:
+            QTimer.singleShot(self.HOVER_HIDE_DELAY, self._check_self_hide)
+        
+        super().hoverLeaveEvent(event)
+
+    def mousePressEvent(self, event) -> None:
+        """Handle clicks on close button, lock icon, generation headers, or start drag."""
+        is_left_click: bool = event.button() == Qt.MouseButton.LeftButton
+        
+        if not is_left_click:
+            super().mousePressEvent(event)
+            return
+        
+        click_position = event.pos()
+        
+        close_rect: QRectF = self._get_close_button_rect()
+        clicked_close_button: bool = close_rect.contains(click_position)
+        
+        if clicked_close_button:
+            self.closed.emit()
+            if self.scene():
+                self.scene().removeItem(self)
+            return
+        
+        lock_rect: QRectF = self._get_lock_icon_rect()
+        clicked_lock_icon: bool = lock_rect.contains(click_position)
+        
+        if clicked_lock_icon:
+            self.is_locked = not self.is_locked
+            if self.is_locked:
+                self._lock_delay_timer.stop()
+                self._hover_timer.stop()
+                self._animation_timer.stop()
+            self.update()
+            return
+        
+        for generation_key, rect in self._generation_click_rects.items():
+            if rect.contains(click_position):
+                self._toggle_generation(generation_key)
+                return
+        
+        self._is_being_dragged = True
+        self._drag_start_pos = click_position
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        """Handle dragging."""
+        if self._is_being_dragged:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event) -> None:
+        """Handle drag end and mark as manually moved."""
+        is_left_click: bool = event.button() == Qt.MouseButton.LeftButton
+        
+        if is_left_click and self._is_being_dragged:
+            self.manually_moved.emit()
+            self._is_being_dragged = False
+        
+        super().mouseReleaseEvent(event)
 
 >> 📋 views\tree_view\generation_band.py (2 code lines)
 """Horizontal band showing a generation level in the tree."""
@@ -6174,27 +7718,695 @@ class MarriageNode(QGraphicsWidget):
         pass
 
 
->> 📋 views\tree_view\person_box.py (1 code lines)
+>> ✅ views\tree_view\person_box.py (333 code lines)
 """Person box widget for the tree view."""
 
 from PySide6.QtWidgets import QGraphicsWidget
+from PySide6.QtCore import Qt, QRectF, QPointF, QTimer, Signal
+from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPixmap, QPainterPath, QFontMetrics
+from datetime import datetime
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from models.person import Person
+    from database.db_manager import DatabaseManager
+    from views.tree_view.enhanced_tooltip_panel import EnhancedTooltipPanel
 
 
 class PersonBox(QGraphicsWidget):
     """Visual representation of a person in the family tree."""
-
-    def __init__(self, person_id: int) -> None:
-        """Initialize the person box widget."""
+    
+    person_double_clicked: Signal = Signal(int)
+    person_selected: Signal = Signal(int)
+    favorite_toggled: Signal = Signal(int, bool)
+    
+    BOX_MIN_WIDTH: int = 300
+    BOX_MAX_WIDTH: int = 300
+    BOX_HEIGHT: int = 130
+    PHOTO_SIZE: int = 110
+    BORDER_WIDTH: int = 3
+    CORNER_RADIUS: int = 8
+    TEXT_PADDING: int = 10
+    
+    TOOLTIP_WIDTH: int = 300
+    TOOLTIP_HEIGHT: int = 600
+    TOOLTIP_OFFSET_X: int = 10
+    TOOLTIP_DELAY: int = 1000
+    
+    FAVORITE_STAR_SIZE: int = 20
+    
+    COLOR_LIVING: QColor = QColor(76, 175, 80)
+    COLOR_DECEASED: QColor = QColor(158, 158, 158)
+    COLOR_BG: QColor = QColor(255, 255, 255)
+    COLOR_TEXT: QColor = QColor(33, 33, 33)
+    COLOR_TEXT_LIGHT: QColor = QColor(120, 120, 120)
+    COLOR_SEPARATOR: QColor = QColor(200, 200, 200)
+    COLOR_FAVORITE_STAR: QColor = QColor(255, 215, 0)
+    COLOR_FAVORITE_HOVER: QColor = QColor(200, 200, 200)
+    
+    def __init__(
+        self, 
+        person_id: int, 
+        db_manager: 'DatabaseManager',
+        current_year: int | None = None
+    ) -> None:
         super().__init__()
-        self.person_id = person_id
-        # TODO: Add portrait display
-        # TODO: Add name label
-        # TODO: Add dates label
-        # TODO: Add gear icon button
-        # TODO: Implement drag functionality
-        # TODO: Implement click handlers
-        pass
+        
+        self.person_id: int = person_id
+        self.db: 'DatabaseManager' = db_manager
+        self.current_year: int = current_year if current_year is not None else datetime.now().year
+        
+        self.person: 'Person | None' = None
+        self.portrait_pixmap: QPixmap | None = None
+        self.is_favorite: bool = False
+        
+        self._font_name_bold: QFont = QFont("Segoe UI", 11, QFont.Weight.Bold)
+        self._font_normal: QFont = QFont("Segoe UI", 9)
+        self._font_icon: QFont = QFont("Segoe UI Emoji", 12)
 
+        self._load_person_data()
+        self._load_portrait()
+        self._load_favorite_status()
+        
+        self.box_width: float = self._calculate_box_width()
+        _, name_line2 = self._get_display_name_lines()
+        self.box_height: float = self.BOX_HEIGHT + (18 if name_line2 else 0)
+        
+        self.setFlags(
+            QGraphicsWidget.GraphicsItemFlag.ItemIsMovable |
+            QGraphicsWidget.GraphicsItemFlag.ItemIsSelectable |
+            QGraphicsWidget.GraphicsItemFlag.ItemSendsGeometryChanges
+        )
+        self.setAcceptHoverEvents(True)
+        self.setMinimumSize(self.box_width, self.box_height)
+        self.setMaximumSize(self.box_width, self.box_height)
+        
+        self._is_dragging: bool = False
+        self._drag_start_pos: QPointF | None = None
+        
+        self._tooltip_delay_timer: QTimer = QTimer()
+        self._tooltip_delay_timer.setSingleShot(True)
+        self._tooltip_delay_timer.timeout.connect(self._show_enhanced_tooltip)
+        
+        self._is_hovered: bool = False
+        self._is_name_hovered: bool = False
+        self._is_star_hovered: bool = False
+        self._tooltip_manually_positioned: bool = False
+        self._tooltip_panel: 'EnhancedTooltipPanel | None' = None
+    
+    def _query_one(self, sql: str, params: tuple = ()) -> dict | None:
+        """Execute query and return first row as dict."""
+        if not self.db or not self.db.conn:
+            return None
+        cursor = self.db.conn.cursor()
+        cursor.execute(sql, params)
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    
+    def _load_person_data(self) -> None:
+        """Load person data from database."""
+        row: dict | None = self._query_one("SELECT * FROM Person WHERE id = ?", (self.person_id,))
+        if not row:
+            return
+        
+        from models.person import Person
+        
+        self.person = Person(
+            id=row.get('id'),
+            first_name=row.get('first_name', ''),
+            middle_name=row.get('middle_name', ''),
+            last_name=row.get('last_name', ''),
+            maiden_name=row.get('maiden_name') or '',
+            nickname=row.get('nickname', ''),
+            gender=row.get('gender', 'Unknown'),
+            birth_year=row.get('birth_year'),
+            birth_month=row.get('birth_month'),
+            birth_day=row.get('birth_day'),
+            death_year=row.get('death_year'),
+            death_month=row.get('death_month'),
+            death_day=row.get('death_day'),
+            arrival_year=row.get('arrival_year'),
+            arrival_month=row.get('arrival_month'),
+            arrival_day=row.get('arrival_day'),
+            moved_out_year=row.get('moved_out_year'),
+            moved_out_month=row.get('moved_out_month'),
+            moved_out_day=row.get('moved_out_day'),
+            father_id=row.get('father_id'),
+            mother_id=row.get('mother_id'),
+            family_id=row.get('family_id'),
+            dynasty_id=row.get('dynasty_id', 1),
+            is_founder=bool(row.get('is_founder', 0)),
+            education=row.get('education', 0),
+            notes=row.get('notes', '')
+        )
+    
+    def _load_portrait(self) -> None:
+        """Load portrait image from database if exists."""
+        row: dict | None = self._query_one(
+            "SELECT image_path FROM Portrait WHERE person_id = ? AND is_primary = 1 ORDER BY display_order LIMIT 1",
+            (self.person_id,)
+        )
+        
+        if row and row['image_path']:
+            pixmap: QPixmap = QPixmap(row['image_path'])
+            if not pixmap.isNull():
+                self.portrait_pixmap = pixmap.scaled(
+                    self.PHOTO_SIZE, 
+                    self.PHOTO_SIZE, 
+                    Qt.AspectRatioMode.KeepAspectRatio, 
+                    Qt.TransformationMode.SmoothTransformation
+                )
+    
+    def _load_favorite_status(self) -> None:
+        """Load favorite status from database."""
+        row: dict | None = self._query_one("SELECT is_favorite FROM Person WHERE id = ?", (self.person_id,))
+        if row:
+            self.is_favorite = bool(row['is_favorite'])
+    
+    # ========================================
+    # Helper Methods
+    # ========================================
+    
+    def _calculate_box_width(self) -> float:
+        """Return fixed box width."""
+        return self.BOX_MIN_WIDTH
+
+    def _get_display_name_lines(self) -> tuple[str, str | None]:
+        """Get name text, split across two lines if exceeds 32 characters."""
+        if not self.person:
+            return ("", None)
+        
+        full_name: str = f"{self.person.first_name} {self.person.last_name}"
+        
+        if len(full_name) <= 32:
+            return (full_name, None)
+        
+        metrics: QFontMetrics = QFontMetrics(self._font_name_bold)
+        gear_space: int = 30
+        available_width: float = self.BOX_MIN_WIDTH - (self.PHOTO_SIZE + 15 + self.TEXT_PADDING) - gear_space
+        
+        first_name: str = self.person.first_name
+        last_name: str = self.person.last_name
+        
+        if metrics.horizontalAdvance(first_name) <= available_width:
+            return (first_name, last_name)
+        
+        for i in range(len(first_name), 0, -1):
+            truncated: str = first_name[:i] + "..."
+            if metrics.horizontalAdvance(truncated) <= available_width:
+                return (truncated, last_name)
+        
+        return (first_name[:10] + "...", last_name)
+    
+    def _get_birth_display_text(self) -> str:
+        """Get birth date display text with month if available."""
+        if not self.person:
+            return "?"
+        return self.person.get_birth_date_string()
+    
+    def _get_death_display_text(self) -> str:
+        """Get death date display text with month if available."""
+        if not self.person:
+            return ""
+        
+        if not self.person.is_deceased:
+            return ""
+        
+        return self.person.get_death_date_string()
+
+    def _is_sick(self) -> bool:
+        """Check if person has any active illness events."""
+        if not self.db or not self.db.conn:
+            return False
+        
+        cursor = self.db.conn.cursor()
+        cursor.execute(
+            "SELECT COUNT(*) as count FROM Event WHERE person_id = ? AND event_type = 'Illness' AND (end_year IS NULL OR end_year >= ?)",
+            (self.person_id, self.current_year)
+        )
+        row = cursor.fetchone()
+        return row['count'] > 0 if row else False
+    
+    def _is_immigrant(self) -> bool:
+        """Check if person immigrated."""
+        if not self.person:
+            return False
+        has_arrival_date: bool = self.person.arrival_year is not None
+        is_not_founder: bool = not self.person.is_founder
+        return has_arrival_date and is_not_founder
+    
+    def _get_gender_symbol(self) -> str:
+        """Get the gender symbol for display."""
+        if not self.person:
+            return "⚲"
+        return {"Male": "♂", "Female": "♀"}.get(self.person.gender, "⚲")
+    
+    def _get_age_text(self) -> str:
+        """Generate age text like 'd. 64 (now 108)' or 'Age: 45'."""
+        if not self.person or not self.person.birth_year:
+            return ""
+        
+        is_deceased: bool = self.person.is_deceased
+        has_death_year: bool = self.person.death_year is not None
+        
+        if is_deceased and has_death_year:
+            age_at_death: int | None = self.person.get_age_at_death()
+            if age_at_death is None:
+                return "d. ?"
+            would_be_age: int = self.current_year - self.person.birth_year
+            return f"d. {age_at_death} (now {would_be_age})"
+        
+        current_age: int | None = self.person.get_age(self.current_year)
+        return f"Age: {current_age}" if current_age else ""
+    
+    def _get_star_rect(self) -> QRectF:
+        """Get clickable area for favorite star."""
+        star_x: float = self.box_width - 55
+        star_y: float = 10
+        return QRectF(star_x, star_y, self.FAVORITE_STAR_SIZE, self.FAVORITE_STAR_SIZE)
+    
+    def _get_name_rect(self) -> QRectF:
+        """Get hoverable area for tooltip trigger."""
+        return QRectF(0, 0, self.box_width, self.box_height)
+    
+    def _is_mouse_near_tooltip(self, mouse_pos: QPointF) -> bool:
+        """Check if mouse is in grace area between box and tooltip."""
+        if not self._tooltip_panel:
+            return False
+        
+        grace_width: int = 30
+        grace_rect: QRectF = QRectF(
+            self.box_width - grace_width,
+            0,
+            self.TOOLTIP_OFFSET_X + grace_width * 2,
+            self.box_height
+        )
+        return grace_rect.contains(mouse_pos)
+    
+    def _stop_tooltip_timer(self) -> None:
+        """Stop tooltip delay timer."""
+        self._tooltip_delay_timer.stop()
+
+    def _format_date_for_box(self, year: int | None, month: int | None) -> str:
+        """Format date for PersonBox display with full month name."""
+        if year is None:
+            return "?"
+        
+        month_names: dict[int, str] = {
+            1: 'January', 2: 'February', 3: 'March', 4: 'April',
+            5: 'May', 6: 'June', 7: 'July', 8: 'August',
+            9: 'September', 10: 'October', 11: 'November', 12: 'December'
+        }
+        
+        if month:
+            month_name: str = month_names.get(month, '')
+            return f"{month_name} {year}"
+        else:
+            return str(year)
+    
+    # ========================================
+    # Painting
+    # ========================================
+    
+    def paint(self, painter: QPainter, option, widget=None) -> None:
+        """Draw the person box with all visual elements."""
+        if not self.person:
+            return
+        
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        border_color: QColor = self.COLOR_DECEASED if self.person.is_deceased else self.COLOR_LIVING
+        painter.setPen(QPen(border_color, self.BORDER_WIDTH))
+        painter.setBrush(QBrush(self.COLOR_BG))
+        painter.drawRoundedRect(
+            QRectF(0, 0, self.box_width, self.box_height), 
+            self.CORNER_RADIUS, 
+            self.CORNER_RADIUS
+        )
+        
+        photo_rect: QRectF = QRectF(
+            self.BORDER_WIDTH, 
+            self.BORDER_WIDTH, 
+            self.PHOTO_SIZE + 10, 
+            self.box_height - 2 * self.BORDER_WIDTH
+        )
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor(245, 245, 245)))
+        
+        path: QPainterPath = QPainterPath()
+        path.addRoundedRect(photo_rect, self.CORNER_RADIUS, self.CORNER_RADIUS)
+        painter.setClipPath(path)
+        painter.drawRect(photo_rect)
+        painter.setClipping(False)
+        
+        if self.portrait_pixmap:
+            x_offset: float = (self.PHOTO_SIZE + 10 - self.portrait_pixmap.width()) / 2 + self.BORDER_WIDTH
+            y_offset: float = (self.box_height - self.portrait_pixmap.height()) / 2
+            painter.drawPixmap(int(x_offset), int(y_offset), self.portrait_pixmap)
+        else:
+            self._draw_placeholder_portrait(painter, photo_rect)
+        
+        separator_x: float = self.PHOTO_SIZE + 15
+        painter.setPen(QPen(self.COLOR_SEPARATOR, 1))
+        painter.drawLine(
+            int(separator_x), 
+            int(self.BORDER_WIDTH + 5), 
+            int(separator_x), 
+            int(self.box_height - self.BORDER_WIDTH - 5)
+        )
+        
+        self._draw_text_content(painter, separator_x + self.TEXT_PADDING)
+        
+        should_draw_star: bool = self._is_hovered or self.is_favorite
+        if should_draw_star:
+            self._draw_favorite_star(painter)
+    
+    def _draw_placeholder_portrait(self, painter: QPainter, photo_rect: QRectF) -> None:
+        """Draw silhouette placeholder when no portrait exists."""
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor(200, 200, 200)))
+        
+        center_x: float = photo_rect.center().x()
+        center_y: float = photo_rect.top() + 30
+        painter.drawEllipse(QPointF(center_x, center_y), 15, 15)
+        
+        body_width: float = 30
+        body_height: float = 35
+        body_x: float = center_x - body_width / 2
+        body_y: float = center_y + 18
+        painter.drawRoundedRect(QRectF(body_x, body_y, body_width, body_height), 5, 5)
+        
+        painter.setFont(QFont("Segoe UI", 7))
+        painter.setPen(QPen(self.COLOR_TEXT_LIGHT))
+        text_rect: QRectF = QRectF(photo_rect.left() + 5, photo_rect.top() + 85, photo_rect.width() - 10, 25)
+        painter.drawText(text_rect, Qt.AlignmentFlag.AlignCenter, "Click to add\nportrait")
+    
+    def _draw_text_content(self, painter: QPainter, start_x: float) -> None:
+        """Draw all text content on right side of box."""
+        if not self.person:
+            return
+        
+        icon_y: float = 25
+        icon_x: float = start_x
+        
+        painter.setFont(self._font_icon)
+        painter.setPen(QPen(self.COLOR_TEXT))
+        
+        icon_conditions: list[tuple[bool, str]] = [
+            (self.person.is_founder, "🍃"),
+            (self._is_immigrant(), "↓"),
+            (self.person.is_deceased, "💀"),
+            (self._is_sick(), "🤒")
+        ]
+        
+        for condition, icon in icon_conditions:
+            if condition:
+                painter.drawText(int(icon_x), int(icon_y), icon)
+                icon_x += 20
+        
+        painter.drawText(int(self.box_width - 30), int(icon_y), "⚙")
+        
+        name_line1, name_line2 = self._get_display_name_lines()
+        name_y: float = 50
+        
+        painter.setFont(self._font_name_bold)
+        painter.drawText(int(start_x), int(name_y), name_line1)
+        
+        if name_line2:
+            name_y += 18
+            painter.drawText(int(start_x), int(name_y), name_line2)
+        
+        painter.setFont(self._font_normal)
+        painter.setPen(QPen(QColor(100, 100, 100)))
+        
+        gender_y: float = name_y + 18
+        gender_text: str = f"{self._get_gender_symbol()} {self.person.gender}"
+        painter.drawText(int(start_x), int(gender_y), gender_text)
+        
+        current_y: float = gender_y + 16
+        painter.setFont(QFont("Segoe UI", 9))
+        painter.setPen(QPen(self.COLOR_TEXT))
+        
+        has_arrival: bool = self.person.arrival_year is not None
+        
+        if has_arrival:
+            arrival_text: str = self._format_date_for_box(
+                self.person.arrival_year,
+                self.person.arrival_month
+            )
+            
+            has_departure: bool = self.person.moved_out_year is not None
+            
+            if has_departure:
+                departure_text: str = self._format_date_for_box(
+                    self.person.moved_out_year,
+                    self.person.moved_out_month
+                )
+                painter.drawText(int(start_x), int(current_y), f"A: {arrival_text} | D: {departure_text}")
+            else:
+                painter.drawText(int(start_x), int(current_y), f"A: {arrival_text}")
+            
+            current_y += 14
+
+        birth_text: str = self._format_date_for_box(
+            self.person.birth_year,
+            self.person.birth_month
+        )
+
+        if self.person.is_deceased:
+            death_text: str = self._format_date_for_box(
+                self.person.death_year,
+                self.person.death_month
+            )
+            life_dates: str = f"b. {birth_text} - d. {death_text}"
+        else:
+            life_dates: str = f"b. {birth_text} -"
+
+        painter.drawText(int(start_x), int(current_y), life_dates)
+        current_y += 14
+
+        painter.setPen(QPen(QColor(100, 100, 100)))
+
+        if self.person.is_deceased:
+            age_at_death: int | None = self.person.get_age_at_death()
+            if age_at_death is not None:
+                painter.drawText(int(start_x), int(current_y), f"Died at {age_at_death} years old")
+                current_y += 14
+            
+            if self.person.birth_year:
+                years_since_birth: int = self.current_year - self.person.birth_year
+                painter.drawText(int(start_x), int(current_y), f"Age: {years_since_birth}")
+        else:
+            current_age: int | None = self.person.get_age(self.current_year)
+            if current_age is not None:
+                painter.drawText(int(start_x), int(current_y), f"Age: {current_age}")
+            
+    def _draw_favorite_star(self, painter: QPainter) -> None:
+        """Draw favorite star (filled if favorite, hollow if hovering)."""
+        painter.setFont(QFont("Segoe UI Emoji", 16))
+        
+        star_x: float = self.box_width - 55
+        star_y: float = 10
+        
+        if self.is_favorite:
+            painter.setPen(QPen(self.COLOR_FAVORITE_STAR))
+            painter.drawText(int(star_x), int(star_y + 15), "★")
+        elif self._is_star_hovered or self._is_hovered:
+            painter.setPen(QPen(self.COLOR_FAVORITE_HOVER))
+            painter.drawText(int(star_x), int(star_y + 15), "☆")
+    
+    # ========================================
+    # Tooltip Management
+    # ========================================
+    
+    def _show_enhanced_tooltip(self) -> None:
+        """Show enhanced tooltip panel next to person box."""
+        tooltip_already_exists: bool = self._tooltip_panel is not None
+        no_scene_available: bool = not self.scene()
+        
+        if tooltip_already_exists or no_scene_available:
+            return
+        
+        from views.tree_view.enhanced_tooltip_panel import EnhancedTooltipPanel
+        
+        self._tooltip_panel = EnhancedTooltipPanel(self.person_id, self.db, self.current_year)
+        
+        if not self._tooltip_panel:
+            return
+        
+        self._tooltip_panel.parent_person_box = self
+        self._tooltip_panel.manually_moved.connect(self._on_tooltip_manually_moved)
+        self._tooltip_panel.closed.connect(self._on_tooltip_closed)
+        
+        tooltip_x: float = self.pos().x() + self.box_width + self.TOOLTIP_OFFSET_X
+        tooltip_y: float = self.pos().y()
+        self._tooltip_panel.setPos(tooltip_x, tooltip_y)
+        
+        self.scene().addItem(self._tooltip_panel)
+
+    def _on_tooltip_manually_moved(self) -> None:
+        """Handle tooltip being manually repositioned by user."""
+        self._tooltip_manually_positioned = True
+    
+    def _on_tooltip_closed(self) -> None:
+        """Handle tooltip being closed."""
+        self._tooltip_panel = None
+    
+    def _hide_enhanced_tooltip(self) -> None:
+        """Remove enhanced tooltip from scene."""
+        if self._tooltip_panel and self.scene():
+            self.scene().removeItem(self._tooltip_panel)
+            self._tooltip_panel = None
+
+    def _check_hide_tooltip(self) -> None:
+        """Check if tooltip should be hidden after leaving person box."""
+        if not self._tooltip_panel:
+            return
+        
+        tooltip_is_hovered: bool = self._tooltip_panel.is_hovered
+        tooltip_is_locked: bool = self._tooltip_panel.is_locked
+        
+        should_keep_tooltip: bool = tooltip_is_hovered or tooltip_is_locked
+        
+        if not should_keep_tooltip:
+            self._hide_enhanced_tooltip()
+    
+    # ========================================
+    # Qt Event Handlers
+    # ========================================
+    
+    def boundingRect(self) -> QRectF:
+        """Define widget bounds for Qt rendering system."""
+        return QRectF(0, 0, self.box_width, self.box_height)
+    
+    def hoverEnterEvent(self, event) -> None:
+        """Start tooltip delay timer when mouse enters box."""
+        self._is_hovered = True
+        self._tooltip_delay_timer.start(self.TOOLTIP_DELAY)
+        self.update()
+        super().hoverEnterEvent(event)
+    
+    def hoverMoveEvent(self, event) -> None:
+        """Track hover state for name and star areas."""
+        mouse_position: QPointF = event.pos()
+        
+        self._is_name_hovered = self._get_name_rect().contains(mouse_position)
+        self._is_star_hovered = self._get_star_rect().contains(mouse_position)
+        
+        mouse_left_box: bool = not self._is_name_hovered
+        tooltip_exists: bool = self._tooltip_panel is not None
+        tooltip_unlocked: bool = not (self._tooltip_panel.is_locked if self._tooltip_panel else False)
+        mouse_not_near_tooltip: bool = not self._is_mouse_near_tooltip(mouse_position)
+        
+        should_hide_tooltip: bool = (
+            mouse_left_box and 
+            tooltip_exists and 
+            tooltip_unlocked and 
+            mouse_not_near_tooltip
+        )
+        
+        if should_hide_tooltip:
+            self._hide_enhanced_tooltip()
+        
+        self.update()
+        super().hoverMoveEvent(event)
+    
+    def hoverLeaveEvent(self, event) -> None:
+        """Stop timers and potentially hide tooltip when mouse leaves."""
+        self._is_hovered = False
+        self._is_name_hovered = False
+        self._is_star_hovered = False
+        self._stop_tooltip_timer()
+        
+        tooltip_exists: bool = self._tooltip_panel is not None
+        tooltip_is_unlocked: bool = not (self._tooltip_panel.is_locked if self._tooltip_panel else True)
+        
+        if tooltip_exists and tooltip_is_unlocked:
+            QTimer.singleShot(200, self._check_hide_tooltip)
+        
+        self.update()
+        super().hoverLeaveEvent(event)
+    
+    def mousePressEvent(self, event) -> None:
+        """Handle clicks on star (favorite toggle) or box (drag start)."""
+        is_left_click: bool = event.button() == Qt.MouseButton.LeftButton
+        
+        if not is_left_click:
+            super().mousePressEvent(event)
+            return
+        
+        click_position: QPointF = event.pos()
+        clicked_on_star: bool = self._get_star_rect().contains(click_position)
+        
+        if clicked_on_star:
+            self.is_favorite = not self.is_favorite
+            self.favorite_toggled.emit(self.person_id, self.is_favorite)
+            self._save_favorite_status()
+            self.update()
+            return
+        
+        self._is_dragging = True
+        self._drag_start_pos = click_position
+        self.person_selected.emit(self.person_id)
+        self._stop_tooltip_timer()
+        
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        """Handle dragging - move box and tooltip together if not manually positioned."""
+        if not self._is_dragging:
+            super().mouseMoveEvent(event)
+            return
+        
+        self._stop_tooltip_timer()
+        
+        tooltip_exists: bool = self._tooltip_panel is not None
+
+        if tooltip_exists and self._tooltip_panel:
+            expected_x: float = self.pos().x() + self.box_width + self.TOOLTIP_OFFSET_X
+            expected_y: float = self.pos().y()
+            
+            actual_x: float = self._tooltip_panel.pos().x()
+            actual_y: float = self._tooltip_panel.pos().y()
+            
+            position_tolerance: int = 10
+            x_difference: float = abs(actual_x - expected_x)
+            y_difference: float = abs(actual_y - expected_y)
+            
+            is_in_default_position: bool = x_difference <= position_tolerance and y_difference <= position_tolerance
+            should_move_tooltip: bool = is_in_default_position or not self._tooltip_manually_positioned
+            
+            if should_move_tooltip:
+                self._tooltip_panel.setPos(expected_x, expected_y)
+        
+        super().mouseMoveEvent(event)
+        
+    def mouseReleaseEvent(self, event) -> None:
+        """End drag operation."""
+        is_left_click: bool = event.button() == Qt.MouseButton.LeftButton
+        if is_left_click:
+            self._is_dragging = False
+        super().mouseReleaseEvent(event)
+    
+    def mouseDoubleClickEvent(self, event) -> None:
+        """Emit signal on double-click."""
+        is_left_click: bool = event.button() == Qt.MouseButton.LeftButton
+        if is_left_click:
+            self.person_double_clicked.emit(self.person_id)
+        super().mouseDoubleClickEvent(event)
+    
+    def _save_favorite_status(self) -> None:
+        """Persist favorite status to database."""
+        if not self.db or not self.db.conn:
+            return
+        
+        cursor = self.db.conn.cursor()
+        favorite_value: int = 1 if self.is_favorite else 0
+        cursor.execute(
+            "UPDATE Person SET is_favorite = ? WHERE id = ?",
+            (favorite_value, self.person_id)
+        )
+        self.db.conn.commit()
 
 >> 📋 views\tree_view\relationship_line.py (7 code lines)
 """Visual line connecting related people in the tree."""
@@ -6824,7 +9036,7 @@ class RelationshipCalculator:
         pass
 
 
->> ✅ utils\settings_manager.py (81 code lines)
+>> ✅ utils\settings_manager.py (96 code lines)
 """User preferences and settings management."""
 
 from __future__ import annotations
@@ -7035,6 +9247,51 @@ class SettingsManager:
         """Reset all categories to defaults and save to disk."""
         for category in self.DEFAULTS.keys():
             self.reset_category_to_defaults(category)
+
+    # ------------------------------------------------------------------
+    # Recent Files Operations
+    # ------------------------------------------------------------------
+
+    def get_recent_files(self) -> list[str]:
+        """Get list of recent file paths."""
+        self.qsettings.beginGroup("recent_files")
+        size = self.qsettings.beginReadArray("files")
+        recent = []
+        for i in range(size):
+            self.qsettings.setArrayIndex(i)
+            path = self.qsettings.value("path")
+            if path:
+                recent.append(path)
+        self.qsettings.endArray()
+        self.qsettings.endGroup()
+        return recent
+
+    def add_recent_file(self, file_path: str) -> None:
+        """Add file to recent files list (most recent first)."""
+        recent = self.get_recent_files()
+
+        if file_path in recent:
+            recent.remove(file_path)
+        
+        recent.insert(0, file_path)
+
+        recent = recent[:10]
+
+        self.qsettings.beginGroup("recent_files")
+        self.qsettings.beginWriteArray("files")
+        for i, path in enumerate(recent):
+            self.qsettings.setArrayIndex(i)
+            self.qsettings.setValue("path", path)
+        self.qsettings.endArray()
+        self.qsettings.endGroup()
+        self.qsettings.sync()
+
+    def clear_recent_files(self) -> None:
+        """Clear all recent files."""
+        self.qsettings.beginGroup("recent_files")
+        self.qsettings.remove("")
+        self.qsettings.endGroup()
+        self.qsettings.sync()
 
 >> 📋 utils\skin_manager.py (4 code lines)
 """Skin/theme management for UI customization."""
@@ -7327,8 +9584,8 @@ def generate_summary(root_dir: Path) -> None:
             if files:
                 out.write(f"{category}: ")
                 file_names = [get_relative_path(f, root_dir) for f in sorted(files)]
-                out.write(", ".join(file_names[:5]))
-                if len(files) > 5:
+                out.write(", ".join(file_names[:50]))
+                if len(files) > 50:
                     out.write(f", ... ({len(files)} total)")
                 out.write("\n")
         out.write(f"\n{'='*70}\n")
@@ -7618,6 +9875,144 @@ if __name__ == "__main__":
     migrate_database(dynasty_file)
 
 
+>> ✅ scripts\test_edit_person_dialog.py (21 code lines)
+import sys
+from PySide6.QtWidgets import QApplication
+
+from database.db_manager import DatabaseManager
+from database.person_repository import PersonRepository
+from dialogs.edit_person_dialog import EditPersonDialog
+
+app = QApplication(sys.argv)
+
+# Open database
+db = DatabaseManager(None)
+db.open_database("Struggberg Family Tree 1.dyn")  # Use your actual .dyn file
+
+# Get a person to edit
+repo = PersonRepository(db)
+people = repo.get_all()
+
+if people:
+    person = people[0]  # Edit the first person
+    
+    dialog = EditPersonDialog(db, person)
+    result = dialog.exec()
+    
+    if result:
+        print("User clicked Save")
+    else:
+        print("User clicked Cancel")
+else:
+    print("No people in database!")
+
+sys.exit(0)
+
+>> 📋 scripts\test_person_box.py (17 code lines)
+"""Test script to visualize PersonBox widgets."""
+
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+from PySide6.QtWidgets import QApplication, QGraphicsView, QGraphicsScene, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtGui import QBrush, QColor, QPainter
+
+
+class TestWindow(QMainWindow):
+    """Simple test window to display PersonBox widgets."""
+    
+    def __init__(self, db_manager):
+        super().__init__()
+        self.db = db_manager
+        self.setWindowTitle("PersonBox Test")
+        self.setGeometry(100, 100, 1200, 800)
+        
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+        
+        self.scene = QGraphicsScene()
+        self.view = QGraphicsView(self.scene)
+        self.view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.view.setBackgroundBrush(QBrush(QColor(240, 240, 240)))
+        
+        layout.addWidget(self.view)
+        
+        self._add_test_person_boxes()
+    
+    def _add_test_person_boxes(self):
+        """Add a few PersonBox widgets to test the display."""
+        if not self.db or not self.db.conn:
+            print("No database connection!")
+            return
+        
+        # Import here to avoid issues
+        from views.tree_view.person_box import PersonBox
+        
+        cursor = self.db.conn.cursor()
+        cursor.execute("SELECT id FROM Person LIMIT 6")
+        people = cursor.fetchall()
+        
+        x = 50
+        y = 50
+        spacing_x = 320
+        spacing_y = 150
+        
+        for i, person_row in enumerate(people):
+            person_id = person_row['id']
+            
+            person_box = PersonBox(person_id, self.db)
+            
+            # Connect signals
+            person_box.person_double_clicked.connect(self.on_person_double_clicked)
+            person_box.person_selected.connect(self.on_person_selected)
+            
+            col = i % 3
+            row = i // 3
+            person_box.setPos(x + col * spacing_x, y + row * spacing_y)
+            
+            self.scene.addItem(person_box)
+        
+        self.scene.setSceneRect(0, 0, 1100, 600)
+    
+    def on_person_double_clicked(self, person_id: int):
+        """Handle person double-click."""
+        print(f"Double-clicked person ID: {person_id}")
+    
+    def on_person_selected(self, person_id: int):
+        """Handle person selection."""
+        print(f"Selected person ID: {person_id}")
+
+
+if __name__ == "__main__":
+    print("PersonBox Test")
+    print("-" * 50)
+    
+    db_file = r"D:\Programs\DynastyVizualizer\Struggberg Family Tree 1.dyn"
+    
+    from database.db_manager import DatabaseManager
+    
+    db = DatabaseManager(None)
+    db.open_database(db_file)
+    
+    app = QApplication(sys.argv)
+    window = TestWindow(db)
+    window.show()
+    sys.exit(app.exec())
+    
+    from database.db_manager import DatabaseManager
+    
+    db = DatabaseManager(None)
+    db.open_database(db_file)
+    
+    app = QApplication(sys.argv)
+    window = TestWindow(db)
+    window.show()
+    sys.exit(app.exec())
+
 
 ──────────────────────────────────────────────────────────────────────
 CONFIGURATION
@@ -7634,5 +10029,5 @@ shiboken6==6.10.1
 
 
 ======================================================================
-END - 27/103 files, 2092 code lines
+END - 30/105 files, 2967 code lines
 ======================================================================
