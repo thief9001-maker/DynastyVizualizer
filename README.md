@@ -1,6 +1,9 @@
+# AI Disclosure
+This file structure and code base was made using combinations of Claude Code, Claude.ai and ChatGPT.  Instructions and minor adjustments were made by users, but the majority of the code has been generated through LLM systems.
+
 # DynastyVizualizer
 
-A beautiful, feature-rich family tree visualization and genealogy management application for games with multi-generational families.
+A family tree visualization and genealogy management application for games with multi-generational families.
 
 ## Overview
 
@@ -18,78 +21,122 @@ DynastyVizualizer brings professional genealogy software features to gaming comm
 
 ---
 
-## Current Features (v0.1 - Early Development)
+## Current Features (v0.2 - Active Development)
 
-### ✅ Implemented (Phase 1 Complete + Phase 2 Started)
-- ✅ Database & File Management
-  - Create and manage dynasty database files (`.dyn` format)
-  - Comprehensive database schema with 8 tables (flexible date support)
-  - SQLite-based data persistence with automatic migration support
-  - File operations (New, Open, Save, Save As) - **fully functional**
-  - Unsaved changes tracking and prompting
-- ✅ Application Framework
-  - Clean, professional UI framework with menu structure
-  - Undo/redo infrastructure (Command pattern framework)
-  - Settings management system with disk persistence (QSettings)
+### ✅ Implemented (Phase 1 Complete + Phase 2 ~90% Complete)
+
+#### Database & File Management
+- ✅ Create and manage dynasty database files (`.dyn` format)
+- ✅ Comprehensive database schema with 8 tables (flexible date support)
+- ✅ SQLite-based data persistence with automatic migration support
+- ✅ File operations (New, Open, Save, Save As) - **fully functional**
+- ✅ Recent Files tracking with quick access menu
+- ✅ Unsaved changes tracking and prompting
+
+#### Application Framework
+- ✅ Clean, professional UI framework with menu structure
+- ✅ Complete undo/redo system (Command pattern implementation)
+- ✅ Settings management system with disk persistence (QSettings)
 - ✅ **Keyboard Shortcuts** - All menu actions have customizable shortcuts:
   - **File**: Ctrl+N (New), Ctrl+O (Open), Ctrl+S (Save), Ctrl+Shift+S (Save As), Ctrl+Q (Exit)
-  - **Edit**: Ctrl+Z (Undo), Ctrl+Y (Redo), Ctrl+P (Add Person), Del (Remove Person)
+  - **Edit**: Ctrl+Z (Undo), Ctrl+Y (Redo), Ctrl+P (Add Person), Ctrl+E (Edit Person), Del (Remove Person)
   - **View**: Ctrl+1 (Family Trees), Ctrl+2 (Timeline), Ctrl+3 (Dynasty), Ctrl+4 (Data Table)
-  - **Tools**: F5 (Rebuild Scene), Ctrl+R (Recompute Generations)
+  - **Tools**: F5 (Rebuild Scene), Ctrl+R (Recompute Generations), Ctrl+M (Validate Marriages), Ctrl+Shift+P (Validate Parentage)
   - **Settings**: Ctrl+, (Open Settings)
   - **Help**: F1 (About)
-- ✅ **Add Person Feature** (COMPLETE) - Full implementation with undo/redo:
-  - **Person data model** - Complete dataclass with 25 fields:
-    - Name fields: first, middle, last, maiden, nickname
-    - Flexible date support: birth/death/arrival/moved_out (year/month/day)
-    - Relationships: father, mother, family
-    - Game fields: dynasty_id, is_founder, education
-    - Computed properties: full_name, display_name, is_deceased, age calculations
-    - Date formatting methods with European format support
-  - **PersonRepository** - Full CRUD operations:
-    - Create: insert(), insert_with_id() (preserves ID on redo)
-    - Read: get_by_id(), get_all(), get_by_name(), get_children(), get_alive_in_year()
-    - Update: update()
-    - Delete: delete()
-  - **AddPersonCommand** - Undoable command with ID preservation:
-    - run() method for execution
-    - undo() method for reversal
-    - Preserves person ID across undo/redo cycles
-  - **AddPersonDialog** - Professional dialog interface:
-    - Special character toolbar (á, ý, ó, é, í) for non-English names
-    - Required fields: first name, last name, birth year
-    - Optional fields: gender, notes
-    - Input validation with error messages
-    - Close warning for unsaved changes (Qt built-in)
-  - **Database migration system** - Automatic schema upgrade:
-    - Safely adds new columns to existing databases
-    - Creates backup before migration
-    - Preserves all existing data
 
-### 🚧 In Progress (Phase 1-2 Completion)
+#### Data Models & CRUD Operations
+- ✅ **Person Management** - Complete person lifecycle:
+  - **Person Model**: 25 fields including names, dates, relationships, notes
+  - **PersonRepository**: Full CRUD + search methods (get_children, get_by_name, get_alive_in_year)
+  - **Add Person**: Dialog with special character toolbar (á, ý, ó, é, í)
+  - **Edit Person**: Comprehensive dialog with three panels:
+    - **General Panel**: Names, dates, gender, education, notes
+    - **Relationships Panel**: Manage parents, marriages, children
+    - **Events Panel**: Personal event history timeline
+  - **Delete Person**: With confirmation and cascade handling
+
+- ✅ **Marriage Management** - Full marriage lifecycle:
+  - **Marriage Model**: Marriage/dissolution dates, types, reasons
+  - **MarriageRepository**: Complete CRUD operations
+  - **Create Marriage**: Dialog to marry two people with validation
+  - **End Marriage**: Dialog for divorce/dissolution with reasons
+  - **Edit Marriage**: Modify marriage details and dates
+
+- ✅ **Event System** - Personal history tracking:
+  - **Event Model**: Life events with flexible start/end dates
+  - **EventRepository**: Full CRUD operations
+  - **Event Types**: Birth, Marriage, Death, Job, Move, Illness, Injury, Education, etc.
+  - **Create/Edit Event**: Dialogs with date pickers and validation
+  - **Timeline Display**: Events shown in person's edit dialog
+
+- ✅ **Child Creation** - Streamlined child creation:
+  - **Create Child Dialog**: Creates person with parents pre-assigned
+  - **Parent Validation**: Ensures valid parent combinations
+  - **Automatic Relationships**: Links child to both parents
+
+#### Reusable Widgets
+- ✅ **DatePicker Widget**: Flexible year/month/day selection (183 lines)
+- ✅ **PersonSelector Widget**: Searchable dropdown for selecting people (162 lines)
+- ✅ **Search Bar**: Real-time filtering with instant results
+
+#### Data Views
+- ✅ **Data Table View** (COMPLETE - 237 lines):
+  - Sortable, filterable table of all people
+  - Real-time name search with instant filtering
+  - Columns: ID, Name, Gender, Birth Year, Death Year
+  - Double-click to edit person
+  - Right-click context menus
+  - Add/Remove person buttons integrated
+
+#### Commands (Undo/Redo Support)
+**14 Genealogy Commands:**
+- ✅ AddPersonCommand, EditPersonCommand, DeletePersonCommand
+- ✅ AddMarriageCommand, EditMarriageCommand, DeleteMarriageCommand, EndMarriageCommand
+- ✅ CreateChildCommand
+- ✅ AssignParentCommand, UnassignParentCommand
+- ✅ AddEventCommand, EditEventCommand, DeleteEventCommand, EndEventCommand
+
+**8 GUI Commands:**
+- ✅ ChangeViewCommand, RebuildSceneCommand, RecomputeGenerationsCommand
+- ✅ ChangeSkinCommand, MoveNodeCommand, MovePersonCommand
+- ✅ PreferenceChangesCommand, TimelineScrollCommand
+
+### 🚧 In Progress (Phase 2-3 Transition)
 - 🚧 Settings dialog UI (keyboard shortcut customization, appearance, formats)
 - 🚧 Help menu (About dialog)
-- 🚧 Remove Person dialog with confirmation
-- 🚧 Edit Person dialog (modify existing people)
+- 🚧 Family Tree visualization (components exist, integration in progress)
+- 🚧 Timeline visualization (components exist, integration in progress)
 
 ---
 
 ## Planned Features
 
-### 🎯 Phase 2: Data Management (Weeks 3-5) - In Progress (~35% Complete)
+### ✅ Phase 2: Data Management (Weeks 3-5) - ~90% Complete
 - ✅ Person data model with dataclass (25 fields, computed properties, date formatting)
 - ✅ PersonRepository with full CRUD operations and search methods
 - ✅ AddPersonCommand with undo/redo and ID preservation
 - ✅ AddPersonDialog with special character support and validation
+- ✅ EditPersonCommand and EditPersonDialog (3 panels: General, Relationships, Events)
+- ✅ DeletePersonCommand and RemovePersonDialog with confirmation
+- ✅ Marriage model with full lifecycle (dates, types, dissolution)
+- ✅ MarriageRepository with complete CRUD operations
+- ✅ CreateMarriageCommand and CreateMarriageDialog
+- ✅ EndMarriageCommand and EndMarriageDialog
+- ✅ EditMarriageCommand for modifying existing marriages
+- ✅ Event model with flexible date ranges
+- ✅ EventRepository with full CRUD operations
+- ✅ CreateEventCommand/Dialog and EditEventCommand/Dialog
+- ✅ CreateChildCommand and CreateChildDialog (automatic parent assignment)
+- ✅ AssignParentCommand and UnassignParentCommand
+- ✅ DatePicker widget (flexible year/month/day precision)
+- ✅ PersonSelector widget (searchable dropdown)
+- ✅ Data Table View (sortable, filterable, searchable)
+- ✅ Recent Files management
 - ✅ Database migration system for schema upgrades
-- 📋 EditPersonCommand and EditPersonDialog
-- 📋 RemovePersonCommand and RemovePersonDialog with confirmation
-- 📋 Create marriages and parent-child relationships
-- 📋 Track multiple marriages and divorces
-- 📋 Support for portraits with date-based switching
-- 📋 Personal event logs (jobs, illnesses, residences, etc.)
+- 📋 Support for portraits with date-based switching (model exists, UI pending)
 
-**Next**: Edit Person dialog, Remove Person dialog, Marriage creation
+**Next**: Portrait management UI, complete Settings dialog, begin Family Tree visualization (Phase 3)
 
 ### 🌳 Phase 3: Interactive Family Tree (Weeks 6-10)
 - 📋 Visual person boxes with portraits, names, and key dates
@@ -278,44 +325,70 @@ See [CODEBASE_SUMMARY.md](CODEBASE_SUMMARY.md) for comprehensive technical docum
 
 ## Development Status
 
-**Current Phase**: Phase 1 Complete, Phase 2 In Progress
-**Progress**: ~15% of total project
-**Lines of Code**: ~1,900 (estimated final: 8,000-12,000)
-**Next Milestone**: Complete Edit/Remove Person dialogs, begin marriage creation
+**Current Phase**: Phase 2 ~90% Complete, Beginning Phase 3
+**Progress**: ~25-30% of total project
+**Lines of Code**: ~7,700 across 95+ files (estimated final: 15,000-20,000)
+**Next Milestone**: Complete Settings dialog, begin interactive Family Tree visualization
 
 ### What Works Now
+**File Operations:**
 - ✅ Application launches with menu bar and keyboard shortcuts
 - ✅ File → New Dynasty (creates `.dyn` database)
 - ✅ File → Open Dynasty (loads existing database)
+- ✅ Recent Files menu with quick access
 - ✅ File → Save / Save As (persists changes)
 - ✅ File → Exit (with unsaved changes prompt)
 - ✅ Database schema with all 8 tables
 - ✅ Migration script for existing files
-- ✅ **Edit → Add Person** (full dialog with undo/redo)
-  - Special character support for non-English names
-  - Input validation
-  - Preserves ID on undo/redo
 
-### What's Next (Completing Phase 2)
-- 🚧 Edit → Remove Person (with confirmation)
-- 🚧 Edit → Edit Person (modify existing person)
+**Person Management:**
+- ✅ **Add Person** (Ctrl+P) - Full dialog with special characters, validation, undo/redo
+- ✅ **Edit Person** (Ctrl+E / Double-click) - Comprehensive 3-panel dialog:
+  - General panel: Names, dates, gender, education, notes
+  - Relationships panel: Parents, marriages (create/end), children (create/assign)
+  - Events panel: Personal history timeline with create/edit/delete
+- ✅ **Delete Person** (Del) - With confirmation and relationship handling
+- ✅ Undo/Redo (Ctrl+Z/Y) - All person operations fully reversible
+
+**Relationship Management:**
+- ✅ **Create Marriage** - Dialog to marry two people with validation
+- ✅ **End Marriage** - Divorce/dissolution with reasons and dates
+- ✅ **Edit Marriage** - Modify marriage details
+- ✅ **Create Child** - Automatically assigns both parents
+- ✅ **Assign/Unassign Parents** - Modify parent-child relationships
+- ✅ All relationship operations support undo/redo
+
+**Event System:**
+- ✅ **Create Event** - Life events (jobs, moves, illnesses, etc.)
+- ✅ **Edit Event** - Modify existing events
+- ✅ **Delete Event** - Remove events from timeline
+- ✅ Event timeline display in Edit Person dialog
+
+**Data Viewing:**
+- ✅ **Data Table View** (Ctrl+4) - Sortable, filterable, searchable table
+- ✅ Real-time search across all people
+- ✅ Double-click to edit, right-click for context menu
+
+### What's Next (Completing Phase 2 & Starting Phase 3)
+- 🚧 Settings → Preferences (complete dialog with all tabs)
 - 🚧 Help → About (application info dialog)
-- 🚧 Marriage creation dialog
-- 🚧 Parent-child relationship assignment
+- 🚧 Portrait management UI (model exists)
+- 🚧 Family Tree visualization (TreeCanvas, PersonBox, layout engine)
+- 🚧 Timeline visualization (components exist, need integration)
 
 ### Roadmap Summary
 
 | Phase | Description | Status | Progress | Weeks |
 |-------|-------------|--------|----------|-------|
 | **1** | Foundation (Database, Menus, Framework) | ✅ Complete | 100% | 1-2 |
-| **2** | Data Models & CRUD Dialogs | 🚧 In Progress | ~35% | 2-5 |
-| **3** | Interactive Family Tree (QGraphicsView) | 📋 Planned | 0% | 6-10 |
+| **2** | Data Models & CRUD Dialogs | ✅ Nearly Complete | ~90% | 2-5 |
+| **3** | Interactive Family Tree (QGraphicsView) | 🚧 Starting | ~10% | 6-10 |
 | **4** | Relationship Analysis & Tracing | 📋 Planned | 0% | 11-13 |
-| **5** | Timeline View | 📋 Planned | 0% | 14-17 |
-| **6** | Data Tables & CSV Import | 📋 Planned | 0% | 18-20 |
+| **5** | Timeline View | 🚧 Components Exist | ~15% | 14-17 |
+| **6** | Data Tables & CSV Import | 🚧 Partial | ~40% | 18-20 |
 | **7** | Statistics & Validation | 📋 Planned | 0% | 21-23 |
-| **8** | Visual Customization (Skins, Portraits) | 📋 Planned | 0% | 24-26 |
-| **9** | Polish & Convenience | 📋 Planned | 0% | 27-30 |
+| **8** | Visual Customization (Skins, Portraits) | 📋 Models Exist | ~10% | 24-26 |
+| **9** | Polish & Convenience | 🚧 Partial | ~20% | 27-30 |
 | **10** | Future Enhancements | 📋 Post-Release | 0% | TBD |
 
 ---
@@ -414,9 +487,9 @@ For questions about Ostriv-specific use cases, visit the Ostriv community forums
 
 ---
 
-**Version**: 0.1.0-dev
-**Status**: Early Development (Phase 1 Complete, Phase 2: ~35% Complete)
-**Last Updated**: 2025-12-13
+**Version**: 0.2.0-dev
+**Status**: Active Development (Phase 2: ~90% Complete, Phase 3: Starting)
+**Last Updated**: 2025-12-30
 
 ---
 
