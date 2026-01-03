@@ -166,6 +166,7 @@ class DatabaseManager:
             dynasty_id INTEGER DEFAULT 1,
             is_founder INTEGER DEFAULT 0,
             education INTEGER DEFAULT 0,
+            is_favorite INTEGER DEFAULT 0,
             notes TEXT,
             FOREIGN KEY(father_id) REFERENCES Person(id) ON DELETE SET NULL,
             FOREIGN KEY(mother_id) REFERENCES Person(id) ON DELETE SET NULL,
@@ -268,7 +269,8 @@ class DatabaseManager:
         self._migrate_person_table(cursor)
         self._migrate_marriage_table(cursor)
         self._migrate_event_table_data(cursor)
-        
+        self._migrate_person_table_data(cursor)
+
         self.conn.commit()
     
     def _migrate_person_table(self, cursor: sqlite3.Cursor) -> None:
@@ -281,6 +283,7 @@ class DatabaseManager:
             ("dynasty_id", "ALTER TABLE Person ADD COLUMN dynasty_id INTEGER DEFAULT 1"),
             ("is_founder", "ALTER TABLE Person ADD COLUMN is_founder INTEGER DEFAULT 0"),
             ("education", "ALTER TABLE Person ADD COLUMN education INTEGER DEFAULT 0"),
+            ("is_favorite", "ALTER TABLE Person ADD COLUMN is_favorite INTEGER DEFAULT 0"),
         ]
         
         self._apply_column_migrations(cursor, existing_columns, migrations)
@@ -334,6 +337,52 @@ class DatabaseManager:
                 WHERE id = ?
             """, (new_start, new_end, event_id))
     
+    def _migrate_person_table_data(self, cursor: sqlite3.Cursor) -> None:
+        """Convert Person table month names from text to integers."""
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Person'")
+        if not cursor.fetchone():
+            return
+        
+        cursor.execute("SELECT id, birth_month FROM Person WHERE birth_month IS NOT NULL LIMIT 1")
+        row = cursor.fetchone()
+        
+        if not row or not row[1]:
+            return
+        
+        if isinstance(row[1], str) and not row[1].isdigit():
+            self._convert_person_months_to_integers(cursor)
+
+    def _convert_person_months_to_integers(self, cursor: sqlite3.Cursor) -> None:
+        """Convert text month names to integer values in Person table."""
+        month_map: dict[str, int] = {
+            "January": 1, "February": 2, "March": 3, "April": 4,
+            "May": 5, "June": 6, "July": 7, "August": 8,
+            "September": 9, "October": 10, "November": 11, "December": 12
+        }
+        
+        cursor.execute("""
+            SELECT id, birth_month, death_month, arrival_month, moved_out_month
+            FROM Person 
+            WHERE birth_month IS NOT NULL 
+            OR death_month IS NOT NULL 
+            OR arrival_month IS NOT NULL 
+            OR moved_out_month IS NOT NULL
+        """)
+        
+        for person_id, birth_month, death_month, arrival_month, moved_out_month in cursor.fetchall():
+            new_birth_month: int | None = month_map.get(birth_month) if birth_month else None
+            new_death_month: int | None = month_map.get(death_month) if death_month else None
+            new_arrival_month: int | None = month_map.get(arrival_month) if arrival_month else None
+            new_moved_out_month: int | None = month_map.get(moved_out_month) if moved_out_month else None
+            
+            cursor.execute("""
+                UPDATE Person 
+                SET birth_month = ?, 
+                    death_month = ?, 
+                    arrival_month = ?, 
+                    moved_out_month = ? 
+                WHERE id = ?
+            """, (new_birth_month, new_death_month, new_arrival_month, new_moved_out_month, person_id))    
     # ------------------------------------------------------------------
     # Private Methods - Utilities
     # ------------------------------------------------------------------
