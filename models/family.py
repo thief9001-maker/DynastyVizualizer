@@ -1,56 +1,72 @@
 """Data model for Family dynasties."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
+
+from utils.date_formatter import DateFormatter, DateParts, MonthStyle
 
 
 @dataclass
 class Family:
     """Represents a family dynasty grouping."""
     
-    # Database identity
+    # ------------------------------------------------------------------
+    # Constants
+    # ------------------------------------------------------------------
+    
+    DATE_UNKNOWN: str = "Unknown"
+    DEFAULT_FAMILY_NAME: str = "Unknown Family"
+    FAMILY_NAME_SUFFIX: str = " Family"
+    
+    # Database Identity
     id: int | None = None
-    
-    # Family identification
+
+    # Family Identification
     surname: str = ""
-    
-    # Move-in date (when family arrived in settlement)
+
+    # Move-In Date 
     move_in_year: int | None = None
     move_in_month: int | None = None
     move_in_day: int | None = None
     
-    # Visual representation
-    coat_of_arms_path: str = ""  # Path to coat of arms image
-    family_color: str = ""  # Hex color for UI display
-    
+    # Visual Representation
+    coat_of_arms_path: str = ""
+    family_color: str = ""
+
     # Status
-    is_extinct: bool = False  # True if no living members
+    is_extinct: bool = False
     
     # Notes
     notes: str = ""
     
+    # ------------------------------------------------------------------
+    # Computed Properties - Dates
+    # ------------------------------------------------------------------
+    
     @property
     def move_in_date_string(self) -> str:
         """Format move-in date as readable string."""
-        if not self.move_in_year:
-            return "Unknown"
+        if self.move_in_year is None:
+            return self.DATE_UNKNOWN
         
-        month_names = ["", "January", "February", "March", "April", "May", "June",
-                      "July", "August", "September", "October", "November", "December"]
+        date_parts: DateParts = DateParts(
+            year=self.move_in_year,
+            month=self.move_in_month,
+            day=self.move_in_day
+        )
         
-        if self.move_in_month and self.move_in_day:
-            # Full date
-            return f"{month_names[self.move_in_month]} {self.move_in_day}, {self.move_in_year}"
-        elif self.move_in_month:
-            # Year and month
-            return f"{month_names[self.move_in_month]} {self.move_in_year}"
-        else:
-            # Year only
-            return str(self.move_in_year)
+        return DateFormatter.format_display(
+            date=date_parts,
+            month_style=MonthStyle.FULL_NAME,
+            separator=" "
+        )
+    
+    # ------------------------------------------------------------------
+    # Computed Properties - Display
+    # ------------------------------------------------------------------
     
     @property
     def display_name(self) -> str:
         """Get family display name."""
-        return f"{self.surname} Family" if self.surname else "Unknown Family"
-    
-    # Note: member_count, founding_date, end_date, longest_lived_member
-    # require database queries, so they'll be methods in FamilyRepository
+        return f"{self.surname}{self.FAMILY_NAME_SUFFIX}" if self.surname else self.DEFAULT_FAMILY_NAME

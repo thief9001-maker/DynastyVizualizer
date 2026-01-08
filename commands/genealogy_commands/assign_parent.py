@@ -1,33 +1,89 @@
 """Command for assigning a parent to a person."""
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from database.db_manager import DatabaseManager
+    from models.person import Person
+
 from commands.base_command import BaseCommand
+from database.person_repository import PersonRepository
 
 
 class AssignParentCommand(BaseCommand):
     """Set or change a person's father or mother."""
-
+    
+    # ------------------------------------------------------------------
+    # Constants
+    # ------------------------------------------------------------------
+    
+    PARENT_TYPE_FATHER: str = "father"
+    PARENT_TYPE_MOTHER: str = "mother"
+    
+    # ------------------------------------------------------------------
+    # Initialization
+    # ------------------------------------------------------------------
+    
     def __init__(
         self,
-        database_connection,
-        person_id: int,
+        db_manager: DatabaseManager,
+        person: Person,
         parent_id: int,
-        parent_type: str,  # "father" or "mother"
+        parent_type: str
     ) -> None:
-        """Initialize the assign parent command."""
-        self.db = database_connection
-        self.person_id = person_id
-        self.parent_id = parent_id
-        self.parent_type = parent_type
-        self.old_parent_id: int | None = None
-        # TODO: Store original parent ID for undo
-
+        """
+        Initialize assign parent command.
+        
+        Args:
+            db_manager: Database manager instance
+            person: Person to assign parent to
+            parent_id: ID of parent to assign
+            parent_type: "father" or "mother"
+        """
+        super().__init__()
+        self.db_manager: DatabaseManager = db_manager
+        self.person: Person = person
+        self.parent_id: int = parent_id
+        self.parent_type: str = parent_type
+        self.old_parent_id: int | None = self._get_current_parent_id()
+    
+    def _get_current_parent_id(self) -> int | None:
+        """Get current parent ID before assignment."""
+        if self.parent_type == self.PARENT_TYPE_FATHER:
+            return self.person.father_id
+        return self.person.mother_id
+    
+    # ------------------------------------------------------------------
+    # Command Execution
+    # ------------------------------------------------------------------
+    
     def run(self) -> None:
         """Assign the parent relationship in database."""
-        # TODO: Save current parent ID to old_parent_id
-        # TODO: Update father_id or mother_id based on parent_type
-        pass
-
+        if self.parent_type == self.PARENT_TYPE_FATHER:
+            self.person.father_id = self.parent_id
+        else:
+            self.person.mother_id = self.parent_id
+        
+        person_repo: PersonRepository = PersonRepository(self.db_manager)
+        person_repo.update(self.person)
+    
     def undo(self) -> None:
         """Restore original parent relationship."""
-        # TODO: Restore parent ID from old_parent_id
-        pass
+        if self.parent_type == self.PARENT_TYPE_FATHER:
+            self.person.father_id = self.old_parent_id
+        else:
+            self.person.mother_id = self.old_parent_id
+        
+        person_repo: PersonRepository = PersonRepository(self.db_manager)
+        person_repo.update(self.person)
+    
+    # ------------------------------------------------------------------
+    # Description
+    # ------------------------------------------------------------------
+    
+    def description(self) -> str:
+        """Return human-readable description."""
+        parent_label: str = "Father" if self.parent_type == self.PARENT_TYPE_FATHER else "Mother"
+        return f"Assign {parent_label}"

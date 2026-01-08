@@ -1,128 +1,160 @@
 """Repository for Event database operations."""
 
-from database.db_manager import DatabaseManager
+from __future__ import annotations
+
+import sqlite3
+
+from database.base_repository import BaseRepository
 from models.event import Event
 
 
-class EventRepository:
+class EventRepository(BaseRepository[Event]):
     """Handle database operations for events."""
     
-    def __init__(self, db_manager: DatabaseManager) -> None:
-        self.db = db_manager
+    # ------------------------------------------------------------------
+    # SQL Query Templates
+    # ------------------------------------------------------------------
     
-    def insert(self, event: Event) -> int:
-        """Insert a new event into the database."""
-        if not self.db.conn:
-            return -1
-        
-        cursor = self.db.conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO Event (
-                person_id, event_type, event_title,
-                start_year, start_month, start_day,
-                end_year, end_month, end_day, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            event.person_id, event.event_type, event.event_title,
-            event.start_year, event.start_month, event.start_day,
-            event.end_year, event.end_month, event.end_day, event.notes
-        ))
-        
-        self.db.conn.commit()
-        return cursor.lastrowid or -1
+    SQL_INSERT: str = """
+        INSERT INTO Event (
+            person_id, event_type, event_title,
+            start_year, start_month, start_day,
+            end_year, end_month, end_day, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
     
-    def get_by_id(self, event_id: int) -> Event | None:
-        """Get an event by ID."""
-        if not self.db.conn:
-            return None
-        
-        cursor = self.db.conn.cursor()
-        
-        cursor.execute("""
-            SELECT id, person_id, event_type, event_title,
-                   start_year, start_month, start_day,
-                   end_year, end_month, end_day, notes
-            FROM Event
-            WHERE id = ?
-        """, (event_id,))
-        
-        row = cursor.fetchone()
-        return self._row_to_event(row) if row else None
+    SQL_INSERT_WITH_ID: str = """
+        INSERT INTO Event (
+            id, person_id, event_type, event_title,
+            start_year, start_month, start_day,
+            end_year, end_month, end_day, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+    
+    SQL_SELECT_BY_ID: str = """
+        SELECT * FROM Event WHERE id = ?
+    """
+    
+    SQL_SELECT_BY_PERSON: str = """
+        SELECT * FROM Event
+        WHERE person_id = ?
+        ORDER BY start_year, start_month, start_day
+    """
+    
+    SQL_UPDATE: str = """
+        UPDATE Event SET
+            person_id = ?,
+            event_type = ?,
+            event_title = ?,
+            start_year = ?,
+            start_month = ?,
+            start_day = ?,
+            end_year = ?,
+            end_month = ?,
+            end_day = ?,
+            notes = ?
+        WHERE id = ?
+    """
+    
+    SQL_DELETE: str = "DELETE FROM Event WHERE id = ?"
+    
+    # ------------------------------------------------------------------
+    # Default Values
+    # ------------------------------------------------------------------
+    
+    DEFAULT_EVENT_TYPE: str = ""
+    DEFAULT_EVENT_TITLE: str = ""
+    DEFAULT_NOTES: str = ""
+    
+    # ------------------------------------------------------------------
+    # Abstract Method Implementations (Required by BaseRepository)
+    # ------------------------------------------------------------------
+    
+    def _row_to_entity(self, row: sqlite3.Row) -> Event:
+        """Convert database row to Event object."""
+        return Event(
+            id=row['id'],
+            person_id=row['person_id'],
+            event_type=row['event_type'] or self.DEFAULT_EVENT_TYPE,
+            event_title=row['event_title'] or self.DEFAULT_EVENT_TITLE,
+            start_year=self._to_int(row['start_year']),
+            start_month=self._to_int(row['start_month']),
+            start_day=self._to_int(row['start_day']),
+            end_year=self._to_int(row['end_year']),
+            end_month=self._to_int(row['end_month']),
+            end_day=self._to_int(row['end_day']),
+            notes=row['notes'] or self.DEFAULT_NOTES
+        )
+    
+    def _entity_to_values_without_id(self, entity: Event) -> tuple:
+        """Extract event data as tuple for INSERT (without ID)."""
+        return (
+            entity.person_id, entity.event_type, entity.event_title,
+            entity.start_year, entity.start_month, entity.start_day,
+            entity.end_year, entity.end_month, entity.end_day, entity.notes
+        )
+    
+    def _entity_to_values_with_id(self, entity: Event) -> tuple:
+        """Extract event data as tuple for INSERT with explicit ID."""
+        return (
+            entity.id,
+            entity.person_id, entity.event_type, entity.event_title,
+            entity.start_year, entity.start_month, entity.start_day,
+            entity.end_year, entity.end_month, entity.end_day, entity.notes
+        )
+    
+    def _entity_to_values_for_update(self, entity: Event) -> tuple:
+        """Extract event data as tuple for UPDATE (ID at end)."""
+        return (
+            entity.person_id, entity.event_type, entity.event_title,
+            entity.start_year, entity.start_month, entity.start_day,
+            entity.end_year, entity.end_month, entity.end_day, entity.notes,
+            entity.id
+        )
+    
+    def _get_insert_sql(self) -> str:
+        """Get SQL for INSERT operation."""
+        return self.SQL_INSERT
+    
+    def _get_insert_with_id_sql(self) -> str:
+        """Get SQL for INSERT with explicit ID."""
+        return self.SQL_INSERT_WITH_ID
+    
+    def _get_select_by_id_sql(self) -> str:
+        """Get SQL for SELECT by ID."""
+        return self.SQL_SELECT_BY_ID
+    
+    def _get_update_sql(self) -> str:
+        """Get SQL for UPDATE operation."""
+        return self.SQL_UPDATE
+    
+    def _get_delete_sql(self) -> str:
+        """Get SQL for DELETE operation."""
+        return self.SQL_DELETE
+    
+    def _get_entity_name(self) -> str:
+        """Get entity name for error messages."""
+        return "Event"
+    
+    # ------------------------------------------------------------------
+    # Event-Specific Query Operations
+    # ------------------------------------------------------------------
     
     def get_by_person(self, person_id: int) -> list[Event]:
         """Get all events for a person, sorted chronologically."""
-        if not self.db.conn:
-            return []
+        self._ensure_connection()
         
-        cursor = self.db.conn.cursor()
+        cursor: sqlite3.Cursor = self._get_cursor()
+        cursor.execute(self.SQL_SELECT_BY_PERSON, (person_id,))
+        rows: list[sqlite3.Row] = cursor.fetchall()
         
-        cursor.execute("""
-            SELECT id, person_id, event_type, event_title,
-                   start_year, start_month, start_day,
-                   end_year, end_month, end_day, notes
-            FROM Event
-            WHERE person_id = ?
-            ORDER BY start_year, start_month, start_day
-        """, (person_id,))
-        
-        return [self._row_to_event(row) for row in cursor.fetchall()]
+        return [self._row_to_entity(row) for row in rows]
     
-    def update(self, event: Event) -> None:
-        """Update an existing event."""
-        if not self.db.conn:
-            return
-        
-        cursor = self.db.conn.cursor()
-        
-        cursor.execute("""
-            UPDATE Event SET
-                person_id = ?,
-                event_type = ?,
-                event_title = ?,
-                start_year = ?,
-                start_month = ?,
-                start_day = ?,
-                end_year = ?,
-                end_month = ?,
-                end_day = ?,
-                notes = ?
-            WHERE id = ?
-        """, (
-            event.person_id, event.event_type, event.event_title,
-            event.start_year, event.start_month, event.start_day,
-            event.end_year, event.end_month, event.end_day, event.notes,
-            event.id
-        ))
-        
-        self.db.conn.commit()
-    
-    def delete(self, event_id: int) -> None:
-        """Delete an event by ID."""
-        if not self.db.conn:
-            return
-        
-        cursor = self.db.conn.cursor()
-        cursor.execute("DELETE FROM Event WHERE id = ?", (event_id,))
-        self.db.conn.commit()
+    # ------------------------------------------------------------------
+    # Helper Methods
+    # ------------------------------------------------------------------
     
     @staticmethod
-    def _to_int(value) -> int | None:
+    def _to_int(value: int | None) -> int | None:
         """Convert database value to int or None."""
         return int(value) if value is not None else None
-    
-    def _row_to_event(self, row: tuple) -> Event:
-        """Convert database row to Event object."""
-        return Event(
-            id=row[0],
-            person_id=row[1],
-            event_type=row[2] or "",
-            event_title=row[3] or "",
-            start_year=self._to_int(row[4]),
-            start_month=self._to_int(row[5]),
-            start_day=self._to_int(row[6]),
-            end_year=self._to_int(row[7]),
-            end_month=self._to_int(row[8]),
-            end_day=self._to_int(row[9]),
-            notes=row[10] or ""
-        )

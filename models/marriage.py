@@ -1,37 +1,71 @@
 """Data model for Marriage relationships."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
+
+from utils.date_formatter import DateFormatter, DateParts, MonthStyle
 
 
 @dataclass
 class Marriage:
     """Represents a marriage relationship between two people."""
     
-    # Database identity
+    # ------------------------------------------------------------------
+    # Constants
+    # ------------------------------------------------------------------
+    
+    DEFAULT_MARRIAGE_TYPE: str = "spouse"
+    
+    MARRIAGE_TYPE_SPOUSE: str = "spouse"
+    MARRIAGE_TYPE_PARTNER: str = "partner"
+    MARRIAGE_TYPE_COMMON_LAW: str = "common-law"
+    
+    DISSOLUTION_DEATH: str = "Death"
+    DISSOLUTION_DIVORCE: str = "Divorce"
+    DISSOLUTION_ANNULMENT: str = "Annulment"
+    
+    STATUS_ACTIVE: str = "Active"
+    STATUS_ENDED: str = "Ended"
+    
+    DATE_UNKNOWN: str = "Unknown"
+    DATE_ONGOING: str = "Ongoing"
+    DURATION_UNKNOWN: str = "Unknown duration"
+    DURATION_ONGOING: str = "Ongoing"
+    DURATION_LESS_THAN_MONTH: str = "Less than 1 month"
+    
+    APPROX_DAYS_PER_MONTH: int = 30
+    MONTHS_PER_YEAR: int = 12
+    DEFAULT_MONTH: int = 1
+    DEFAULT_DAY: int = 1
+    
+    # Database Identity
     id: int | None = None
     
-    # Spouses (person IDs)
+    # Spouses
     spouse1_id: int | None = None
     spouse2_id: int | None = None
     
-    # Marriage date (flexible precision)
+    # Marriage Date
     marriage_year: int | None = None
     marriage_month: int | None = None
     marriage_day: int | None = None
     
-    # Dissolution/End date (flexible precision)
+    # Dissolution Date
     dissolution_year: int | None = None
     dissolution_month: int | None = None
     dissolution_day: int | None = None
+    dissolution_reason: str = ""
     
-    # Dissolution details
-    dissolution_reason: str = ""  # "Death", "Divorce", "Annulment", etc.
-    
-    # Marriage type (for different cultures/eras)
-    marriage_type: str = "spouse"  # "spouse", "partner", "common-law", etc.
+    # Marriage Type
+    marriage_type: str = DEFAULT_MARRIAGE_TYPE
     
     # Notes
     notes: str = ""
+    
+    # ------------------------------------------------------------------
+    # Computed Properties - Status
+    # ------------------------------------------------------------------
     
     @property
     def is_active(self) -> bool:
@@ -39,108 +73,109 @@ class Marriage:
         return self.dissolution_year is None
     
     @property
+    def status_string(self) -> str:
+        """Get marriage status as readable string."""
+        if self.is_active:
+            return self.STATUS_ACTIVE
+        
+        if self.dissolution_reason:
+            return f"{self.STATUS_ENDED} ({self.dissolution_reason})"
+        
+        return self.STATUS_ENDED
+    
+    # ------------------------------------------------------------------
+    # Computed Properties - Date Formatting
+    # ------------------------------------------------------------------
+    
+    @property
     def marriage_date_string(self) -> str:
         """Format marriage date as readable string."""
-        if not self.marriage_year:
-            return "Unknown"
+        if self.marriage_year is None:
+            return self.DATE_UNKNOWN
         
-        month_names = ["", "January", "February", "March", "April", "May", "June",
-                      "July", "August", "September", "October", "November", "December"]
+        date_parts: DateParts = DateParts(
+            year=self.marriage_year,
+            month=self.marriage_month,
+            day=self.marriage_day
+        )
         
-        if self.marriage_month and self.marriage_day:
-            # Full date: "January 15, 1675"
-            return f"{month_names[self.marriage_month]} {self.marriage_day}, {self.marriage_year}"
-        elif self.marriage_month:
-            # Year and month: "January 1675"
-            return f"{month_names[self.marriage_month]} {self.marriage_year}"
-        else:
-            # Year only
-            return str(self.marriage_year)
+        return DateFormatter.format_display(
+            date=date_parts,
+            month_style=MonthStyle.FULL_NAME,
+            separator=" "
+        )
     
     @property
     def dissolution_date_string(self) -> str:
         """Format dissolution date as readable string."""
-        if not self.dissolution_year:
+        if self.dissolution_year is None:
             return ""
         
-        month_names = ["", "January", "February", "March", "April", "May", "June",
-                      "July", "August", "September", "October", "November", "December"]
+        date_parts: DateParts = DateParts(
+            year=self.dissolution_year,
+            month=self.dissolution_month,
+            day=self.dissolution_day
+        )
         
-        if self.dissolution_month and self.dissolution_day:
-            # Full date
-            return f"{month_names[self.dissolution_month]} {self.dissolution_day}, {self.dissolution_year}"
-        elif self.dissolution_month:
-            # Year and month
-            return f"{month_names[self.dissolution_month]} {self.dissolution_year}"
-        else:
-            # Year only
-            return str(self.dissolution_year)
+        return DateFormatter.format_display(
+            date=date_parts,
+            month_style=MonthStyle.FULL_NAME,
+            separator=" "
+        )
     
-    @property
-    def duration_string(self) -> str:
-        """Calculate marriage duration as readable string with years, months, days."""
-        if not self.marriage_year:
-            return "Unknown duration"
-        
-        # If still active (no dissolution date), can't calculate
-        if self.is_active or not self.dissolution_year:
-            return "Ongoing"
-        
-        # Calculate duration
-        start_year = self.marriage_year
-        start_month = self.marriage_month or 1  # Default to January if unknown
-        start_day = self.marriage_day or 1  # Default to 1st if unknown
-        
-        end_year = self.dissolution_year  # Now guaranteed to be int, not None
-        end_month = self.dissolution_month or 1
-        end_day = self.dissolution_day or 1
-        
-        # Calculate differences
-        years = end_year - start_year
-        months = end_month - start_month
-        days = end_day - start_day
-        
-        # Adjust for negative days
-        if days < 0:
-            months -= 1
-            # Days in previous month (approximate as 30)
-            days += 30
-        
-        # Adjust for negative months
-        if months < 0:
-            years -= 1
-            months += 12
-        
-        # Build string
-        parts = []
-        if years > 0:
-            parts.append(f"{years} year{'s' if years != 1 else ''}")
-        if months > 0:
-            parts.append(f"{months} month{'s' if months != 1 else ''}")
-        if days > 0 and self.marriage_day and self.dissolution_day:
-            # Only show days if both dates have day precision
-            parts.append(f"{days} day{'s' if days != 1 else ''}")
-        
-        if not parts:
-            return "Less than 1 month"
-        
-        return ", ".join(parts)
-
+    # ------------------------------------------------------------------
+    # Computed Properties - Duration
+    # ------------------------------------------------------------------
+    
     @property
     def duration_years(self) -> int | None:
         """Calculate marriage duration in years only (for sorting/filtering)."""
-        if not self.marriage_year or self.is_active or not self.dissolution_year:
+        if self.marriage_year is None or self.is_active or self.dissolution_year is None:
             return None
         
         return self.dissolution_year - self.marriage_year
     
     @property
-    def status_string(self) -> str:
-        """Get marriage status as readable string."""
-        if self.is_active:
-            return "Active"
+    def duration_string(self) -> str:
+        """Calculate marriage duration as readable string with years, months, days."""
+        if self.marriage_year is None:
+            return self.DURATION_UNKNOWN
         
-        if self.dissolution_reason:
-            return f"Ended ({self.dissolution_reason})"
+        if self.is_active or self.dissolution_year is None:
+            return self.DURATION_ONGOING
         
-        return "Ended"
+        start_year: int = self.marriage_year
+        start_month: int = self.marriage_month or self.DEFAULT_MONTH
+        start_day: int = self.marriage_day or self.DEFAULT_DAY
+        
+        end_year: int = self.dissolution_year
+        end_month: int = self.dissolution_month or self.DEFAULT_MONTH
+        end_day: int = self.dissolution_day or self.DEFAULT_DAY
+        
+        years: int = end_year - start_year
+        months: int = end_month - start_month
+        days: int = end_day - start_day
+        
+        if days < 0:
+            months -= 1
+            days += self.APPROX_DAYS_PER_MONTH
+        
+        if months < 0:
+            years -= 1
+            months += self.MONTHS_PER_YEAR
+        
+        parts: list[str] = []
+        
+        if years > 0:
+            parts.append(f"{years} year{'s' if years != 1 else ''}")
+        
+        if months > 0:
+            parts.append(f"{months} month{'s' if months != 1 else ''}")
+        
+        if days > 0 and self.marriage_day and self.dissolution_day:
+            parts.append(f"{days} day{'s' if days != 1 else ''}")
+        
+        if not parts:
+            return self.DURATION_LESS_THAN_MONTH
+        
+        return ", ".join(parts)

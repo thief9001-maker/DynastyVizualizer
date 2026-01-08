@@ -1,15 +1,24 @@
 """Manages SQLite-based .dyn dynasty database files."""
 
+from __future__ import annotations
+
 import sqlite3
 import shutil
 import os
+from typing import TYPE_CHECKING
+
+from utils.date_formatter import DateFormatter
+
+if TYPE_CHECKING:
+    from main import MainWindow
 
 
 class DatabaseManager:
     """Manages SQLite-based .dyn dynasty database files."""
 
-    def __init__(self, parent: 'MainWindow') -> None:  # type: ignore
-        self.parent = parent
+    def __init__(self, parent: MainWindow) -> None:
+        """Initialize database manager with parent window reference."""
+        self.parent: MainWindow = parent
         self.conn: sqlite3.Connection | None = None
         self.file_path: str | None = None
         self._temp_file_path: str | None = None
@@ -45,7 +54,7 @@ class DatabaseManager:
         return self.file_path is not None
 
     # ------------------------------------------------------------------
-    # Public Methods - Database Lifecycle
+    # Database Lifecycle
     # ------------------------------------------------------------------
 
     def new_database(self, file_path: str) -> None:
@@ -53,58 +62,30 @@ class DatabaseManager:
         if os.path.exists(file_path):
             os.remove(file_path)
         
-        try:
-            self.conn = sqlite3.connect(file_path)
-            self.conn.row_factory = sqlite3.Row
-            self.conn.execute("PRAGMA foreign_keys = ON;")
-            self.file_path = file_path
-            self._initialize_schema()
-            self._unsaved_changes = False
-        except sqlite3.Error as e:
-            raise RuntimeError(f"Failed to create database: {e}")
+        self._connect_to_database(file_path)
+        self._initialize_schema()
+        self._unsaved_changes = False
 
     def open_database(self, file_path: str) -> None:
         """Open an existing .dyn database file."""
         if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File {file_path} does not exist.")
+            raise FileNotFoundError(f"Database file not found: {file_path}")
         
-        try:
-            self.conn = sqlite3.connect(file_path)
-            self.conn.row_factory = sqlite3.Row
-            self.conn.execute("PRAGMA foreign_keys = ON;")
-            self.file_path = file_path
-            self._migrate_schema()
-            self._unsaved_changes = False
-        except sqlite3.Error as e:
-            raise RuntimeError(f"Failed to open database: {e}")
+        self._connect_to_database(file_path)
+        self._migrate_schema()
+        self._unsaved_changes = False
 
     def save_database(self, path: str | None = None) -> bool:
         """Save database, optionally to a new path."""
         if self.conn is None:
-            return False
+            raise RuntimeError("Cannot save: no database connection")
         
         if path is None:
             self.conn.commit()
             self._unsaved_changes = False
             return True
         
-        self.conn.commit()
-        
-        current_path = self.file_path or getattr(self, '_temp_file_path', None)
-        
-        self.conn.close()
-        
-        if current_path and os.path.exists(current_path):
-            shutil.copy2(current_path, path)
-        else:
-            raise RuntimeError("Cannot save: no source database file")
-        
-        self.conn = sqlite3.connect(path)
-        self.conn.row_factory = sqlite3.Row
-        self.conn.execute("PRAGMA foreign_keys = ON;")
-        self.file_path = path
-        self._unsaved_changes = False
-        
+        self._save_to_new_path(path)
         return True
 
     def close(self) -> None:
@@ -116,7 +97,7 @@ class DatabaseManager:
         self._unsaved_changes = False
 
     # ------------------------------------------------------------------
-    # Public Methods - State Management
+    # State Management
     # ------------------------------------------------------------------
 
     def mark_dirty(self) -> None:
@@ -129,17 +110,54 @@ class DatabaseManager:
         self._unsaved_changes = False
 
     # ------------------------------------------------------------------
-    # Private Methods - Schema Management
+    # Connection Management
+    # ------------------------------------------------------------------
+
+    def _connect_to_database(self, file_path: str) -> None:
+        """Establish connection to database file with proper configuration."""
+        try:
+            self.conn = sqlite3.connect(file_path)
+        except sqlite3.Error as e:
+            raise RuntimeError(f"Failed to connect to database: {e}") from e
+        
+        self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA foreign_keys = ON;")
+        self.file_path = file_path
+
+    def _save_to_new_path(self, new_path: str) -> None:
+        """Save database to a new file path."""
+        if self.conn is None:
+            raise RuntimeError("Cannot save: no database connection")
+        
+        self.conn.commit()
+        current_path: str | None = self.file_path or self._temp_file_path
+        
+        if not current_path or not os.path.exists(current_path):
+            raise RuntimeError("Cannot save: no source database file")
+        
+        self.conn.close()
+        shutil.copy2(current_path, new_path)
+        
+        self._connect_to_database(new_path)
+        self._unsaved_changes = False
+
+    # ------------------------------------------------------------------
+    # Schema Initialization
     # ------------------------------------------------------------------
 
     def _initialize_schema(self) -> None:
         """Create all required tables for a new dynasty database."""
         if self.conn is None:
-            raise RuntimeError("Database connection is not established.")
+            raise RuntimeError("Cannot initialize schema: no database connection")
         
-        cursor = self.conn.cursor()
+        cursor: sqlite3.Cursor = self.conn.cursor()
+        cursor.executescript(self._get_schema_sql())
+        self.conn.commit()
 
-        schema_sql = """
+    @staticmethod
+    def _get_schema_sql() -> str:
+        """Get the complete database schema as SQL."""
+        return """
         CREATE TABLE IF NOT EXISTS Person (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             first_name TEXT NOT NULL,
@@ -256,28 +274,31 @@ class DatabaseManager:
             FOREIGN KEY(person_id) REFERENCES Person(id) ON DELETE CASCADE
         );
         """
-        cursor.executescript(schema_sql)
-        self.conn.commit()
+    
+    # ------------------------------------------------------------------
+    # Schema Migration
+    # ------------------------------------------------------------------
     
     def _migrate_schema(self) -> None:
         """Migrate existing database schema to latest version."""
         if self.conn is None:
-            raise RuntimeError("Database connection is not established.")
+            raise RuntimeError("Cannot migrate schema: no database connection")
         
-        cursor = self.conn.cursor()
+        cursor: sqlite3.Cursor = self.conn.cursor()
         
         self._migrate_person_table(cursor)
         self._migrate_marriage_table(cursor)
         self._migrate_event_table_data(cursor)
         self._migrate_person_table_data(cursor)
+        self._migrate_marriage_table_data(cursor)
 
         self.conn.commit()
     
     def _migrate_person_table(self, cursor: sqlite3.Cursor) -> None:
         """Apply Person table schema migrations."""
-        existing_columns = self._get_table_columns(cursor, "Person")
+        existing_columns: set[str] = self._get_table_columns(cursor, "Person")
         
-        migrations = [
+        migrations: list[tuple[str, str]] = [
             ("middle_name", "ALTER TABLE Person ADD COLUMN middle_name TEXT DEFAULT ''"),
             ("nickname", "ALTER TABLE Person ADD COLUMN nickname TEXT DEFAULT ''"),
             ("dynasty_id", "ALTER TABLE Person ADD COLUMN dynasty_id INTEGER DEFAULT 1"),
@@ -290,102 +311,70 @@ class DatabaseManager:
     
     def _migrate_marriage_table(self, cursor: sqlite3.Cursor) -> None:
         """Apply Marriage table schema migrations."""
-        existing_columns = self._get_table_columns(cursor, "Marriage")
+        existing_columns: set[str] = self._get_table_columns(cursor, "Marriage")
         
-        migrations = [
+        migrations: list[tuple[str, str]] = [
             ("notes", "ALTER TABLE Marriage ADD COLUMN notes TEXT"),
         ]
         
         self._apply_column_migrations(cursor, existing_columns, migrations)
-    
+
     def _migrate_event_table_data(self, cursor: sqlite3.Cursor) -> None:
-        """Convert Event table month names from text to integers."""
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Event'")
-        if not cursor.fetchone():
-            return
-        
-        cursor.execute("SELECT id, start_month FROM Event WHERE start_month IS NOT NULL LIMIT 1")
-        row = cursor.fetchone()
-        
-        if not row or not row[1]:
-            return
-        
-        if isinstance(row[1], str) and not row[1].isdigit():
-            self._convert_event_months_to_integers(cursor)
-    
-    def _convert_event_months_to_integers(self, cursor: sqlite3.Cursor) -> None:
-        """Convert text month names to integer values in Event table."""
-        month_map = {
-            "January": 1, "February": 2, "March": 3, "April": 4,
-            "May": 5, "June": 6, "July": 7, "August": 8,
-            "September": 9, "October": 10, "November": 11, "December": 12
-        }
-        
-        cursor.execute("""
-            SELECT id, start_month, end_month 
-            FROM Event 
-            WHERE start_month IS NOT NULL OR end_month IS NOT NULL
-        """)
-        
-        for event_id, start_month, end_month in cursor.fetchall():
-            new_start = month_map.get(start_month) if start_month else None
-            new_end = month_map.get(end_month) if end_month else None
-            
-            cursor.execute("""
-                UPDATE Event 
-                SET start_month = ?, end_month = ? 
-                WHERE id = ?
-            """, (new_start, new_end, event_id))
+        """Normalize Event table month data."""
+        self._normalize_month_columns(
+            cursor,
+            table="Event",
+            id_column="id",
+            month_columns=["start_month", "end_month"],
+        )
     
     def _migrate_person_table_data(self, cursor: sqlite3.Cursor) -> None:
-        """Convert Person table month names from text to integers."""
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Person'")
-        if not cursor.fetchone():
-            return
-        
-        cursor.execute("SELECT id, birth_month FROM Person WHERE birth_month IS NOT NULL LIMIT 1")
-        row = cursor.fetchone()
-        
-        if not row or not row[1]:
-            return
-        
-        if isinstance(row[1], str) and not row[1].isdigit():
-            self._convert_person_months_to_integers(cursor)
+        """Normalize Person table month data."""
+        self._normalize_month_columns(
+            cursor,
+            table="Person",
+            id_column="id",
+            month_columns=["birth_month", "death_month", "arrival_month", "moved_out_month"],
+        )
 
-    def _convert_person_months_to_integers(self, cursor: sqlite3.Cursor) -> None:
-        """Convert text month names to integer values in Person table."""
-        month_map: dict[str, int] = {
-            "January": 1, "February": 2, "March": 3, "April": 4,
-            "May": 5, "June": 6, "July": 7, "August": 8,
-            "September": 9, "October": 10, "November": 11, "December": 12
-        }
-        
-        cursor.execute("""
-            SELECT id, birth_month, death_month, arrival_month, moved_out_month
-            FROM Person 
-            WHERE birth_month IS NOT NULL 
-            OR death_month IS NOT NULL 
-            OR arrival_month IS NOT NULL 
-            OR moved_out_month IS NOT NULL
-        """)
-        
-        for person_id, birth_month, death_month, arrival_month, moved_out_month in cursor.fetchall():
-            new_birth_month: int | None = month_map.get(birth_month) if birth_month else None
-            new_death_month: int | None = month_map.get(death_month) if death_month else None
-            new_arrival_month: int | None = month_map.get(arrival_month) if arrival_month else None
-            new_moved_out_month: int | None = month_map.get(moved_out_month) if moved_out_month else None
-            
-            cursor.execute("""
-                UPDATE Person 
-                SET birth_month = ?, 
-                    death_month = ?, 
-                    arrival_month = ?, 
-                    moved_out_month = ? 
-                WHERE id = ?
-            """, (new_birth_month, new_death_month, new_arrival_month, new_moved_out_month, person_id))    
+    def _migrate_marriage_table_data(self, cursor: sqlite3.Cursor) -> None:
+        """Normalize Marriage table month data."""
+        self._normalize_month_columns(
+            cursor,
+            table="Marriage",
+            id_column="id",
+            month_columns=["marriage_month", "dissolution_month"],
+        )
+    
     # ------------------------------------------------------------------
-    # Private Methods - Utilities
+    # Migration Utilities
     # ------------------------------------------------------------------
+
+    def _normalize_month_columns(
+        self,
+        cursor: sqlite3.Cursor,
+        *,
+        table: str,
+        id_column: str,
+        month_columns: list[str],
+    ) -> None:
+        """Normalize month columns to integer values for a table."""
+        columns_list: list[str] = [id_column] + month_columns
+        columns_str: str = ", ".join(columns_list)
+        where_clause: str = " OR ".join(f"{col} IS NOT NULL" for col in month_columns)
+
+        cursor.execute(f"SELECT {columns_str} FROM {table} WHERE {where_clause}")
+
+        for row in cursor.fetchall():
+            row_id: int = row[id_column]
+            updates: dict[str, int | None] = {
+                col: DateFormatter.normalize_month(row[col]) for col in month_columns
+            }
+
+            set_clause: str = ", ".join(f"{col} = ?" for col in updates)
+            values: list[int | None] = list(updates.values()) + [row_id]
+
+            cursor.execute(f"UPDATE {table} SET {set_clause} WHERE {id_column} = ?", values)
     
     @staticmethod
     def _get_table_columns(cursor: sqlite3.Cursor, table_name: str) -> set[str]:
@@ -397,7 +386,7 @@ class DatabaseManager:
     def _apply_column_migrations(
         cursor: sqlite3.Cursor,
         existing_columns: set[str],
-        migrations: list[tuple[str, str]]
+        migrations: list[tuple[str, str]],
     ) -> None:
         """Apply column addition migrations if columns don't exist."""
         for column_name, sql in migrations:

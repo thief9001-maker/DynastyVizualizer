@@ -1,95 +1,143 @@
 """Data model for Event entities."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
+
+from utils.date_formatter import DateFormatter, DateParts, MonthStyle
 
 
 @dataclass
 class Event:
     """Represents a life event for a person."""
     
-    # Database identity
+    # ------------------------------------------------------------------
+    # Constants
+    # ------------------------------------------------------------------
+    
+    EVENT_TYPE_BIRTH: str = "Birth"
+    EVENT_TYPE_MARRIAGE: str = "Marriage"
+    EVENT_TYPE_DEATH: str = "Death"
+    EVENT_TYPE_JOB: str = "Job"
+    EVENT_TYPE_MOVE: str = "Move"
+    EVENT_TYPE_EDUCATION: str = "Education"
+    EVENT_TYPE_OTHER: str = "Other"
+    
+    DATE_UNKNOWN: str = "Unknown"
+    DATE_ONGOING: str = "Ongoing"
+    DATE_PRESENT: str = "Present"
+    
+    # ------------------------------------------------------------------
+    # Database Identity
+    # ------------------------------------------------------------------
+    
     id: int | None = None
     
-    # Associated person
+    # ------------------------------------------------------------------
+    # Associated Person
+    # ------------------------------------------------------------------
+    
     person_id: int | None = None
     
-    # Event details
-    event_type: str = ""  # "Birth", "Marriage", "Death", "Job", "Move", etc.
-    event_title: str = ""  # "Became Blacksmith", "Moved to Town", etc.
+    # ------------------------------------------------------------------
+    # Event Details
+    # ------------------------------------------------------------------
     
-    # Start date (flexible precision)
+    event_type: str = ""
+    event_title: str = ""
+    
+    # ------------------------------------------------------------------
+    # Start Date
+    # ------------------------------------------------------------------
+    
     start_year: int | None = None
     start_month: int | None = None
     start_day: int | None = None
     
-    # End date (for ongoing events like jobs)
+    # ------------------------------------------------------------------
+    # End Date
+    # ------------------------------------------------------------------
+    
     end_year: int | None = None
     end_month: int | None = None
     end_day: int | None = None
     
+    # ------------------------------------------------------------------
     # Notes
+    # ------------------------------------------------------------------
+    
     notes: str = ""
+    
+    # ------------------------------------------------------------------
+    # Computed Properties - Status
+    # ------------------------------------------------------------------
     
     @property
     def is_ongoing(self) -> bool:
         """Check if the event is currently ongoing (no end date)."""
         return self.end_year is None
     
+    # ------------------------------------------------------------------
+    # Computed Properties - Date Formatting
+    # ------------------------------------------------------------------
+    
     @property
     def start_date_string(self) -> str:
         """Format start date as readable string."""
-        if not self.start_year:
-            return "Unknown"
+        if self.start_year is None:
+            return self.DATE_UNKNOWN
         
-        month_names = ["", "January", "February", "March", "April", "May", "June",
-                      "July", "August", "September", "October", "November", "December"]
+        date_parts: DateParts = DateParts(
+            year=self.start_year,
+            month=self.start_month,
+            day=self.start_day
+        )
         
-        if self.start_month and self.start_day:
-            # Full date
-            return f"{month_names[self.start_month]} {self.start_day}, {self.start_year}"
-        elif self.start_month:
-            # Year and month
-            return f"{month_names[self.start_month]} {self.start_year}"
-        else:
-            # Year only
-            return str(self.start_year)
+        return DateFormatter.format_display(
+            date=date_parts,
+            month_style=MonthStyle.FULL_NAME,
+            separator=" "
+        )
     
     @property
     def end_date_string(self) -> str:
         """Format end date as readable string."""
-        if not self.end_year:
-            return "Ongoing" if self.start_year else ""
+        if self.end_year is None:
+            return self.DATE_ONGOING if self.start_year else ""
         
-        month_names = ["", "January", "February", "March", "April", "May", "June",
-                      "July", "August", "September", "October", "November", "December"]
+        date_parts: DateParts = DateParts(
+            year=self.end_year,
+            month=self.end_month,
+            day=self.end_day
+        )
         
-        if self.end_month and self.end_day:
-            # Full date
-            return f"{month_names[self.end_month]} {self.end_day}, {self.end_year}"
-        elif self.end_month:
-            # Year and month
-            return f"{month_names[self.end_month]} {self.end_year}"
-        else:
-            # Year only
-            return str(self.end_year)
-    
-    @property
-    def duration_years(self) -> int | None:
-        """Calculate event duration in years (None if ongoing or no dates)."""
-        if not self.start_year:
-            return None
-        
-        if self.end_year:
-            return self.end_year - self.start_year
-        
-        return None  # Ongoing, no duration yet
+        return DateFormatter.format_display(
+            date=date_parts,
+            month_style=MonthStyle.FULL_NAME,
+            separator=" "
+        )
     
     @property
     def date_range_string(self) -> str:
         """Get formatted date range for display."""
         if self.is_ongoing:
-            return f"{self.start_date_string} - Present"
+            return f"{self.start_date_string} - {self.DATE_PRESENT}"
         elif self.end_year:
             return f"{self.start_date_string} - {self.end_date_string}"
         else:
             return self.start_date_string
+    
+    # ------------------------------------------------------------------
+    # Computed Properties - Duration
+    # ------------------------------------------------------------------
+    
+    @property
+    def duration_years(self) -> int | None:
+        """Calculate event duration in years (None if ongoing or no dates)."""
+        if self.start_year is None:
+            return None
+        
+        if self.end_year:
+            return self.end_year - self.start_year
+        
+        return None

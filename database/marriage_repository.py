@@ -1,208 +1,211 @@
 """Repository for Marriage database operations."""
 
-from database.db_manager import DatabaseManager
+from __future__ import annotations
+
+import sqlite3
+
+from database.base_repository import BaseRepository
 from models.marriage import Marriage
 
 
-class MarriageRepository:
+class MarriageRepository(BaseRepository[Marriage]):
     """Handle database operations for marriages."""
     
-    def __init__(self, db_manager: DatabaseManager) -> None:
-        """Initialize the marriage repository."""
-        self.db = db_manager
+    # ------------------------------------------------------------------
+    # SQL Query Templates
+    # ------------------------------------------------------------------
     
-    def insert(self, marriage: Marriage) -> int:
-        """Insert a new marriage into the database.
-        
-        Returns the new marriage ID, or -1 if database not open.
-        """
-        if not self.db.conn:
-            return -1
-        
-        cursor = self.db.conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO Marriage (
-                spouse1_id, spouse2_id,
-                marriage_year, marriage_month, marriage_day,
-                dissolution_year, dissolution_month, dissolution_day,
-                dissolution_reason, marriage_type, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            marriage.spouse1_id, marriage.spouse2_id,
-            marriage.marriage_year, marriage.marriage_month, marriage.marriage_day,
-            marriage.dissolution_year, marriage.dissolution_month, marriage.dissolution_day,
-            marriage.dissolution_reason, marriage.marriage_type, marriage.notes
-        ))
-        
-        self.db.conn.commit()
-        return cursor.lastrowid or -1
+    SQL_INSERT: str = """
+        INSERT INTO Marriage (
+            spouse1_id, spouse2_id,
+            marriage_year, marriage_month, marriage_day,
+            dissolution_year, dissolution_month, dissolution_day,
+            dissolution_reason, marriage_type, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
     
-    def insert_with_id(self, marriage: Marriage) -> None:
-        """Insert marriage with explicit ID (for undo/redo)."""
-        if not self.db.conn:
-            return
-        
-        cursor = self.db.conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO Marriage (
-                id, spouse1_id, spouse2_id,
-                marriage_year, marriage_month, marriage_day,
-                dissolution_year, dissolution_month, dissolution_day,
-                dissolution_reason, marriage_type, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            marriage.id, marriage.spouse1_id, marriage.spouse2_id,
-            marriage.marriage_year, marriage.marriage_month, marriage.marriage_day,
-            marriage.dissolution_year, marriage.dissolution_month, marriage.dissolution_day,
-            marriage.dissolution_reason, marriage.marriage_type, marriage.notes
-        ))
-        
-        self.db.conn.commit()
+    SQL_INSERT_WITH_ID: str = """
+        INSERT INTO Marriage (
+            id, spouse1_id, spouse2_id,
+            marriage_year, marriage_month, marriage_day,
+            dissolution_year, dissolution_month, dissolution_day,
+            dissolution_reason, marriage_type, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
     
-    def get_by_id(self, marriage_id: int) -> Marriage | None:
-        """Get a marriage by ID."""
-        if not self.db.conn:
-            return None
-        
-        cursor = self.db.conn.cursor()
-        
-        cursor.execute("""
-            SELECT id, spouse1_id, spouse2_id,
-                   marriage_year, marriage_month, marriage_day,
-                   dissolution_year, dissolution_month, dissolution_day,
-                   dissolution_reason, marriage_type, notes
-            FROM Marriage
-            WHERE id = ?
-        """, (marriage_id,))
-        
-        row = cursor.fetchone()
-        if row:
-            return self._row_to_marriage(row)
-        return None
+    SQL_SELECT_BY_ID: str = """
+        SELECT * FROM Marriage WHERE id = ?
+    """
+    
+    SQL_SELECT_BY_PERSON: str = """
+        SELECT * FROM Marriage
+        WHERE spouse1_id = ? OR spouse2_id = ?
+        ORDER BY marriage_year, marriage_month
+    """
+    
+    SQL_SELECT_ACTIVE_BY_PERSON: str = """
+        SELECT * FROM Marriage
+        WHERE (spouse1_id = ? OR spouse2_id = ?)
+          AND dissolution_year IS NULL
+        ORDER BY marriage_year, marriage_month
+    """
+    
+    SQL_UPDATE: str = """
+        UPDATE Marriage SET
+            spouse1_id = ?,
+            spouse2_id = ?,
+            marriage_year = ?,
+            marriage_month = ?,
+            marriage_day = ?,
+            dissolution_year = ?,
+            dissolution_month = ?,
+            dissolution_day = ?,
+            dissolution_reason = ?,
+            marriage_type = ?,
+            notes = ?
+        WHERE id = ?
+    """
+    
+    SQL_DELETE: str = "DELETE FROM Marriage WHERE id = ?"
+    
+    SQL_END_MARRIAGE: str = """
+        UPDATE Marriage SET
+            dissolution_year = ?,
+            dissolution_month = ?,
+            dissolution_day = ?,
+            dissolution_reason = ?
+        WHERE id = ?
+    """
+    
+    # ------------------------------------------------------------------
+    # Default Values
+    # ------------------------------------------------------------------
+    
+    DEFAULT_MARRIAGE_TYPE: str = "spouse"
+    DEFAULT_NOTES: str = ""
+    DEFAULT_DISSOLUTION_REASON: str = ""
+    
+    # ------------------------------------------------------------------
+    # Abstract Method Implementations (Required by BaseRepository)
+    # ------------------------------------------------------------------
+    
+    def _row_to_entity(self, row: sqlite3.Row) -> Marriage:
+        """Convert database row to Marriage object."""
+        return Marriage(
+            id=row['id'],
+            spouse1_id=row['spouse1_id'],
+            spouse2_id=row['spouse2_id'],
+            marriage_year=row['marriage_year'],
+            marriage_month=row['marriage_month'],
+            marriage_day=row['marriage_day'],
+            dissolution_year=row['dissolution_year'],
+            dissolution_month=row['dissolution_month'],
+            dissolution_day=row['dissolution_day'],
+            dissolution_reason=row['dissolution_reason'] or self.DEFAULT_DISSOLUTION_REASON,
+            marriage_type=row['marriage_type'] or self.DEFAULT_MARRIAGE_TYPE,
+            notes=row['notes'] or self.DEFAULT_NOTES
+        )
+    
+    def _entity_to_values_without_id(self, entity: Marriage) -> tuple:
+        """Extract marriage data as tuple for INSERT (without ID)."""
+        return (
+            entity.spouse1_id, entity.spouse2_id,
+            entity.marriage_year, entity.marriage_month, entity.marriage_day,
+            entity.dissolution_year, entity.dissolution_month, entity.dissolution_day,
+            entity.dissolution_reason, entity.marriage_type, entity.notes
+        )
+    
+    def _entity_to_values_with_id(self, entity: Marriage) -> tuple:
+        """Extract marriage data as tuple for INSERT with explicit ID."""
+        return (
+            entity.id,
+            entity.spouse1_id, entity.spouse2_id,
+            entity.marriage_year, entity.marriage_month, entity.marriage_day,
+            entity.dissolution_year, entity.dissolution_month, entity.dissolution_day,
+            entity.dissolution_reason, entity.marriage_type, entity.notes
+        )
+    
+    def _entity_to_values_for_update(self, entity: Marriage) -> tuple:
+        """Extract marriage data as tuple for UPDATE (ID at end)."""
+        return (
+            entity.spouse1_id, entity.spouse2_id,
+            entity.marriage_year, entity.marriage_month, entity.marriage_day,
+            entity.dissolution_year, entity.dissolution_month, entity.dissolution_day,
+            entity.dissolution_reason, entity.marriage_type, entity.notes,
+            entity.id
+        )
+    
+    def _get_insert_sql(self) -> str:
+        """Get SQL for INSERT operation."""
+        return self.SQL_INSERT
+    
+    def _get_insert_with_id_sql(self) -> str:
+        """Get SQL for INSERT with explicit ID."""
+        return self.SQL_INSERT_WITH_ID
+    
+    def _get_select_by_id_sql(self) -> str:
+        """Get SQL for SELECT by ID."""
+        return self.SQL_SELECT_BY_ID
+    
+    def _get_update_sql(self) -> str:
+        """Get SQL for UPDATE operation."""
+        return self.SQL_UPDATE
+    
+    def _get_delete_sql(self) -> str:
+        """Get SQL for DELETE operation."""
+        return self.SQL_DELETE
+    
+    def _get_entity_name(self) -> str:
+        """Get entity name for error messages."""
+        return "Marriage"
+    
+    # ------------------------------------------------------------------
+    # Marriage-Specific Query Operations
+    # ------------------------------------------------------------------
     
     def get_by_person(self, person_id: int) -> list[Marriage]:
         """Get all marriages for a person (as either spouse)."""
-        if not self.db.conn:
-            return []
+        self._ensure_connection()
         
-        cursor = self.db.conn.cursor()
+        cursor: sqlite3.Cursor = self._get_cursor()
+        cursor.execute(self.SQL_SELECT_BY_PERSON, (person_id, person_id))
+        rows: list[sqlite3.Row] = cursor.fetchall()
         
-        cursor.execute("""
-            SELECT id, spouse1_id, spouse2_id,
-                   marriage_year, marriage_month, marriage_day,
-                   dissolution_year, dissolution_month, dissolution_day,
-                   dissolution_reason, marriage_type, notes
-            FROM Marriage
-            WHERE spouse1_id = ? OR spouse2_id = ?
-            ORDER BY marriage_year, marriage_month
-        """, (person_id, person_id))
-        
-        return [self._row_to_marriage(row) for row in cursor.fetchall()]
+        return [self._row_to_entity(row) for row in rows]
     
     def get_active_marriages(self, person_id: int) -> list[Marriage]:
         """Get all active (not ended) marriages for a person."""
-        if not self.db.conn:
-            return []
+        self._ensure_connection()
         
-        cursor = self.db.conn.cursor()
+        cursor: sqlite3.Cursor = self._get_cursor()
+        cursor.execute(self.SQL_SELECT_ACTIVE_BY_PERSON, (person_id, person_id))
+        rows: list[sqlite3.Row] = cursor.fetchall()
         
-        cursor.execute("""
-            SELECT id, spouse1_id, spouse2_id,
-                   marriage_year, marriage_month, marriage_day,
-                   dissolution_year, dissolution_month, dissolution_day,
-                   dissolution_reason, marriage_type, notes
-            FROM Marriage
-            WHERE (spouse1_id = ? OR spouse2_id = ?)
-              AND dissolution_year IS NULL
-            ORDER BY marriage_year, marriage_month
-        """, (person_id, person_id))
-        
-        return [self._row_to_marriage(row) for row in cursor.fetchall()]
+        return [self._row_to_entity(row) for row in rows]
     
-    def get_spouse_id(self, marriage: Marriage, person_id: int) -> int | None:
+    def end_marriage(
+        self,
+        marriage_id: int,
+        dissolution_year: int,
+        dissolution_month: int | None = None,
+        dissolution_day: int | None = None,
+        reason: str = ""
+    ) -> None:
+        """End a marriage by setting dissolution date and reason."""
+        self._ensure_connection()
+        
+        cursor: sqlite3.Cursor = self._get_cursor()
+        cursor.execute(
+            self.SQL_END_MARRIAGE,
+            (dissolution_year, dissolution_month, dissolution_day, reason, marriage_id)
+        )
+        self.db.mark_dirty()
+    
+    @staticmethod
+    def get_spouse_id(marriage: Marriage, person_id: int) -> int | None:
         """Get the spouse ID for a given person in a marriage."""
         if marriage.spouse1_id == person_id:
             return marriage.spouse2_id
         elif marriage.spouse2_id == person_id:
             return marriage.spouse1_id
         return None
-    
-    def update(self, marriage: Marriage) -> None:
-        """Update an existing marriage."""
-        if not self.db.conn:
-            return
-        
-        cursor = self.db.conn.cursor()
-        
-        cursor.execute("""
-            UPDATE Marriage SET
-                spouse1_id = ?,
-                spouse2_id = ?,
-                marriage_year = ?,
-                marriage_month = ?,
-                marriage_day = ?,
-                dissolution_year = ?,
-                dissolution_month = ?,
-                dissolution_day = ?,
-                dissolution_reason = ?,
-                marriage_type = ?,
-                notes = ?
-            WHERE id = ?
-        """, (
-            marriage.spouse1_id, marriage.spouse2_id,
-            marriage.marriage_year, marriage.marriage_month, marriage.marriage_day,
-            marriage.dissolution_year, marriage.dissolution_month, marriage.dissolution_day,
-            marriage.dissolution_reason, marriage.marriage_type, marriage.notes,
-            marriage.id
-        ))
-        
-        self.db.conn.commit()
-    
-    def delete(self, marriage_id: int) -> None:
-        """Delete a marriage by ID."""
-        if not self.db.conn:
-            return
-        
-        cursor = self.db.conn.cursor()
-        cursor.execute("DELETE FROM Marriage WHERE id = ?", (marriage_id,))
-        self.db.conn.commit()
-    
-    def end_marriage(self, marriage_id: int, dissolution_year: int, 
-                     dissolution_month: int | None = None, 
-                     dissolution_day: int | None = None, 
-                     reason: str = "") -> None:
-        """End a marriage by setting dissolution date and reason."""
-        if not self.db.conn:
-            return
-        
-        cursor = self.db.conn.cursor()
-        
-        cursor.execute("""
-            UPDATE Marriage SET
-                dissolution_year = ?,
-                dissolution_month = ?,
-                dissolution_day = ?,
-                dissolution_reason = ?
-            WHERE id = ?
-        """, (dissolution_year, dissolution_month, dissolution_day, reason, marriage_id))
-        
-        self.db.conn.commit()
-    
-    def _row_to_marriage(self, row: tuple) -> Marriage:
-        """Convert database row to Marriage object."""
-        return Marriage(
-            id=row[0],
-            spouse1_id=row[1],
-            spouse2_id=row[2],
-            marriage_year=row[3],
-            marriage_month=row[4],
-            marriage_day=row[5],
-            dissolution_year=row[6],
-            dissolution_month=row[7],
-            dissolution_day=row[8],
-            dissolution_reason=row[9] or "",
-            marriage_type=row[10] or "spouse",
-            notes=row[11] or ""
-        )

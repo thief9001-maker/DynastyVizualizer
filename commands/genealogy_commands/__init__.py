@@ -1,5 +1,5 @@
 from .add_event import AddEventCommand
-from .add_marriage import CreateMarriageCommand
+from .add_marriage import AddMarriageCommand
 from .add_person import AddPersonCommand
 from .assign_parent import AssignParentCommand
 from .create_child import CreateChildCommand
@@ -13,7 +13,7 @@ from .unassign_parent import UnassignParentCommand
 
 __all__ = [
     "AddEventCommand",
-    "CreateMarriageCommand",
+    "AddMarriageCommand",
     "AddPersonCommand",
     "AssignParentCommand",
     "CreateChildCommand",
