@@ -112,7 +112,7 @@ class SettingsManager:
             for key in self.DEFAULTS[category].keys():
                 if self.qsettings.contains(key):
                     value = self.qsettings.value(key)
-                    custom_dict[key] = value if value else None
+                    custom_dict[key] = value
             
             self.qsettings.endGroup()
     def _save_to_disk(self) -> None:
@@ -133,7 +133,7 @@ class SettingsManager:
                     default = self.DEFAULTS[category][key]
 
                     if value != default:
-                        self.qsettings.setValue(key, value if value else "")
+                        self.qsettings.setValue(key, value if value is not None else "")
             
             self.qsettings.endGroup()
         
@@ -179,7 +179,7 @@ class SettingsManager:
     def set_setting(self, category: str, key: str, value: Any) -> None:
         """Set setting in any category (memory only, not saved to disk)."""
         custom_dict = self._get_custom_dict(category)
-        custom_dict[key] = value if value else None
+        custom_dict[key] = value
 
     # ------------------------------------------------------------------
     # Save/Discard/Reset Operations

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from utils.date_formatter import DateFormatter, DateParts, MonthStyle
 
@@ -15,17 +16,17 @@ class Event:
     # Constants
     # ------------------------------------------------------------------
     
-    EVENT_TYPE_BIRTH: str = "Birth"
-    EVENT_TYPE_MARRIAGE: str = "Marriage"
-    EVENT_TYPE_DEATH: str = "Death"
-    EVENT_TYPE_JOB: str = "Job"
-    EVENT_TYPE_MOVE: str = "Move"
-    EVENT_TYPE_EDUCATION: str = "Education"
-    EVENT_TYPE_OTHER: str = "Other"
-    
-    DATE_UNKNOWN: str = "Unknown"
-    DATE_ONGOING: str = "Ongoing"
-    DATE_PRESENT: str = "Present"
+    EVENT_TYPE_BIRTH: ClassVar[str] = "Birth"
+    EVENT_TYPE_MARRIAGE: ClassVar[str] = "Marriage"
+    EVENT_TYPE_DEATH: ClassVar[str] = "Death"
+    EVENT_TYPE_JOB: ClassVar[str] = "Job"
+    EVENT_TYPE_MOVE: ClassVar[str] = "Move"
+    EVENT_TYPE_EDUCATION: ClassVar[str] = "Education"
+    EVENT_TYPE_OTHER: ClassVar[str] = "Other"
+
+    DATE_UNKNOWN: ClassVar[str] = "Unknown"
+    DATE_ONGOING: ClassVar[str] = "Ongoing"
+    DATE_PRESENT: ClassVar[str] = "Present"
     
     # ------------------------------------------------------------------
     # Database Identity

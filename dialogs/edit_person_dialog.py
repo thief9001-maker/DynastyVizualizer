@@ -340,7 +340,7 @@ class EditPersonDialog(QDialog):
         self.person.moved_out_year = person_data.get('moved_out_year', self.person.moved_out_year)
         self.person.moved_out_month = person_data.get('moved_out_month', self.person.moved_out_month)
         self.person.gender = person_data.get('gender', self.person.gender)
-        self.person.education = person_data.get('education_level', self.person.education)
+        self.person.education = person_data.get('education', self.person.education)
         self.person.dynasty_id = person_data.get('dynasty_id', self.person.dynasty_id)
         self.person.notes = person_data.get('notes', self.person.notes)
         

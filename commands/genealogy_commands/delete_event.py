@@ -41,8 +41,10 @@ class DeleteEventCommand(BaseCommand):
             'event_title': self.event.event_title,
             'start_year': self.event.start_year,
             'start_month': self.event.start_month,
+            'start_day': self.event.start_day,
             'end_year': self.event.end_year,
             'end_month': self.event.end_month,
+            'end_day': self.event.end_day,
             'notes': self.event.notes
         }
     

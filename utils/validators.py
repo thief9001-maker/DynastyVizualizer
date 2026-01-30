@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import ClassVar, TYPE_CHECKING
 from dataclasses import dataclass
 
 if TYPE_CHECKING:
@@ -21,9 +21,9 @@ class ValidationIssue:
     message: str
     entity_type: str
 
-    TYPE_ERROR: str = "error"
-    TYPE_WARNING: str = "warning"
-    TYPE_INFO: str = "info"
+    TYPE_ERROR: ClassVar[str] = "error"
+    TYPE_WARNING: ClassVar[str] = "warning"
+    TYPE_INFO: ClassVar[str] = "info"
     
     entity_id: int | None = None
     details: dict | None = None

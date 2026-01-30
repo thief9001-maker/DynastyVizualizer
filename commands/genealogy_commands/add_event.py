@@ -33,7 +33,13 @@ class AddEventCommand(BaseCommand):
     def run(self) -> None:
         """Insert the event into the database."""
         event_repo: EventRepository = EventRepository(self.db_manager)
-        self.event_id = event_repo.insert(self.event)
+
+        if self.event_id is None:
+            self.event_id = event_repo.insert(self.event)
+            self.event.id = self.event_id
+        else:
+            self.event.id = self.event_id
+            event_repo.insert_with_id(self.event)
     
     def undo(self) -> None:
         """Remove the event from the database."""

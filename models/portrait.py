@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from utils.date_formatter import DateFormatter, DateParts, MonthStyle
 
@@ -15,10 +16,10 @@ class Portrait:
     # Constants
     # ------------------------------------------------------------------
     
-    DATE_UNKNOWN: str = "Unknown"
-    DATE_PRESENT: str = "Present"
-    
-    DEFAULT_DISPLAY_ORDER: int = 0
+    DATE_UNKNOWN: ClassVar[str] = "Unknown"
+    DATE_PRESENT: ClassVar[str] = "Present"
+
+    DEFAULT_DISPLAY_ORDER: ClassVar[int] = 0
     
     # Database Identity
     id: int | None = None
@@ -41,7 +42,7 @@ class Portrait:
     
     # Display Properties
     is_primary: bool = False
-    display_order: int = DEFAULT_DISPLAY_ORDER
+    display_order: int = 0
     
     # ------------------------------------------------------------------
     # Computed Properties - Date Formatting
