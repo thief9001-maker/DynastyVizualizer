@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from utils.date_formatter import DateFormatter, DateParts, MonthStyle
 
@@ -15,9 +16,9 @@ class Family:
     # Constants
     # ------------------------------------------------------------------
     
-    DATE_UNKNOWN: str = "Unknown"
-    DEFAULT_FAMILY_NAME: str = "Unknown Family"
-    FAMILY_NAME_SUFFIX: str = " Family"
+    DATE_UNKNOWN: ClassVar[str] = "Unknown"
+    DEFAULT_FAMILY_NAME: ClassVar[str] = "Unknown Family"
+    FAMILY_NAME_SUFFIX: ClassVar[str] = " Family"
     
     # Database Identity
     id: int | None = None

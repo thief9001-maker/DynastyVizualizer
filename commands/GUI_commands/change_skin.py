@@ -8,6 +8,7 @@ class ChangeSkinCommand(BaseCommand):
 
     def __init__(self, new_skin: str, old_skin: str) -> None:
         """Initialize the change skin command."""
+        super().__init__()
         self.new_skin = new_skin
         self.old_skin = old_skin
         # TODO: Add reference to skin manager

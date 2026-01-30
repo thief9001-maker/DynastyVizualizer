@@ -15,6 +15,7 @@ class MovePersonCommand(BaseCommand):
         old_y: float,
     ) -> None:
         """Initialize the move person command."""
+        super().__init__()
         self.person_id = person_id
         self.new_x = new_x
         self.new_y = new_y

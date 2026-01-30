@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from utils.date_formatter import DateFormatter, DateParts, MonthStyle
 
@@ -15,29 +16,29 @@ class Marriage:
     # Constants
     # ------------------------------------------------------------------
     
-    DEFAULT_MARRIAGE_TYPE: str = "spouse"
-    
-    MARRIAGE_TYPE_SPOUSE: str = "spouse"
-    MARRIAGE_TYPE_PARTNER: str = "partner"
-    MARRIAGE_TYPE_COMMON_LAW: str = "common-law"
-    
-    DISSOLUTION_DEATH: str = "Death"
-    DISSOLUTION_DIVORCE: str = "Divorce"
-    DISSOLUTION_ANNULMENT: str = "Annulment"
-    
-    STATUS_ACTIVE: str = "Active"
-    STATUS_ENDED: str = "Ended"
-    
-    DATE_UNKNOWN: str = "Unknown"
-    DATE_ONGOING: str = "Ongoing"
-    DURATION_UNKNOWN: str = "Unknown duration"
-    DURATION_ONGOING: str = "Ongoing"
-    DURATION_LESS_THAN_MONTH: str = "Less than 1 month"
-    
-    APPROX_DAYS_PER_MONTH: int = 30
-    MONTHS_PER_YEAR: int = 12
-    DEFAULT_MONTH: int = 1
-    DEFAULT_DAY: int = 1
+    DEFAULT_MARRIAGE_TYPE: ClassVar[str] = "spouse"
+
+    MARRIAGE_TYPE_SPOUSE: ClassVar[str] = "spouse"
+    MARRIAGE_TYPE_PARTNER: ClassVar[str] = "partner"
+    MARRIAGE_TYPE_COMMON_LAW: ClassVar[str] = "common-law"
+
+    DISSOLUTION_DEATH: ClassVar[str] = "Death"
+    DISSOLUTION_DIVORCE: ClassVar[str] = "Divorce"
+    DISSOLUTION_ANNULMENT: ClassVar[str] = "Annulment"
+
+    STATUS_ACTIVE: ClassVar[str] = "Active"
+    STATUS_ENDED: ClassVar[str] = "Ended"
+
+    DATE_UNKNOWN: ClassVar[str] = "Unknown"
+    DATE_ONGOING: ClassVar[str] = "Ongoing"
+    DURATION_UNKNOWN: ClassVar[str] = "Unknown duration"
+    DURATION_ONGOING: ClassVar[str] = "Ongoing"
+    DURATION_LESS_THAN_MONTH: ClassVar[str] = "Less than 1 month"
+
+    APPROX_DAYS_PER_MONTH: ClassVar[int] = 30
+    MONTHS_PER_YEAR: ClassVar[int] = 12
+    DEFAULT_MONTH: ClassVar[int] = 1
+    DEFAULT_DAY: ClassVar[int] = 1
     
     # Database Identity
     id: int | None = None
@@ -58,7 +59,7 @@ class Marriage:
     dissolution_reason: str = ""
     
     # Marriage Type
-    marriage_type: str = DEFAULT_MARRIAGE_TYPE
+    marriage_type: str = "spouse"
     
     # Notes
     notes: str = ""

@@ -40,10 +40,13 @@ class DeleteMarriageCommand(BaseCommand):
             'spouse2_id': self.marriage.spouse2_id,
             'marriage_year': self.marriage.marriage_year,
             'marriage_month': self.marriage.marriage_month,
+            'marriage_day': self.marriage.marriage_day,
             'dissolution_year': self.marriage.dissolution_year,
             'dissolution_month': self.marriage.dissolution_month,
             'dissolution_day': self.marriage.dissolution_day,
-            'dissolution_reason': self.marriage.dissolution_reason
+            'dissolution_reason': self.marriage.dissolution_reason,
+            'marriage_type': self.marriage.marriage_type,
+            'notes': self.marriage.notes
         }
     
     # ------------------------------------------------------------------

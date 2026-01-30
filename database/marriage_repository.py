@@ -42,6 +42,11 @@ class MarriageRepository(BaseRepository[Marriage]):
         WHERE spouse1_id = ? OR spouse2_id = ?
         ORDER BY marriage_year, marriage_month
     """
+
+    SQL_SELECT_ALL: str = """
+        SELECT * FROM Marriage
+        ORDER BY marriage_year, marriage_month
+    """
     
     SQL_SELECT_ACTIVE_BY_PERSON: str = """
         SELECT * FROM Marriage
@@ -163,6 +168,16 @@ class MarriageRepository(BaseRepository[Marriage]):
     # Marriage-Specific Query Operations
     # ------------------------------------------------------------------
     
+    def get_all(self) -> list[Marriage]:
+        """Retrieve all marriages from database."""
+        self._ensure_connection()
+
+        cursor: sqlite3.Cursor = self._get_cursor()
+        cursor.execute(self.SQL_SELECT_ALL)
+        rows: list[sqlite3.Row] = cursor.fetchall()
+
+        return [self._row_to_entity(row) for row in rows]
+
     def get_by_person(self, person_id: int) -> list[Marriage]:
         """Get all marriages for a person (as either spouse)."""
         self._ensure_connection()

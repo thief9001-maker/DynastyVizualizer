@@ -4,6 +4,7 @@ from .add_person import AddPersonCommand
 from .assign_parent import AssignParentCommand
 from .create_child import CreateChildCommand
 from .delete_event import DeleteEventCommand
+from .delete_marriage import DeleteMarriageCommand
 from .edit_event import EditEventCommand
 from .edit_marriage import EditMarriageCommand
 from .edit_person import EditPersonCommand
@@ -18,6 +19,7 @@ __all__ = [
     "AssignParentCommand",
     "CreateChildCommand",
     "DeleteEventCommand",
+    "DeleteMarriageCommand",
     "EditEventCommand",
     "EditMarriageCommand",
     "EditPersonCommand",

@@ -254,9 +254,8 @@ class AddPersonDialog(QDialog):
         """Validate inputs and create Person object before accepting."""
         if not self._validate_inputs():
             return
-        
+
         self._create_person()
-        self._save_person_to_database()
         self.accept()
     
     # ------------------------------------------------------------------
@@ -346,14 +345,6 @@ class AddPersonDialog(QDialog):
             return None, None
         
         return self.arrival_date_picker.get_date()
-    
-    def _save_person_to_database(self) -> None:
-        """Save the created person to database."""
-        if self._person is None:
-            return
-        
-        person_id: int = self.person_repo.insert(self._person)
-        self._person.id = person_id
     
     # ------------------------------------------------------------------
     # Public Interface

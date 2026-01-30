@@ -27,10 +27,10 @@ class PersonRepository(BaseRepository[Person]):
             arrival_year, arrival_month, arrival_day,
             moved_out_year, moved_out_month, moved_out_day,
             father_id, mother_id, family_id,
-            dynasty_id, is_founder, education, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            dynasty_id, is_founder, education, is_favorite, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
-    
+
     SQL_INSERT_WITH_ID: str = """
         INSERT INTO Person (
             id, first_name, middle_name, last_name, maiden_name, nickname,
@@ -39,8 +39,8 @@ class PersonRepository(BaseRepository[Person]):
             arrival_year, arrival_month, arrival_day,
             moved_out_year, moved_out_month, moved_out_day,
             father_id, mother_id, family_id,
-            dynasty_id, is_founder, education, notes
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            dynasty_id, is_founder, education, is_favorite, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     
     SQL_SELECT_BY_ID: str = "SELECT * FROM Person WHERE id = ?"
@@ -75,7 +75,7 @@ class PersonRepository(BaseRepository[Person]):
             arrival_year = ?, arrival_month = ?, arrival_day = ?,
             moved_out_year = ?, moved_out_month = ?, moved_out_day = ?,
             father_id = ?, mother_id = ?, family_id = ?,
-            dynasty_id = ?, is_founder = ?, education = ?, notes = ?
+            dynasty_id = ?, is_founder = ?, education = ?, is_favorite = ?, notes = ?
         WHERE id = ?
     """
     
@@ -123,6 +123,7 @@ class PersonRepository(BaseRepository[Person]):
             dynasty_id=row['dynasty_id'] or self.DEFAULT_DYNASTY_ID,
             is_founder=bool(row['is_founder']),
             education=row['education'] or self.DEFAULT_EDUCATION,
+            is_favorite=bool(row['is_favorite']),
             notes=row['notes'] or self.DEFAULT_NOTES
         )
     
@@ -139,6 +140,7 @@ class PersonRepository(BaseRepository[Person]):
             entity.dynasty_id,
             self.FOUNDER_FLAG_TRUE if entity.is_founder else self.FOUNDER_FLAG_FALSE,
             entity.education,
+            self.FOUNDER_FLAG_TRUE if entity.is_favorite else self.FOUNDER_FLAG_FALSE,
             entity.notes
         )
 
@@ -156,6 +158,7 @@ class PersonRepository(BaseRepository[Person]):
             entity.dynasty_id,
             self.FOUNDER_FLAG_TRUE if entity.is_founder else self.FOUNDER_FLAG_FALSE,
             entity.education,
+            self.FOUNDER_FLAG_TRUE if entity.is_favorite else self.FOUNDER_FLAG_FALSE,
             entity.notes
         )
 
@@ -172,6 +175,7 @@ class PersonRepository(BaseRepository[Person]):
             entity.dynasty_id,
             self.FOUNDER_FLAG_TRUE if entity.is_founder else self.FOUNDER_FLAG_FALSE,
             entity.education,
+            self.FOUNDER_FLAG_TRUE if entity.is_favorite else self.FOUNDER_FLAG_FALSE,
             entity.notes,
             entity.id
         )

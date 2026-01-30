@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import ClassVar
 
 from utils.date_formatter import DateFormatter, DateParts, MonthStyle
 
@@ -15,17 +16,17 @@ class MajorEvent:
     # Constants
     # ------------------------------------------------------------------
     
-    EVENT_TYPE_WAR: str = "War"
-    EVENT_TYPE_PLAGUE: str = "Plague"
-    EVENT_TYPE_FAMINE: str = "Famine"
-    EVENT_TYPE_DISASTER: str = "Disaster"
-    EVENT_TYPE_CELEBRATION: str = "Celebration"
-    EVENT_TYPE_POLITICAL: str = "Political"
-    EVENT_TYPE_OTHER: str = "Other"
-    
-    DATE_UNKNOWN: str = "Unknown"
-    DATE_ONGOING: str = "Ongoing"
-    DATE_PRESENT: str = "Present"
+    EVENT_TYPE_WAR: ClassVar[str] = "War"
+    EVENT_TYPE_PLAGUE: ClassVar[str] = "Plague"
+    EVENT_TYPE_FAMINE: ClassVar[str] = "Famine"
+    EVENT_TYPE_DISASTER: ClassVar[str] = "Disaster"
+    EVENT_TYPE_CELEBRATION: ClassVar[str] = "Celebration"
+    EVENT_TYPE_POLITICAL: ClassVar[str] = "Political"
+    EVENT_TYPE_OTHER: ClassVar[str] = "Other"
+
+    DATE_UNKNOWN: ClassVar[str] = "Unknown"
+    DATE_ONGOING: ClassVar[str] = "Ongoing"
+    DATE_PRESENT: ClassVar[str] = "Present"
     
     # ------------------------------------------------------------------
     # Database Identity

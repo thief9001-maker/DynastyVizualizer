@@ -675,9 +675,10 @@ class MainWindow(QMainWindow):
         self.action_validate_parentage.setEnabled(has_db)
     
     def refresh_ui(self) -> None:
-        """Refresh window title and menu states after database changes."""
+        """Refresh window title, menu states, and undo/redo labels."""
         self._update_window_title()
         self._update_menu_states()
+        self.edit_actions.update_undo_redo_actions()
     
     # ------------------------------------------------------------------
     # Event Handlers

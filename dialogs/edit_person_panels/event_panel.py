@@ -185,17 +185,12 @@ class EventsPanel(QWidget):
     def _edit_event(self, event: Event) -> None:
         """Open dialog to edit an event."""
         from dialogs.edit_event_dialog import EditEventDialog
-        
+
         dialog: EditEventDialog = EditEventDialog(self.db_manager, event, self)
-        
+
         if not dialog.exec():
             return
-        
-        edited_event: Event | None = dialog.get_edited_event()
-        if not edited_event:
-            return
-        
-        self._update_event_in_place(event, edited_event)
+
         self._load_events()
         self._mark_dirty()
     

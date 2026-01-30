@@ -8,6 +8,7 @@ class ChangeViewCommand(BaseCommand):
 
     def __init__(self, new_view: str, old_view: str) -> None:
         """Initialize the change view command."""
+        super().__init__()
         self.new_view = new_view  # "tree", "timeline", "table", "stats"
         self.old_view = old_view
         # TODO: Add reference to main window

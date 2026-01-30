@@ -33,7 +33,13 @@ class AddMarriageCommand(BaseCommand):
     def run(self) -> None:
         """Insert the marriage into the database."""
         marriage_repo: MarriageRepository = MarriageRepository(self.db_manager)
-        self.marriage_id = marriage_repo.insert(self.marriage)
+
+        if self.marriage_id is None:
+            self.marriage_id = marriage_repo.insert(self.marriage)
+            self.marriage.id = self.marriage_id
+        else:
+            self.marriage.id = self.marriage_id
+            marriage_repo.insert_with_id(self.marriage)
     
     def undo(self) -> None:
         """Remove the marriage from the database."""

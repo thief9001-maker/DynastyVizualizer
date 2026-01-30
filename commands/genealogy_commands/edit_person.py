@@ -86,6 +86,8 @@ class EditPersonCommand(BaseCommand):
     
     def run(self) -> None:
         """Execute all changes to person and related data."""
+        self.inserted_marriage_ids.clear()
+        self.inserted_event_ids.clear()
         self._update_person()
         self._apply_marriage_changes()
         self._apply_event_changes()
