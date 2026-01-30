@@ -63,7 +63,7 @@ class MarriageValidator:
     
     def _get_all_marriages(self, marriage_repo) -> list[Marriage]:
         """Get all marriages from repository."""
-        return []
+        return marriage_repo.get_all()
     
     def _validate_marriage(self, marriage: Marriage) -> list[ValidationIssue]:
         """Validate a single marriage."""
@@ -310,14 +310,22 @@ class MarriageValidator:
         """Check if two marriages overlap in time."""
         if marriage1.marriage_year is None or marriage2.marriage_year is None:
             return None
-        
-        if marriage1.dissolution_year is None:
+
+        if marriage1.dissolution_year is not None:
+            if marriage1.dissolution_year < marriage2.marriage_year:
+                return None
+
+        if marriage2.dissolution_year is not None:
+            if marriage2.dissolution_year < marriage1.marriage_year:
+                return None
+
+        if marriage1.dissolution_year is None and marriage2.dissolution_year is None:
             return self._create_overlap_issue(marriage1, marriage2, person_id, person_repo)
-        
-        if marriage1.dissolution_year >= marriage2.marriage_year:
+
+        if marriage1.dissolution_year is None or marriage2.dissolution_year is None:
             return self._create_overlap_issue(marriage1, marriage2, person_id, person_repo)
-        
-        return None
+
+        return self._create_overlap_issue(marriage1, marriage2, person_id, person_repo)
     
     def _create_overlap_issue(
         self,
@@ -408,14 +416,16 @@ class ParentageValidator:
         person: Person,
         person_repo: PersonRepository
     ) -> ValidationIssue | None:
-        """Check for circular parent-child relationships."""
+        """Check for circular parent-child relationships via both parents."""
         if person.id is None:
             return None
-        
+
         visited: set[int] = set()
-        current_id: int | None = person.id
-        
-        while current_id is not None:
+        queue: list[int] = [person.id]
+
+        while queue:
+            current_id: int = queue.pop(0)
+
             if current_id in visited:
                 return ValidationIssue(
                     issue_type=ValidationIssue.TYPE_ERROR,
@@ -425,15 +435,18 @@ class ParentageValidator:
                     entity_id=person.id,
                     details={"circular_person_id": current_id}
                 )
-            
+
             visited.add(current_id)
             current_person: Person | None = person_repo.get_by_id(current_id)
-            
+
             if not current_person:
-                break
-            
-            current_id = current_person.father_id
-        
+                continue
+
+            if current_person.father_id is not None:
+                queue.append(current_person.father_id)
+            if current_person.mother_id is not None:
+                queue.append(current_person.mother_id)
+
         return None
     
     def _validate_parent(

@@ -8,6 +8,7 @@ class RecomputeGenerationsCommand(BaseCommand):
 
     def __init__(self, database_connection) -> None:
         """Initialize the recompute generations command."""
+        super().__init__()
         self.db = database_connection
         self.old_generations: dict[int, int] = {}
         # TODO: Store original generation assignments for undo
