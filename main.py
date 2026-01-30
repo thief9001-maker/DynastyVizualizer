@@ -570,10 +570,20 @@ class MainWindow(QMainWindow):
     def _show_family_trees(self) -> None:
         """Switch to family trees view."""
         if self.genealogy_view is None:
-            self.genealogy_view = self._create_placeholder_view(self.PLACEHOLDER_GENEALOGY)
+            from views.tree_view.tree_canvas import TreeCanvas
+            self.genealogy_view = TreeCanvas(self.db, self)
+            self.genealogy_view.person_double_clicked.connect(self._on_tree_person_double_clicked)
             self.view_stack.addWidget(self.genealogy_view)
-        
+
+        self.genealogy_view.rebuild_scene()
         self.view_stack.setCurrentWidget(self.genealogy_view)
+
+    def _on_tree_person_double_clicked(self, person_id: int) -> None:
+        """Handle double-click on a person in the tree canvas."""
+        from dialogs.edit_person_dialog import EditPersonDialog
+        dialog: EditPersonDialog = EditPersonDialog(person_id, self.db, self)
+        if dialog.exec():
+            self.refresh_ui()
     
     def _show_timeline(self) -> None:
         """Switch to timeline view."""
@@ -679,6 +689,8 @@ class MainWindow(QMainWindow):
         self._update_window_title()
         self._update_menu_states()
         self.edit_actions.update_undo_redo_actions()
+        if self.genealogy_view is not None and self.view_stack.currentWidget() is self.genealogy_view:
+            self.genealogy_view.rebuild_scene()
     
     # ------------------------------------------------------------------
     # Event Handlers
