@@ -27,7 +27,8 @@ class PersonBox(QGraphicsWidget):
     BORDER_WIDTH: int = 3
     CORNER_RADIUS: int = 8
     TEXT_PADDING: int = 10
-    
+    GRID_CELL: float = 20.0
+
     TOOLTIP_WIDTH: int = 300
     TOOLTIP_HEIGHT: int = 600
     TOOLTIP_OFFSET_X: int = 10
@@ -83,6 +84,7 @@ class PersonBox(QGraphicsWidget):
         
         self._is_dragging: bool = False
         self._drag_start_pos: QPointF | None = None
+        self._connected_lines: list = []  # RelationshipLine references
         
         self._tooltip_delay_timer: QTimer = QTimer()
         self._tooltip_delay_timer.setSingleShot(True)
@@ -562,6 +564,13 @@ class PersonBox(QGraphicsWidget):
     # Qt Event Handlers
     # ========================================
     
+    def itemChange(self, change, value):
+        """Update connected lines when position changes."""
+        if change == QGraphicsWidget.GraphicsItemChange.ItemPositionHasChanged:
+            for line in self._connected_lines:
+                line.update_path()
+        return super().itemChange(change, value)
+
     def boundingRect(self) -> QRectF:
         """Define widget bounds for Qt rendering system."""
         return QRectF(0, 0, self.box_width, self.box_height)
@@ -663,8 +672,6 @@ class PersonBox(QGraphicsWidget):
             expected_x: float = self.pos().x() + self.box_width + self.TOOLTIP_OFFSET_X
             expected_y: float = self.pos().y()
             self._tooltip_panel.setPos(expected_x, expected_y)
-        
-    GRID_CELL: float = 20.0
 
     def mouseReleaseEvent(self, event) -> None:
         """End drag and snap to grid."""

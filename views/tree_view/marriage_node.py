@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QGraphicsWidget, QGraphicsSceneHoverEvent, QMenu
 from PySide6.QtCore import Qt, QRectF, QPointF, Signal
-from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QFontMetrics
+from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QFontMetrics, QPainterPath
 
 if TYPE_CHECKING:
     from database.db_manager import DatabaseManager
@@ -64,6 +64,7 @@ class MarriageNode(QGraphicsWidget):
         self.db_manager: DatabaseManager = db_manager
         self.marriage: Marriage | None = marriage
         self._is_hovered: bool = False
+        self._connected_lines: list = []  # RelationshipLine references
 
         self.setZValue(self.Z_VALUE)
         self.setAcceptHoverEvents(True)
@@ -168,6 +169,12 @@ class MarriageNode(QGraphicsWidget):
         font_date = QFont(self.LABEL_FONT_FAMILY, self.LABEL_DATE_FONT_SIZE)
         return float(QFontMetrics(font_type).height() + QFontMetrics(font_date).height() + 2)
 
+    def shape(self) -> QPainterPath:
+        """Hit-test shape is the circle only, not the label area above."""
+        path = QPainterPath()
+        path.addEllipse(QRectF(0, 0, self.NODE_SIZE, self.NODE_SIZE))
+        return path
+
     # ------------------------------------------------------------------
     # Anchor Points
     # ------------------------------------------------------------------
@@ -197,7 +204,7 @@ class MarriageNode(QGraphicsWidget):
         painter.drawEllipse(QRectF(0, 0, self.NODE_SIZE, self.NODE_SIZE))
 
     def _draw_label(self, painter: QPainter) -> None:
-        """Draw type and date labels centered above the circle."""
+        """Draw type and date labels centered above the circle with opaque background."""
         type_text = self._get_type_label()
         date_text = self._get_date_label()
 
@@ -207,21 +214,39 @@ class MarriageNode(QGraphicsWidget):
         fm_date = QFontMetrics(font_date)
 
         center_x = self.NODE_SIZE / 2
+        label_h = self._label_height()
 
-        # Type line
+        # Compute the total text block width for the opaque background.
+        max_text_w = max(
+            fm_type.horizontalAdvance(type_text),
+            fm_date.horizontalAdvance(date_text),
+        )
+        bg_pad = 4.0
+        bg_rect = QRectF(
+            center_x - max_text_w / 2 - bg_pad,
+            -(label_h + self.LABEL_GAP),
+            max_text_w + bg_pad * 2,
+            label_h + 2,
+        )
+        # Opaque white background so lines don't show through.
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QBrush(QColor(255, 255, 255, 230)))
+        painter.drawRoundedRect(bg_rect, 3, 3)
+
+        # Type line (top).
+        type_y = -(label_h + self.LABEL_GAP) + fm_type.ascent() + 1
         painter.setFont(font_type)
         painter.setPen(QPen(self.COLOR_LABEL_TEXT))
-        type_y = -(fm_date.height() + self.LABEL_GAP)
         painter.drawText(
             int(center_x - fm_type.horizontalAdvance(type_text) / 2),
             int(type_y),
             type_text,
         )
 
-        # Date line
+        # Date line (below type).
+        date_y = type_y + fm_date.height()
         painter.setFont(font_date)
         painter.setPen(QPen(self.COLOR_LABEL_DATE))
-        date_y = -self.LABEL_GAP + fm_date.ascent()
         painter.drawText(
             int(center_x - fm_date.horizontalAdvance(date_text) / 2),
             int(date_y),
@@ -231,6 +256,13 @@ class MarriageNode(QGraphicsWidget):
     # ------------------------------------------------------------------
     # Events
     # ------------------------------------------------------------------
+
+    def itemChange(self, change, value):
+        """Update connected lines when position changes."""
+        if change == QGraphicsWidget.GraphicsItemChange.ItemPositionHasChanged:
+            for line in self._connected_lines:
+                line.update_path()
+        return super().itemChange(change, value)
 
     def hoverEnterEvent(self, event: QGraphicsSceneHoverEvent) -> None:
         self._is_hovered = True

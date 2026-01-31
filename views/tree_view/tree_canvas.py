@@ -161,10 +161,12 @@ class TreeCanvas(QGraphicsView):
                 line = RelationshipLine(RelationshipLine.TYPE_MARRIAGE, s1, node)
                 self.scene().addItem(line)
                 self._relationship_lines.append(line)
+                self._register_line(line)
             if node and s2:
                 line = RelationshipLine(RelationshipLine.TYPE_MARRIAGE, node, s2)
                 self.scene().addItem(line)
                 self._relationship_lines.append(line)
+                self._register_line(line)
 
     def _create_parent_child_lines(self, layout: LayoutResult) -> None:
         from database.person_repository import PersonRepository
@@ -231,6 +233,7 @@ class TreeCanvas(QGraphicsView):
             line = RelationshipLine(line_type, parent_item, boxes[0], obstacle_rects=obstacle_rects)
             self.scene().addItem(line)
             self._relationship_lines.append(line)
+            self._register_line(line)
             return
 
         # Multiple children: draw a shared horizontal sibling bar.
@@ -254,6 +257,7 @@ class TreeCanvas(QGraphicsView):
         )
         self.scene().addItem(drop_line)
         self._relationship_lines.append(drop_line)
+        self._register_line(drop_line)
 
         # Horizontal sibling bar.
         child_centers = sorted(b.scenePos().x() + b.boundingRect().width() / 2 for b in boxes)
@@ -263,6 +267,7 @@ class TreeCanvas(QGraphicsView):
         )
         self.scene().addItem(bar_line)
         self._relationship_lines.append(bar_line)
+        self._register_line(bar_line)
 
         # Connect horizontal bar junction at parent_bottom_x to the bar if needed
         # (parent may not be centered on the bar).
@@ -279,12 +284,19 @@ class TreeCanvas(QGraphicsView):
             )
             self.scene().addItem(child_drop)
             self._relationship_lines.append(child_drop)
+            self._register_line(child_drop)
 
     def _find_parent_marriage(self, person, marriage_by_couple) -> int | None:
         if person.father_id and person.mother_id:
             key = (min(person.father_id, person.mother_id), max(person.father_id, person.mother_id))
             return marriage_by_couple.get(key)
         return None
+
+    def _register_line(self, line: RelationshipLine) -> None:
+        """Register a line on its connected items for live redraw on drag."""
+        for item in (line.start_item, line.end_item):
+            if item is not None and hasattr(item, '_connected_lines'):
+                item._connected_lines.append(line)
 
     def _collect_obstacle_rects(self) -> list[QRectF]:
         """Collect bounding rectangles of all person boxes for obstacle avoidance."""
