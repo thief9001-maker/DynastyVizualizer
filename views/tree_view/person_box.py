@@ -18,6 +18,7 @@ class PersonBox(QGraphicsWidget):
     person_double_clicked: Signal = Signal(int)
     person_selected: Signal = Signal(int)
     favorite_toggled: Signal = Signal(int, bool)
+    navigate_to_person: Signal = Signal(int)
     
     BOX_MIN_WIDTH: int = 300
     BOX_MAX_WIDTH: int = 300
@@ -516,6 +517,7 @@ class PersonBox(QGraphicsWidget):
         self._tooltip_panel.parent_person_box = self
         self._tooltip_panel.manually_moved.connect(self._on_tooltip_manually_moved)
         self._tooltip_panel.closed.connect(self._on_tooltip_closed)
+        self._tooltip_panel.navigate_to_person.connect(self._on_tooltip_navigate)
         
         tooltip_x: float = self.pos().x() + self.box_width + self.TOOLTIP_OFFSET_X
         tooltip_y: float = self.pos().y()
@@ -530,6 +532,12 @@ class PersonBox(QGraphicsWidget):
     def _on_tooltip_closed(self) -> None:
         """Handle tooltip being closed."""
         self._tooltip_panel = None
+
+    def _on_tooltip_navigate(self, target_person_id: int) -> None:
+        """Handle navigation request from tooltip link click."""
+        # Close current tooltip first, then forward the navigation request.
+        self._hide_enhanced_tooltip()
+        self.navigate_to_person.emit(target_person_id)
     
     def _hide_enhanced_tooltip(self) -> None:
         """Remove enhanced tooltip from scene."""
@@ -609,26 +617,34 @@ class PersonBox(QGraphicsWidget):
     def mousePressEvent(self, event) -> None:
         """Handle clicks on star (favorite toggle) or box (drag start)."""
         is_left_click: bool = event.button() == Qt.MouseButton.LeftButton
-        
+
         if not is_left_click:
             super().mousePressEvent(event)
             return
-        
+
         click_position: QPointF = event.pos()
         clicked_on_star: bool = self._get_star_rect().contains(click_position)
-        
+
         if clicked_on_star:
             self.is_favorite = not self.is_favorite
             self.favorite_toggled.emit(self.person_id, self.is_favorite)
             self._save_favorite_status()
             self.update()
             return
-        
+
         self._is_dragging = True
         self._drag_start_pos = click_position
         self.person_selected.emit(self.person_id)
         self._stop_tooltip_timer()
-        
+
+        # Raise to top of scene when dragging begins.
+        max_z: float = 10.0
+        if self.scene():
+            for item in self.scene().items():
+                if item is not self and item.zValue() > max_z:
+                    max_z = item.zValue()
+        self.setZValue(max_z + 1)
+
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
@@ -636,35 +652,30 @@ class PersonBox(QGraphicsWidget):
         if not self._is_dragging:
             super().mouseMoveEvent(event)
             return
-        
-        self._stop_tooltip_timer()
-        
-        tooltip_exists: bool = self._tooltip_panel is not None
 
-        if tooltip_exists and self._tooltip_panel:
+        self._stop_tooltip_timer()
+
+        # Let Qt move the box first.
+        super().mouseMoveEvent(event)
+
+        # Then reposition tooltip to follow the box exactly.
+        if self._tooltip_panel is not None and not self._tooltip_manually_positioned:
             expected_x: float = self.pos().x() + self.box_width + self.TOOLTIP_OFFSET_X
             expected_y: float = self.pos().y()
-            
-            actual_x: float = self._tooltip_panel.pos().x()
-            actual_y: float = self._tooltip_panel.pos().y()
-            
-            position_tolerance: int = 10
-            x_difference: float = abs(actual_x - expected_x)
-            y_difference: float = abs(actual_y - expected_y)
-            
-            is_in_default_position: bool = x_difference <= position_tolerance and y_difference <= position_tolerance
-            should_move_tooltip: bool = is_in_default_position or not self._tooltip_manually_positioned
-            
-            if should_move_tooltip:
-                self._tooltip_panel.setPos(expected_x, expected_y)
+            self._tooltip_panel.setPos(expected_x, expected_y)
         
-        super().mouseMoveEvent(event)
-        
+    GRID_CELL: float = 20.0
+
     def mouseReleaseEvent(self, event) -> None:
-        """End drag operation."""
+        """End drag and snap to grid."""
         is_left_click: bool = event.button() == Qt.MouseButton.LeftButton
         if is_left_click:
             self._is_dragging = False
+            # Snap to grid.
+            pos = self.pos()
+            snapped_x = round(pos.x() / self.GRID_CELL) * self.GRID_CELL
+            snapped_y = round(pos.y() / self.GRID_CELL) * self.GRID_CELL
+            self.setPos(snapped_x, snapped_y)
         super().mouseReleaseEvent(event)
     
     def mouseDoubleClickEvent(self, event) -> None:
