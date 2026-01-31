@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from PySide6.QtWidgets import QGraphicsView, QGraphicsScene
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QRectF
 from PySide6.QtGui import QPainter
 
 if TYPE_CHECKING:
@@ -34,23 +34,25 @@ class TreeCanvas(QGraphicsView):
     # Constants
     # ------------------------------------------------------------------
 
-    # Zoom
     ZOOM_FACTOR: float = 1.15
     ZOOM_MIN: float = 0.05
     ZOOM_MAX: float = 3.0
 
-    # Scene
     SCENE_MARGIN: float = 500.0
+    GRID_CELL: float = 20.0
+
+    # How many extra "person box widths" of empty space on the right.
+    RIGHT_PADDING_BOXES: int = 2
 
     # ------------------------------------------------------------------
     # Initialization
     # ------------------------------------------------------------------
 
     def __init__(self, db_manager: DatabaseManager, parent=None) -> None:
-        """Initialize the tree canvas."""
         super().__init__(parent)
         self.db_manager: DatabaseManager = db_manager
         self._current_zoom: float = 1.0
+        self._layout: LayoutResult | None = None
 
         self._person_boxes: dict[int, PersonBox] = {}
         self._marriage_nodes: dict[int, MarriageNode] = {}
@@ -62,12 +64,10 @@ class TreeCanvas(QGraphicsView):
         self._time_scale: TimeScale = TimeScale(self)
 
     def _setup_scene(self) -> None:
-        """Create and configure the graphics scene."""
-        scene: QGraphicsScene = QGraphicsScene(self)
+        scene = QGraphicsScene(self)
         self.setScene(scene)
 
     def _setup_view(self) -> None:
-        """Configure view rendering and interaction."""
         self.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.SmartViewportUpdate)
@@ -85,7 +85,8 @@ class TreeCanvas(QGraphicsView):
         """Clear and rebuild the entire scene from database."""
         self._clear_scene()
 
-        layout: LayoutResult = TreeLayoutEngine(self.db_manager).calculate_layout()
+        layout = TreeLayoutEngine(self.db_manager).calculate_layout()
+        self._layout = layout
 
         if not layout.person_positions:
             return
@@ -95,11 +96,10 @@ class TreeCanvas(QGraphicsView):
         self._create_marriage_nodes(layout)
         self._create_relationship_lines(layout)
 
-        self._update_scene_rect()
+        self._update_scene_rect(layout)
         self._update_time_scale(layout)
 
     def _clear_scene(self) -> None:
-        """Remove all items from the scene."""
         self.scene().clear()
         self._person_boxes.clear()
         self._marriage_nodes.clear()
@@ -111,145 +111,217 @@ class TreeCanvas(QGraphicsView):
     # ------------------------------------------------------------------
 
     def _create_generation_bands(self, layout: LayoutResult) -> None:
-        """Create generation band backgrounds."""
-        for gen, (band_y, band_height) in layout.generation_bands.items():
-            band: GenerationBand = GenerationBand(gen, band_y, band_height)
+        # Determine left-most person x and place label 2 box-widths to the left.
+        min_x = 0.0
+        if layout.person_positions:
+            min_x = min(x for x, _ in layout.person_positions.values())
+        label_offset = min_x - 2 * PersonBox.BOX_MIN_WIDTH
+
+        for gen, (band_y, band_height, label) in layout.generation_bands.items():
+            band = GenerationBand(gen, band_y, band_height, label_text=label)
+            band.set_label_x_offset(label_offset)
             self.scene().addItem(band)
             self._generation_bands.append(band)
 
     def _create_person_boxes(self, layout: LayoutResult) -> None:
-        """Create person box widgets and position them."""
         for person_id, (x, y) in layout.person_positions.items():
-            box: PersonBox = PersonBox(person_id, self.db_manager)
+            box = PersonBox(person_id, self.db_manager)
             box.setPos(x, y)
             box.person_selected.connect(self._on_person_selected)
             box.person_double_clicked.connect(self._on_person_double_clicked)
+            box.navigate_to_person.connect(self._navigate_to_person)
             self.scene().addItem(box)
             self._person_boxes[person_id] = box
 
     def _create_marriage_nodes(self, layout: LayoutResult) -> None:
-        """Create marriage node connectors."""
         for marriage_id, (x, y) in layout.marriage_positions.items():
-            node: MarriageNode = MarriageNode(marriage_id, self.db_manager)
+            node = MarriageNode(marriage_id, self.db_manager)
             node.setPos(x, y)
             node.marriage_double_clicked.connect(self._on_marriage_double_clicked)
             self.scene().addItem(node)
             self._marriage_nodes[marriage_id] = node
 
     def _create_relationship_lines(self, layout: LayoutResult) -> None:
-        """Create all relationship lines between items."""
         self._create_marriage_lines(layout)
         self._create_parent_child_lines(layout)
 
     def _create_marriage_lines(self, layout: LayoutResult) -> None:
-        """Create horizontal lines connecting spouses through marriage nodes."""
         from database.marriage_repository import MarriageRepository
 
-        marriage_repo: MarriageRepository = MarriageRepository(self.db_manager)
-        all_marriages = marriage_repo.get_all()
+        all_marriages = MarriageRepository(self.db_manager).get_all()
 
         for marriage in all_marriages:
             if marriage.id is None:
                 continue
-
             node = self._marriage_nodes.get(marriage.id)
-            spouse1_box = self._person_boxes.get(marriage.spouse1_id) if marriage.spouse1_id else None
-            spouse2_box = self._person_boxes.get(marriage.spouse2_id) if marriage.spouse2_id else None
+            s1 = self._person_boxes.get(marriage.spouse1_id) if marriage.spouse1_id else None
+            s2 = self._person_boxes.get(marriage.spouse2_id) if marriage.spouse2_id else None
 
-            if spouse1_box and node:
-                line: RelationshipLine = RelationshipLine(
-                    RelationshipLine.TYPE_MARRIAGE, spouse1_box, node
-                )
+            if s1 and node:
+                line = RelationshipLine(RelationshipLine.TYPE_MARRIAGE, s1, node)
                 self.scene().addItem(line)
                 self._relationship_lines.append(line)
-
-            if node and spouse2_box:
-                line = RelationshipLine(
-                    RelationshipLine.TYPE_MARRIAGE, node, spouse2_box
-                )
+            if node and s2:
+                line = RelationshipLine(RelationshipLine.TYPE_MARRIAGE, node, s2)
                 self.scene().addItem(line)
                 self._relationship_lines.append(line)
 
     def _create_parent_child_lines(self, layout: LayoutResult) -> None:
-        """Create lines from parents/marriage nodes down to children."""
         from database.person_repository import PersonRepository
         from database.marriage_repository import MarriageRepository
 
-        person_repo: PersonRepository = PersonRepository(self.db_manager)
-        marriage_repo: MarriageRepository = MarriageRepository(self.db_manager)
-
-        all_people = person_repo.get_all()
-        all_marriages = marriage_repo.get_all()
+        all_people = PersonRepository(self.db_manager).get_all()
+        all_marriages = MarriageRepository(self.db_manager).get_all()
 
         marriage_by_couple: dict[tuple[int, int], int] = {}
-        for marriage in all_marriages:
-            if marriage.spouse1_id and marriage.spouse2_id and marriage.id:
-                key = (min(marriage.spouse1_id, marriage.spouse2_id),
-                       max(marriage.spouse1_id, marriage.spouse2_id))
-                marriage_by_couple[key] = marriage.id
+        for m in all_marriages:
+            if m.spouse1_id and m.spouse2_id and m.id:
+                key = (min(m.spouse1_id, m.spouse2_id), max(m.spouse1_id, m.spouse2_id))
+                marriage_by_couple[key] = m.id
+
+        # Group children by their parent-marriage (or single-parent).
+        # This lets us draw a shared horizontal sibling bar.
+        from collections import defaultdict
+        sibling_groups: dict[str, list[int]] = defaultdict(list)
 
         for person in all_people:
             if person.id is None:
                 continue
-
             child_box = self._person_boxes.get(person.id)
             if child_box is None:
                 continue
 
-            parent_marriage_id: int | None = self._find_parent_marriage(
-                person, marriage_by_couple
-            )
-
-            if parent_marriage_id is not None:
-                parent_node = self._marriage_nodes.get(parent_marriage_id)
-                if parent_node:
-                    line: RelationshipLine = RelationshipLine(
-                        RelationshipLine.TYPE_PARENT_CHILD, parent_node, child_box
-                    )
-                    self.scene().addItem(line)
-                    self._relationship_lines.append(line)
+            mid = self._find_parent_marriage(person, marriage_by_couple)
+            if mid is not None:
+                sibling_groups[f"m:{mid}"].append(person.id)
             else:
-                self._create_direct_parent_line(person, child_box)
+                # Single-parent: group by whichever parent exists.
+                for pid in (person.father_id, person.mother_id):
+                    if pid is not None and pid in self._person_boxes:
+                        sibling_groups[f"p:{pid}"].append(person.id)
+
+        # Now draw lines for each sibling group.
+        obstacle_rects = self._collect_obstacle_rects()
+
+        for group_key, child_ids in sibling_groups.items():
+            if not child_ids:
+                continue
+
+            if group_key.startswith("m:"):
+                mid = int(group_key[2:])
+                parent_node = self._marriage_nodes.get(mid)
+                if parent_node is None:
+                    continue
+                self._draw_sibling_group_lines(parent_node, child_ids, obstacle_rects, from_marriage=True)
+            else:
+                pid = int(group_key[2:])
+                parent_box = self._person_boxes.get(pid)
+                if parent_box is None:
+                    continue
+                self._draw_sibling_group_lines(parent_box, child_ids, obstacle_rects, from_marriage=False)
+
+    def _draw_sibling_group_lines(self, parent_item, child_ids, obstacle_rects, from_marriage: bool) -> None:
+        """Draw orthogonal lines from parent_item down to children with a shared horizontal bar."""
+        boxes = [self._person_boxes[cid] for cid in child_ids if cid in self._person_boxes]
+        if not boxes:
+            return
+
+        if len(boxes) == 1:
+            line_type = RelationshipLine.TYPE_PARENT_CHILD if from_marriage else RelationshipLine.TYPE_DIRECT_PARENT
+            line = RelationshipLine(line_type, parent_item, boxes[0], obstacle_rects=obstacle_rects)
+            self.scene().addItem(line)
+            self._relationship_lines.append(line)
+            return
+
+        # Multiple children: draw a shared horizontal sibling bar.
+        # Vertical line from parent down to bar Y, then horizontal across,
+        # then vertical drops to each child.
+        parent_rect = parent_item.boundingRect()
+        parent_pos = parent_item.scenePos()
+        parent_bottom_x = parent_pos.x() + parent_rect.width() / 2
+        parent_bottom_y = parent_pos.y() + parent_rect.height()
+
+        # Bar Y is halfway between parent bottom and topmost child.
+        child_tops = [b.scenePos().y() for b in boxes]
+        min_child_y = min(child_tops)
+        bar_y = parent_bottom_y + (min_child_y - parent_bottom_y) / 2
+
+        # Vertical drop from parent to bar.
+        line_type = RelationshipLine.TYPE_PARENT_CHILD if from_marriage else RelationshipLine.TYPE_DIRECT_PARENT
+        drop_line = RelationshipLine(
+            line_type, parent_item, None,
+            fixed_path_points=[(parent_bottom_x, parent_bottom_y), (parent_bottom_x, bar_y)],
+        )
+        self.scene().addItem(drop_line)
+        self._relationship_lines.append(drop_line)
+
+        # Horizontal sibling bar.
+        child_centers = sorted(b.scenePos().x() + b.boundingRect().width() / 2 for b in boxes)
+        bar_line = RelationshipLine(
+            RelationshipLine.TYPE_SIBLING, None, None,
+            fixed_path_points=[(child_centers[0], bar_y), (child_centers[-1], bar_y)],
+        )
+        self.scene().addItem(bar_line)
+        self._relationship_lines.append(bar_line)
+
+        # Connect horizontal bar junction at parent_bottom_x to the bar if needed
+        # (parent may not be centered on the bar).
+        # This is already handled by the drop line ending at bar_y.
+
+        # Vertical drops from bar to each child.
+        for box in boxes:
+            child_pos = box.scenePos()
+            child_top_x = child_pos.x() + box.boundingRect().width() / 2
+            child_top_y = child_pos.y()
+            child_drop = RelationshipLine(
+                line_type, None, box,
+                fixed_path_points=[(child_top_x, bar_y), (child_top_x, child_top_y)],
+            )
+            self.scene().addItem(child_drop)
+            self._relationship_lines.append(child_drop)
 
     def _find_parent_marriage(self, person, marriage_by_couple) -> int | None:
-        """Find a marriage between the person's parents."""
         if person.father_id and person.mother_id:
-            key = (min(person.father_id, person.mother_id),
-                   max(person.father_id, person.mother_id))
+            key = (min(person.father_id, person.mother_id), max(person.father_id, person.mother_id))
             return marriage_by_couple.get(key)
         return None
 
-    def _create_direct_parent_line(self, person, child_box) -> None:
-        """Create a direct parent-to-child line when no marriage node exists."""
-        for parent_id in (person.father_id, person.mother_id):
-            if parent_id is None:
-                continue
-
-            parent_box = self._person_boxes.get(parent_id)
-            if parent_box is None:
-                continue
-
-            line: RelationshipLine = RelationshipLine(
-                RelationshipLine.TYPE_DIRECT_PARENT, parent_box, child_box
-            )
-            self.scene().addItem(line)
-            self._relationship_lines.append(line)
+    def _collect_obstacle_rects(self) -> list[QRectF]:
+        """Collect bounding rectangles of all person boxes for obstacle avoidance."""
+        rects: list[QRectF] = []
+        for box in self._person_boxes.values():
+            pos = box.scenePos()
+            rect = box.boundingRect()
+            margin = MarriageNode.NODE_SIZE
+            rects.append(QRectF(
+                pos.x() - margin, pos.y() - margin,
+                rect.width() + 2 * margin, rect.height() + 2 * margin,
+            ))
+        return rects
 
     # ------------------------------------------------------------------
     # Scene Rect / Time Scale
     # ------------------------------------------------------------------
 
-    def _update_scene_rect(self) -> None:
-        """Expand scene rect to include all items plus margin."""
+    def _update_scene_rect(self, layout: LayoutResult) -> None:
+        """Size scene to content: vertical by year range, horizontal by boxes."""
         items_rect = self.scene().itemsBoundingRect()
-        expanded = items_rect.adjusted(
-            -self.SCENE_MARGIN, -self.SCENE_MARGIN,
-            self.SCENE_MARGIN, self.SCENE_MARGIN
+
+        # Right boundary: rightmost box + 2 box widths.
+        max_x = 0.0
+        if layout.person_positions:
+            max_x = max(x for x, _ in layout.person_positions.values())
+        right_wall = max_x + PersonBox.BOX_MIN_WIDTH * (1 + self.RIGHT_PADDING_BOXES)
+
+        expanded = QRectF(
+            items_rect.left() - self.SCENE_MARGIN,
+            items_rect.top() - self.SCENE_MARGIN,
+            max(items_rect.width(), right_wall - items_rect.left()) + self.SCENE_MARGIN,
+            items_rect.height() + 2 * self.SCENE_MARGIN,
         )
         self.scene().setSceneRect(expanded)
 
     def _update_time_scale(self, layout: LayoutResult) -> None:
-        """Configure the time scale overlay from layout data."""
         earliest, latest = layout.year_range
         if earliest == 0 and latest == 0:
             return
@@ -271,53 +343,62 @@ class TreeCanvas(QGraphicsView):
     # ------------------------------------------------------------------
 
     def _on_person_selected(self, person_id: int) -> None:
-        """Forward person selection signal."""
         self.person_selected.emit(person_id)
 
     def _on_person_double_clicked(self, person_id: int) -> None:
-        """Forward person double-click signal."""
         self.person_double_clicked.emit(person_id)
 
     def _on_marriage_double_clicked(self, marriage_id: int) -> None:
-        """Forward marriage double-click signal."""
         self.marriage_double_clicked.emit(marriage_id)
 
+    def _navigate_to_person(self, person_id: int) -> None:
+        """Center the view on a person and open their locked tooltip."""
+        box = self._person_boxes.get(person_id)
+        if box is None:
+            return
+        # Center the view on this box.
+        self.centerOn(box)
+        # Trigger the tooltip by simulating a hover (call the internal method).
+        if hasattr(box, '_create_enhanced_tooltip'):
+            box._create_enhanced_tooltip()
+            if box._tooltip_panel is not None:
+                box._tooltip_panel.is_locked = True
+
     # ------------------------------------------------------------------
-    # Zoom
+    # Scroll / Zoom  (scroll = wheel, zoom = Ctrl+wheel)
     # ------------------------------------------------------------------
 
     def wheelEvent(self, event) -> None:
-        """Zoom in/out with scroll wheel."""
-        if event.angleDelta().y() > 0:
-            factor: float = self.ZOOM_FACTOR
+        """Scroll wheel scrolls; Ctrl+wheel zooms."""
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            # Zoom
+            if event.angleDelta().y() > 0:
+                factor = self.ZOOM_FACTOR
+            else:
+                factor = 1.0 / self.ZOOM_FACTOR
+
+            new_zoom = self._current_zoom * factor
+            if new_zoom < self.ZOOM_MIN or new_zoom > self.ZOOM_MAX:
+                return
+
+            self._current_zoom = new_zoom
+            self.scale(factor, factor)
+            self._time_scale.update_geometry()
+            self._time_scale.update()
         else:
-            factor = 1.0 / self.ZOOM_FACTOR
-
-        new_zoom: float = self._current_zoom * factor
-
-        if new_zoom < self.ZOOM_MIN or new_zoom > self.ZOOM_MAX:
-            return
-
-        self._current_zoom = new_zoom
-        self.scale(factor, factor)
-        self._time_scale.update_geometry()
-        self._time_scale.update()
+            # Normal scroll
+            super().wheelEvent(event)
+            self._time_scale.update()
 
     # ------------------------------------------------------------------
-    # Resize
+    # Resize / Scroll helpers
     # ------------------------------------------------------------------
 
     def resizeEvent(self, event) -> None:
-        """Update time scale geometry on resize."""
         super().resizeEvent(event)
         self._time_scale.update_geometry()
 
-    # ------------------------------------------------------------------
-    # Scroll Updates
-    # ------------------------------------------------------------------
-
     def scrollContentsBy(self, dx: int, dy: int) -> None:
-        """Update time scale when the view scrolls."""
         super().scrollContentsBy(dx, dy)
         self._time_scale.update()
 
@@ -326,13 +407,19 @@ class TreeCanvas(QGraphicsView):
     # ------------------------------------------------------------------
 
     def refresh(self) -> None:
-        """Rebuild the scene from current database state."""
         self.rebuild_scene()
 
     def zoom_to_fit(self) -> None:
-        """Fit the entire tree in the viewport."""
         self.fitInView(self.scene().itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
         transform = self.transform()
         self._current_zoom = transform.m11()
         self._time_scale.update_geometry()
         self._time_scale.update()
+
+    # ------------------------------------------------------------------
+    # Snap helper (used by PersonBox / MarriageNode on drop)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def snap_to_grid(value: float, cell: float = 20.0) -> float:
+        return round(value / cell) * cell
