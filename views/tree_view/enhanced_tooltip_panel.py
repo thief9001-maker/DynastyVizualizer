@@ -79,12 +79,16 @@ class EnhancedTooltipPanel(QGraphicsWidget):
     COLOR_TEXT_LIGHT: QColor = QColor(100, 100, 100)
     COLOR_LINK: QColor = QColor(30, 90, 200)
     COLOR_LINK_HOVER: QColor = QColor(60, 120, 255)
+    COLOR_LINK_VISITED: QColor = QColor(120, 60, 180)
     COLOR_CLOSE_BUTTON: QColor = QColor(200, 0, 0)
     COLOR_CLOSE_BUTTON_IDLE: QColor = QColor(150, 150, 150)
     COLOR_SEPARATOR: QColor = QColor(220, 220, 220)
     COLOR_LOCK_FILL: QColor = QColor(100, 100, 255)
     COLOR_LOCK_INDICATOR: QColor = QColor(100, 100, 255, 100)
     COLOR_LOCK_ICON_INACTIVE: QColor = QColor(80, 80, 80)
+
+    # Session-level set of person IDs that have been navigated to.
+    _visited_person_ids: set[int] = set()
 
     def __init__(
         self,
@@ -380,7 +384,13 @@ class EnhancedTooltipPanel(QGraphicsWidget):
         text_w = fm.horizontalAdvance(full_text)
 
         is_hovered = (self._hovered_link_id == pid)
-        color = self.COLOR_LINK_HOVER if is_hovered else self.COLOR_LINK
+        is_visited = pid in EnhancedTooltipPanel._visited_person_ids
+        if is_hovered:
+            color = self.COLOR_LINK_HOVER
+        elif is_visited:
+            color = self.COLOR_LINK_VISITED
+        else:
+            color = self.COLOR_LINK
 
         painter.setPen(QPen(color))
         painter.drawText(int(x), int(y), full_text)
@@ -799,6 +809,7 @@ class EnhancedTooltipPanel(QGraphicsWidget):
         # Clickable name links.
         for rect, pid in self._clickable_rects:
             if rect.contains(pos):
+                EnhancedTooltipPanel._visited_person_ids.add(pid)
                 self.navigate_to_person.emit(pid)
                 return
 

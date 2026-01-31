@@ -208,7 +208,7 @@ class TimeScale(QWidget):
     # ------------------------------------------------------------------
 
     def _draw_center_year(self, painter: QPainter) -> None:
-        """Draw the centred year indicator with an odometer-roll effect."""
+        """Draw the centred year indicator with per-digit odometer roll."""
         center_y_px = self.height() / 2
         frac_year = self._center_year()
 
@@ -245,7 +245,6 @@ class TimeScale(QWidget):
         painter.setPen(QPen(self.COLOR_CENTER_LINE, 1))
         painter.drawLine(0, int(center_y_px), self.SCALE_WIDTH, int(center_y_px))
 
-        # Odometer: clip text so the ones digit rolls.
         painter.setPen(QPen(self.COLOR_CENTER_TEXT))
 
         ppy = self._pixels_per_year()
@@ -253,38 +252,75 @@ class TimeScale(QWidget):
 
         if show_months:
             month_index = int(fraction * 12)
+            month_frac = (fraction * 12) - month_index
             month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
                            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
             month_str = month_names[min(month_index, 11)]
-            text = f"{month_str} {whole_year}"
-        else:
-            text = str(whole_year)
-
-        # Vertical offset for odometer roll on the ones digit.
-        roll_offset = fraction * digit_h
-
-        # Draw with clip to keep the roll contained.
-        painter.save()
-        painter.setClipRect(box_rect)
-
-        tw = fm.horizontalAdvance(text)
-        tx = (self.SCALE_WIDTH - tw) / 2
-
-        # Current year text shifts up by roll_offset.
-        painter.drawText(int(tx), int(center_y_px + fm.ascent() / 2 - roll_offset), text)
-
-        # Next year text rolls in from below.
-        if show_months:
-            next_month_index = month_index + 1
-            if next_month_index >= 12:
-                next_text = f"Jan {whole_year + 1}"
+            next_month_idx = month_index + 1
+            if next_month_idx >= 12:
+                next_month_str = "Jan"
+                next_year_str = str(whole_year + 1)
             else:
-                next_text = f"{month_names[next_month_index]} {whole_year}"
-        else:
-            next_text = str(whole_year + 1)
+                next_month_str = month_names[next_month_idx]
+                next_year_str = str(whole_year)
+            # Draw year static, roll month only.
+            year_str = str(whole_year)
+            year_w = fm.horizontalAdvance(year_str)
+            month_w = max(fm.horizontalAdvance(month_str), fm.horizontalAdvance(next_month_str))
+            total_w = month_w + fm.horizontalAdvance(" ") + year_w
+            tx = (self.SCALE_WIDTH - total_w) / 2
+            base_y = center_y_px + fm.ascent() / 2
+            roll_offset = month_frac * digit_h
 
-        painter.drawText(int(tx), int(center_y_px + fm.ascent() / 2 - roll_offset + digit_h), next_text)
-        painter.restore()
+            painter.save()
+            painter.setClipRect(box_rect)
+            # Static year part.
+            painter.drawText(int(tx + month_w + fm.horizontalAdvance(" ")), int(base_y), next_year_str if next_month_idx >= 12 and month_frac > 0.5 else year_str)
+            # Rolling month.
+            month_clip = QRectF(tx, box_rect.top(), month_w + 2, box_rect.height())
+            painter.setClipRect(month_clip)
+            painter.drawText(int(tx), int(base_y - roll_offset), month_str)
+            painter.drawText(int(tx), int(base_y - roll_offset + digit_h), next_month_str)
+            painter.restore()
+        else:
+            # Per-digit odometer: only roll digits that are changing.
+            current_str = str(whole_year)
+            next_str = str(whole_year + 1)
+
+            # Pad to same length.
+            max_len = max(len(current_str), len(next_str))
+            current_str = current_str.zfill(max_len)
+            next_str = next_str.zfill(max_len)
+
+            # Calculate total width for centering.
+            total_w = sum(fm.horizontalAdvance(c) for c in current_str)
+            tx = (self.SCALE_WIDTH - total_w) / 2
+            base_y = center_y_px + fm.ascent() / 2
+
+            painter.save()
+            painter.setClipRect(box_rect)
+
+            x = tx
+            for i in range(max_len):
+                cur_d = current_str[i]
+                nxt_d = next_str[i]
+                dw = fm.horizontalAdvance(cur_d)
+
+                if cur_d == nxt_d:
+                    # Static digit - no roll.
+                    painter.drawText(int(x), int(base_y), cur_d)
+                else:
+                    # Roll this digit.
+                    digit_clip = QRectF(x - 1, box_rect.top(), dw + 2, box_rect.height())
+                    painter.save()
+                    painter.setClipRect(digit_clip)
+                    roll_offset = fraction * digit_h
+                    painter.drawText(int(x), int(base_y - roll_offset), cur_d)
+                    painter.drawText(int(x), int(base_y - roll_offset + digit_h), nxt_d)
+                    painter.restore()
+                x += dw
+
+            painter.restore()
 
     # ------------------------------------------------------------------
     # Geometry Updates

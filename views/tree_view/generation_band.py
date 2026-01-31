@@ -24,9 +24,9 @@ class GenerationBand(QGraphicsWidget):
     # Constants
     # ------------------------------------------------------------------
 
-    COLOR_EVEN: QColor = QColor(245, 248, 255, 40)
-    COLOR_ODD: QColor = QColor(235, 240, 250, 40)
-    COLOR_BORDER: QColor = QColor(200, 210, 230, 60)
+    COLOR_EVEN: QColor = QColor(230, 238, 255, 90)
+    COLOR_ODD: QColor = QColor(245, 235, 225, 90)
+    COLOR_BORDER: QColor = QColor(180, 190, 210, 120)
 
     COLOR_LABEL: QColor = QColor(140, 150, 170)
     COLOR_LABEL_BG: QColor = QColor(255, 255, 255, 50)
